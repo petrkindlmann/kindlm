@@ -7,9 +7,22 @@ export interface CostAssertionConfig {
 export function createCostAssertion(config: CostAssertionConfig): Assertion {
   return {
     type: "cost",
-    evaluate(_context: AssertionContext): Promise<AssertionResult[]> {
-      void config;
-      throw new Error("Not implemented");
+    evaluate(context: AssertionContext): Promise<AssertionResult[]> {
+      const costUsd = context.costUsd ?? 0;
+      const passed = costUsd <= config.maxUsd;
+      return Promise.resolve([
+        {
+          assertionType: "cost",
+          label: `Cost <= $${config.maxUsd}`,
+          passed,
+          score: passed ? 1 : 0,
+          failureCode: passed ? undefined : "INTERNAL_ERROR",
+          failureMessage: passed
+            ? undefined
+            : `Cost $${costUsd.toFixed(4)} exceeds max $${config.maxUsd}`,
+          metadata: { costUsd },
+        },
+      ]);
     },
   };
 }

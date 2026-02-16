@@ -45,10 +45,31 @@ const ProviderConfigSchema = z.object({
     .describe("Organization ID (OpenAI-specific)"),
 });
 
+const OllamaProviderConfigSchema = z.object({
+  apiKeyEnv: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Environment variable name containing the API key. Optional for Ollama (local).",
+    ),
+  baseUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      "Ollama server URL. Defaults to http://localhost:11434.",
+    ),
+});
+
 const ProvidersSchema = z
   .object({
     openai: ProviderConfigSchema.optional(),
     anthropic: ProviderConfigSchema.optional(),
+    ollama: OllamaProviderConfigSchema.optional(),
+    gemini: ProviderConfigSchema.optional(),
+    mistral: ProviderConfigSchema.optional(),
+    cohere: ProviderConfigSchema.optional(),
   })
   .refine(
     (providers) =>
@@ -79,7 +100,7 @@ const ModelSchema = z.object({
     "Unique identifier for this model config, referenced in reports",
   ),
   provider: z
-    .enum(["openai", "anthropic"])
+    .enum(["openai", "anthropic", "ollama", "gemini", "mistral", "cohere"])
     .describe("Must match a key in the providers section"),
   model: NonEmptyString.describe(
     "Model name as the provider expects it (e.g., 'gpt-4o', 'claude-sonnet-4-5-20250929')",

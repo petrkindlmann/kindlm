@@ -163,7 +163,17 @@ export function createAnthropicAdapter(
         },
       );
 
-      const json = await response.json();
+      let json: unknown;
+      try {
+        json = await response.json();
+      } catch {
+        throw new ProviderError(
+          "PROVIDER_ERROR",
+          "Malformed response body from Anthropic API",
+          response.status,
+          response.status >= 500,
+        );
+      }
       const latencyMs = Date.now() - startTime;
 
       if (!response.ok) {

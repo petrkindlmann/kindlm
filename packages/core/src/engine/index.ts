@@ -1,5 +1,5 @@
 export { createRunner } from "./runner.js";
-export type { RunResult, SuiteRunResult, TestRunResult } from "./runner.js";
+export type { RunResult, SuiteRunResult, TestRunResult, RunnerDeps, RunnerResult, ProgressEvent } from "./runner.js";
 
 export { aggregateRuns } from "./aggregator.js";
 export type { TestCaseRunResult, AggregatedTestResult } from "./aggregator.js";

@@ -127,6 +127,40 @@ export async function runCLI(args: string[]): Promise<{
 }
 ```
 
+#### 3.2.1 Scenario Testing
+
+**Purpose:** Simulate the diverse usage patterns that real users create — config variety, workflow diversity, provider response shapes, and edge cases. These are not load tests; they verify that the CLI handles the full spectrum of valid (and invalid) inputs gracefully.
+
+**File:** `packages/cli/tests/integration/scenarios.test.ts`
+
+**Categories (~47 tests in 5 describe blocks):**
+
+| Category | Count | What it covers |
+|----------|-------|---------------|
+| Config Diversity | ~14 | Minimal config, all assertion types combined, multi-provider, unicode names, large vars, YAML comments, skip, repeat, many tests, every optional field, invalid configs |
+| Workflow Diversity | ~8 | `--reporter json/junit`, `--gate`, `--runs`, `--compliance`, `validate` command on valid/broken configs |
+| Provider Response Diversity | ~10 | Tool calls, shouldNotCall, multi-tool, PII detection, keyword allow/deny, empty response, large response |
+| Edge Cases | ~10 | HTTP 429/500/401 errors, argsMatch partial, maxLength, JSON schema validation, gates in config, long test names, notContains |
+| Real-World Patterns | ~5 | Refund agent, support bot, structured output API, multi-turn tool agent, CI pipeline |
+
+**How each test works:**
+
+1. Creates a temp directory
+2. Writes a `kindlm.yaml` config
+3. Starts a mock HTTP server with a custom handler (or uses the default OpenAI handler)
+4. Spawns the real CLI binary as a child process
+5. Asserts exit code and/or stdout content
+
+**How to run:**
+
+```bash
+# Run all scenario tests
+cd packages/cli && npx vitest run tests/integration/scenarios.test.ts
+
+# Run through turbo (includes all CLI tests)
+npx turbo run test --filter=@kindlm/cli
+```
+
 ### 3.3 `packages/cloud` — Integration with Miniflare
 
 Cloud tests run against a local Workers runtime with an in-memory D1 database.

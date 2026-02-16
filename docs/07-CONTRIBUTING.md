@@ -205,6 +205,47 @@ Releases are automated via GitHub Actions when changesets are merged to `main`.
 
 ---
 
+## CI/CD
+
+### CI Workflow
+
+Every push to `main` and every pull request triggers the CI workflow (`.github/workflows/ci.yml`):
+
+1. Checkout + Node.js 20 setup
+2. `npm ci` — install dependencies
+3. `npx turbo run build` — build all packages
+4. `npx turbo run typecheck` — type-check all packages
+5. `npx turbo run lint` — lint all packages
+6. `npx turbo run test` — run all test suites
+
+The workflow uses concurrency groups to cancel in-progress CI runs for the same branch when a new commit is pushed.
+
+### Release Workflow
+
+Merging changesets to `main` triggers the release workflow (`.github/workflows/release.yml`):
+
+1. If there are pending changesets, the workflow opens/updates a "Version Packages" PR
+2. When that PR is merged, the workflow publishes updated packages to npm
+3. Uses `changesets/action@v1` for automated version bumping and publishing
+4. Requires `NPM_TOKEN` secret to be set in the repository
+
+### Reusable GitHub Action
+
+The project includes a reusable GitHub Action at `.github/kindlm-action/action.yml` for running KindLM in CI:
+
+```yaml
+# In your project's CI workflow:
+- uses: kindlm/kindlm/.github/kindlm-action@main
+  with:
+    config: kindlm.yaml      # Path to config file
+    reporter: junit           # Output format
+    gate: 95                  # Minimum pass rate
+    compliance: true          # Generate compliance report
+    token: ${{ secrets.KINDLM_TOKEN }}  # Upload to Cloud
+```
+
+---
+
 ## Code of Conduct
 
 Be kind. Be constructive. Assume good intent. We're building a tool about reliability — let's be reliable collaborators too.

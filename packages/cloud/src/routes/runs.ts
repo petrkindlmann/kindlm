@@ -1,24 +1,123 @@
 import { Hono } from "hono";
-import type { Bindings } from "../types.js";
+import type { AppEnv } from "../types.js";
+import type { WebhookEvent } from "../types.js";
+import { getQueries } from "../db/queries.js";
+import { dispatchWebhooks } from "../webhooks/dispatch.js";
+import { parseIntBounded, validateBody, createRunBody, updateRunBody } from "../validation.js";
 
-export const runRoutes = new Hono<{ Bindings: Bindings }>();
+export const runRoutes = new Hono<AppEnv>();
 
-runRoutes.post("/:projectId/runs", (c) => {
-  void c.req.param("projectId");
-  return c.json({ error: "Not implemented" }, 501);
+// POST /:projectId/runs — Create run
+runRoutes.post("/:projectId/runs", async (c) => {
+  const projectId = c.req.param("projectId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const project = await queries.getProject(projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const raw = await c.req.json();
+  const parsed = validateBody(createRunBody, raw);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error }, 400);
+  }
+  const body = parsed.data;
+
+  const suite = await queries.getSuite(body.suiteId);
+  if (!suite || suite.projectId !== projectId) {
+    return c.json({ error: "Suite not found in this project" }, 404);
+  }
+
+  const run = await queries.createRun(projectId, body.suiteId, {
+    commitSha: body.commitSha,
+    branch: body.branch,
+    environment: body.environment,
+    triggeredBy: body.triggeredBy,
+  });
+
+  return c.json(run, 201);
 });
 
-runRoutes.get("/:runId", (c) => {
-  void c.req.param("runId");
-  return c.json({ error: "Not implemented" }, 501);
+// GET /:projectId/runs — List runs (must be before /:runId to avoid conflict)
+runRoutes.get("/:projectId/runs", async (c) => {
+  const projectId = c.req.param("projectId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const project = await queries.getProject(projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const suiteId = c.req.query("suiteId") ?? undefined;
+  const limit = parseIntBounded(c.req.query("limit"), 50, 1, 100);
+  const offset = parseIntBounded(c.req.query("offset"), 0, 0, 100_000);
+
+  const result = await queries.listRuns(projectId, { suiteId, limit, offset });
+  return c.json(result);
 });
 
-runRoutes.patch("/:runId", (c) => {
-  void c.req.param("runId");
-  return c.json({ error: "Not implemented" }, 501);
+// GET /:runId — Get run
+runRoutes.get("/:runId", async (c) => {
+  const runId = c.req.param("runId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const run = await queries.getRun(runId);
+  if (!run) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  const project = await queries.getProject(run.projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  return c.json(run);
 });
 
-runRoutes.get("/:projectId/runs", (c) => {
-  void c.req.param("projectId");
-  return c.json({ error: "Not implemented" }, 501);
+// PATCH /:runId — Update run
+runRoutes.patch("/:runId", async (c) => {
+  const runId = c.req.param("runId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const existing = await queries.getRun(runId);
+  if (!existing) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  const project = await queries.getProject(existing.projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  const raw = await c.req.json();
+  const parsed = validateBody(updateRunBody, raw);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error }, 400);
+  }
+  const body = parsed.data;
+
+  const updated = await queries.updateRun(runId, body);
+  if (!updated) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  // Dispatch webhooks on status change to completed/failed
+  if (
+    body.status === "completed" ||
+    body.status === "failed"
+  ) {
+    const event: WebhookEvent =
+      body.status === "completed" ? "run.completed" : "run.failed";
+    const webhooks = await queries.listWebhooksByEvent(auth.org.id, event);
+    if (webhooks.length > 0) {
+      c.executionCtx.waitUntil(dispatchWebhooks(webhooks, event, updated));
+    }
+  }
+
+  return c.json(updated);
 });

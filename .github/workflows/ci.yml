@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-cli:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx turbo run build
+
+      - run: npx turbo run typecheck --filter=@kindlm/core --filter=@kindlm/cli
+
+      - run: npx turbo run lint --filter=@kindlm/core --filter=@kindlm/cli
+
+      - run: npx turbo run test --filter=@kindlm/core --filter=@kindlm/cli
+
+  cloud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx turbo run build
+
+      - run: npx turbo run typecheck --filter=@kindlm/cloud
+
+      - run: npx turbo run lint --filter=@kindlm/cloud
+
+      - run: npx turbo run test --filter=@kindlm/cloud

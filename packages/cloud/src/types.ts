@@ -95,12 +95,99 @@ export interface Baseline {
   activatedAt: string | null;
 }
 
+export type WebhookEvent = "run.completed" | "run.failed";
+
+export interface Webhook {
+  id: string;
+  orgId: string;
+  url: string;
+  events: WebhookEvent[];
+  secret: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface Billing {
+  orgId: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  plan: Plan;
+  periodEnd: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface User {
+  id: string;
+  githubId: number;
+  githubLogin: string;
+  email: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+
+export type OrgRole = "owner" | "admin" | "member";
+
+export interface OrgMember {
+  orgId: string;
+  userId: string;
+  role: OrgRole;
+  createdAt: string;
+  user?: User;
+}
+
+export interface AuditEntry {
+  id: string;
+  orgId: string;
+  actorId: string | null;
+  actorType: string;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface SigningKey {
+  orgId: string;
+  publicKey: string;
+  privateKeyEnc: string;
+  algorithm: string;
+  createdAt: string;
+}
+
+export interface SamlConfig {
+  orgId: string;
+  idpEntityId: string;
+  idpSsoUrl: string;
+  idpCertificate: string;
+  spEntityId: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
 export interface Bindings {
   DB: D1Database;
   ENVIRONMENT: string;
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 }
 
 export interface AuthContext {
   org: Org;
   token: Token;
+}
+
+export type AppEnv = {
+  Bindings: Bindings;
+  Variables: { auth: AuthContext };
+};
+
+export function apiError(message: string, status: number): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }

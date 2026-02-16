@@ -19,6 +19,7 @@ export type FailureCode =
   | "PROVIDER_TIMEOUT"
   | "PROVIDER_AUTH_FAILED"
   | "PROVIDER_ERROR"
+  | "INVALID_PATTERN"
   | "INTERNAL_ERROR";
 
 export interface AssertionResult {
@@ -40,6 +41,8 @@ export interface AssertionContext {
   judgeAdapter?: ProviderAdapter;
   judgeModel?: string;
   configDir: string;
+  latencyMs?: number;
+  costUsd?: number;
 }
 
 export interface Assertion {

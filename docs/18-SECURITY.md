@@ -94,14 +94,11 @@ Generated server-side using `crypto.getRandomValues()`. Stored hashed (SHA-256) 
 ### Authentication flow
 
 ```
-1. User runs `kindlm login`
-2. CLI opens browser to https://cloud.kindlm.com/auth/github
-3. User authorizes GitHub OAuth App
-4. GitHub redirects to callback with auth code
-5. Cloud API exchanges code for GitHub access token
-6. Cloud API creates/updates user record, generates KindLM token
-7. Token returned to CLI via localhost callback
-8. CLI stores token in ~/.config/kindlm/credentials.json (file permissions 600)
+1. User creates API token in KindLM Cloud dashboard (or via POST /v1/auth/tokens)
+2. User runs `kindlm login` and pastes the token interactively
+   (or passes --token <token>, or sets KINDLM_API_TOKEN env var)
+3. CLI validates token format (klm_ prefix) and verifies against Cloud API
+4. Token is stored in ~/.kindlm/credentials (file permissions 600, directory 700)
 ```
 
 ### Token lifecycle
@@ -116,17 +113,15 @@ Generated server-side using `crypto.getRandomValues()`. Stored hashed (SHA-256) 
 ### Token storage (client-side)
 
 ```
-~/.config/kindlm/credentials.json (chmod 600)
+~/.kindlm/credentials (chmod 600, directory chmod 700)
 
 {
-  "cloud_url": "https://api.kindlm.com",
   "token": "klm_a1b2c3...",
-  "org_id": "org_x1y2z3",
-  "expires_at": "2026-05-15T00:00:00Z"
+  "savedAt": "2026-02-15T12:00:00Z"
 }
 ```
 
-CLI checks file permissions on read. Warns if file is world-readable.
+Token resolution order: `--token` flag → `KINDLM_API_TOKEN` env var → stored credentials file.
 
 ---
 

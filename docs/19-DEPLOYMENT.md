@@ -443,6 +443,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_log(org_id, event, created_a
 | `CF_API_TOKEN` | Cloud deploy workflow | Annually or on compromise |
 | `E2E_OPENAI_KEY` | Nightly E2E tests | On demand |
 | `E2E_ANTHROPIC_KEY` | Nightly E2E tests | On demand |
+| `E2E_GOOGLE_API_KEY` | Nightly E2E tests (Gemini) | On demand |
 
 ### Cloudflare Workers secrets
 
@@ -450,7 +451,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_log(org_id, event, created_a
 # Set secrets (never in wrangler.toml)
 npx wrangler secret put GITHUB_CLIENT_ID
 npx wrangler secret put GITHUB_CLIENT_SECRET
-npx wrangler secret put STRIPE_SECRET_KEY      # Phase 3
+npx wrangler secret put STRIPE_SECRET_KEY
+npx wrangler secret put STRIPE_WEBHOOK_SECRET
 npx wrangler secret put SIGNING_PRIVATE_KEY     # Enterprise
 ```
 
@@ -460,6 +462,8 @@ npx wrangler secret put SIGNING_PRIVATE_KEY     # Enterprise
 # packages/cloud/.dev.vars (gitignored)
 GITHUB_CLIENT_ID=your_dev_app_id
 GITHUB_CLIENT_SECRET=your_dev_app_secret
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 ---

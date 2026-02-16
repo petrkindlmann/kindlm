@@ -6,9 +6,39 @@ CREATE TABLE IF NOT EXISTS orgs (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(12)))),
   name        TEXT NOT NULL,
   plan        TEXT NOT NULL DEFAULT 'free',
+  github_org  TEXT,
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- ============================================================
+-- Users
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS users (
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(12)))),
+  github_id     INTEGER NOT NULL UNIQUE,
+  github_login  TEXT NOT NULL,
+  email         TEXT,
+  avatar_url    TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_github ON users(github_id);
+
+-- ============================================================
+-- Org Members
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS org_members (
+  org_id      TEXT NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL DEFAULT 'member',
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (org_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
 
 CREATE TABLE IF NOT EXISTS tokens (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -167,3 +197,33 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
 );
 
 CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON idempotency_keys(expires_at);
+
+-- ============================================================
+-- Webhooks
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS webhooks (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(12)))),
+  org_id      TEXT NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  url         TEXT NOT NULL,
+  events      TEXT NOT NULL,
+  secret      TEXT NOT NULL,
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhooks_org ON webhooks(org_id);
+
+-- ============================================================
+-- Billing
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS billing (
+  org_id                  TEXT PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  stripe_customer_id      TEXT,
+  stripe_subscription_id  TEXT,
+  plan                    TEXT NOT NULL DEFAULT 'free',
+  period_end              TEXT,
+  created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
+);

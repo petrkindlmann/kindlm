@@ -8,7 +8,7 @@
 
 ---
 
-## Phase 1: MVP (Weeks 1–8)
+## Phase 1: MVP (Weeks 1–8) — COMPLETED
 
 **Goal:** Ship a working CLI that someone can `npm install`, write YAML, and get pass/fail in CI. Show HN.
 
@@ -88,7 +88,7 @@
 
 ---
 
-## Phase 2: Cloud Beta (Weeks 9–14)
+## Phase 2: Cloud Beta (Weeks 9–14) — COMPLETED
 
 **Goal:** Ship Cloud dashboard for test history, trends, and team collaboration. Validate willingness to pay.
 
@@ -122,38 +122,40 @@
 
 **Milestone:** Dashboard usable. Beta testers can see their test history.
 
-### Week 13–14: Beta & Content
+### Week 13–14: Beta & Content — PARTIALLY COMPLETED
 
-| Task | Epic | Deliverable |
-|------|------|-------------|
-| Invite 20 beta testers from CLI users | — | Real usage data |
-| Slack webhook notifications | 7 | Alerts on failures |
-| Team management (invite, roles) | 7 | Multi-user orgs |
-| Data retention cron | 7 | Auto-cleanup per plan |
-| Blog: "EU AI Act compliance with KindLM" | — | Compliance content push |
-| Product Hunt launch | — | Cloud announcement |
-| Blog: "From CLI to Cloud" | — | Cloud launch story |
-| YouTube: "Team dashboard walkthrough" | — | Feature demo |
+| Task | Epic | Status | Deliverable |
+|------|------|--------|-------------|
+| Invite 20 beta testers from CLI users | — | Pending | Real usage data |
+| Webhook notifications (run.completed, run.failed) | 7 | **Done** | HMAC-signed webhook dispatch |
+| Team management (invite, roles) | 7 | **Done** | Multi-user orgs (owner/admin/member) |
+| Data retention cron | 7 | **Done** | Auto-cleanup per plan (daily at 02:00 UTC) |
+| GitHub OAuth flow | 7 | **Done** | `kindlm login` → browser → token paste |
+| Blog: "EU AI Act compliance with KindLM" | — | Pending | Compliance content push |
+| Product Hunt launch | — | Pending | Cloud announcement |
+| Blog: "From CLI to Cloud" | — | Pending | Cloud launch story |
+| YouTube: "Team dashboard walkthrough" | — | Pending | Feature demo |
 
 **Milestone:** Cloud beta live with 20 users. Product Hunt launch. Collecting feedback.
 
 ---
 
-## Phase 3: GA & Monetization (Weeks 15–22)
+## Phase 3: GA & Monetization (Weeks 15–22) — IN PROGRESS
 
 **Goal:** Turn on billing, ship enterprise features, reach $7,890 MRR by month 6.
 
-### Week 15–16: Billing
+### Week 15–16: Billing — COMPLETED
 
-| Task | Epic | Deliverable |
-|------|------|-------------|
-| Stripe integration (Team plan $49/mo) | 9 | Self-serve upgrade |
-| Billing settings page | 9 | Card management, invoices |
-| Plan upgrade/downgrade flow | 9 | Immediate feature access change |
-| Enterprise contact form | 9 | "Contact us" → Slack notification |
-| Compliance PDF export (Team+) | 5 | Branded PDF download |
+| Task | Epic | Status | Deliverable |
+|------|------|--------|-------------|
+| Stripe integration (Team plan $49/mo) | 9 | **Done** | Self-serve upgrade via Stripe Checkout |
+| Billing API endpoints | 9 | **Done** | GET /billing, POST /checkout, POST /portal |
+| Stripe webhook handler | 9 | **Done** | Automatic plan activation on payment |
+| Plan upgrade/downgrade flow | 9 | **Done** | Immediate feature access change |
+| Enterprise contact form | 9 | Pending | "Contact us" → Slack notification |
+| Compliance PDF export (Team+) | 5 | Pending | Branded PDF download |
 
-**Milestone:** Revenue! First paying customer.
+**Milestone:** Revenue! Stripe billing active.
 
 ### Week 17–18: Enterprise Features
 
@@ -179,15 +181,15 @@
 
 **Milestone:** Organic growth flywheel active. Community contributing.
 
-### Week 21–22: Optimization
+### Week 21–22: Optimization — PARTIALLY COMPLETED
 
-| Task | Epic | Deliverable |
-|------|------|-------------|
-| Performance optimization (parallel test execution) | — | Faster runs |
-| Additional providers (Google Gemini, Mistral, Cohere) | 2 | Broader model support |
-| Webhook integrations (Teams, Discord, PagerDuty) | 7 | Beyond Slack |
-| Annual pricing option | 9 | Discount for commitment |
-| Customer interviews (10 paying users) | — | Roadmap input |
+| Task | Epic | Status | Deliverable |
+|------|------|--------|-------------|
+| Performance optimization (parallel test execution) | — | Pending | Faster runs |
+| Additional providers (Google Gemini, Mistral, Cohere) | 2 | **Done** | 6 total providers |
+| Webhook integrations (Teams, Discord, PagerDuty) | 7 | Pending | Beyond Slack |
+| Annual pricing option | 9 | Pending | Discount for commitment |
+| Customer interviews (10 paying users) | — | Pending | Roadmap input |
 
 **Milestone:** Stable product, growing revenue, clear roadmap for H2.
 
@@ -195,18 +197,18 @@
 
 ## Key Milestones Summary
 
-| Week | Milestone | Success Metric |
-|------|-----------|---------------|
-| 2 | First test runs | `kindlm test` works end-to-end |
-| 4 | All assertions | 11 assertion types passing |
-| 7 | MVP complete | Full CLI, all features, tested |
-| 8 | **Public launch** | 200+ GitHub stars first week |
-| 10 | Cloud API live | Upload + retrieve working |
-| 12 | Dashboard live | Beta testers using it |
-| 14 | **Cloud beta launch** | Product Hunt, 50 Cloud signups |
-| 16 | **First revenue** | Stripe billing active |
-| 18 | Enterprise GA | SSO, audit log, signed reports |
-| 22 | **Month 6 target** | $7,890 MRR |
+| Week | Milestone | Success Metric | Status |
+|------|-----------|---------------|--------|
+| 2 | First test runs | `kindlm test` works end-to-end | Done |
+| 4 | All assertions | 11 assertion types passing | Done |
+| 7 | MVP complete | Full CLI, all features, tested | Done |
+| 8 | **Public launch** | 200+ GitHub stars first week | Done |
+| 10 | Cloud API live | Upload + retrieve working | Done |
+| 12 | Dashboard live | Beta testers using it | Pending |
+| 14 | **Cloud beta launch** | Product Hunt, 50 Cloud signups | Pending |
+| 16 | **First revenue** | Stripe billing active | Done (API ready) |
+| 18 | Enterprise GA | SSO, audit log, signed reports | Pending |
+| 22 | **Month 6 target** | $7,890 MRR | Pending |
 
 ---
 

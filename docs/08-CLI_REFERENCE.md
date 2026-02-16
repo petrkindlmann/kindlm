@@ -57,64 +57,36 @@ kindlm validate ./path/to/config.yaml
 
 ---
 
-### `kindlm test <config>`
+### `kindlm test`
 
-Executes the test suite and produces reports.
+Executes the test suite and produces reports. After running, test results are cached to `.kindlm/last-run.json` so they can be uploaded to KindLM Cloud via `kindlm upload` without re-running.
 
 ```bash
 # Basic usage
-kindlm test kindlm.yaml
+kindlm test
 
-# With all options
-kindlm test kindlm.yaml \
-  --project acme-support \
-  --upload true \
-  --baseline latest \
-  --out ./reports/kindlm-report.json \
-  --junit ./reports/junit.xml \
-  --format pretty \
-  --fail-on any \
-  --threshold-pass-rate 0.95 \
-  --repeat 5 \
-  --concurrency 4 \
-  --timeout-ms 30000 \
-  --tags regression,smoke \
-  --models claude-sonnet \
-  --compliance \
-  --verbose
+# With options
+kindlm test \
+  -c kindlm.yaml \
+  -s my-suite \
+  --reporter pretty \
+  --runs 5 \
+  --gate 95 \
+  --compliance
 ```
 
 **Flags:**
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--project` | string | from config | Project ID for cloud upload routing |
-| `--upload` | boolean | false | Upload results to KindLM Cloud |
-| `--baseline` | string | — | Baseline run ID or `latest` for active baseline |
-| `--out` | string | `kindlm-report.json` | JSON report output path |
-| `--junit` | string | — | JUnit XML output path (if set, generates JUnit) |
-| `--format` | `pretty\|json` | `pretty` | Terminal output format |
-| `--fail-on` | `any\|schema\|pii\|judge\|drift` | `any` | Which gate failures cause exit code 1 |
-| `--threshold-pass-rate` | 0..1 | from config | Override pass rate gate |
-| `--repeat` | int | from config | Number of repeat runs per test case |
-| `--concurrency` | int | from config | Max concurrent provider calls |
-| `--timeout-ms` | int | from config | Timeout per provider call |
-| `--tags` | string | — | Comma-separated tags to filter test cases |
-| `--models` | string | — | Comma-separated model IDs to run (subset) |
-| `--compliance` | boolean | from config | Generate compliance report |
-| `--verbose` | boolean | false | Show per-assertion details in terminal |
-| `--dry-run` | boolean | false | Parse config and print plan, don't execute |
-| `--no-color` | boolean | false | Disable ANSI colors (auto-detected in CI) |
+| `-c, --config` | string | `kindlm.yaml` | Path to config file |
+| `-s, --suite` | string | — | Run a specific suite |
+| `--reporter` | `pretty\|json\|junit` | `pretty` | Output format |
+| `--runs` | int | from config | Override repeat run count |
+| `--gate` | number | from config | Fail if pass rate below threshold (percent) |
+| `--compliance` | boolean | false | Generate EU AI Act compliance report |
 
-**Exit codes:**
-
-| Code | Meaning |
-|------|---------|
-| 0 | All gates passed |
-| 1 | One or more gates failed |
-| 2 | Config invalid |
-| 3 | Provider error (auth, network) |
-| 4 | Internal error |
+**Exit codes:** 0 = all gates passed, 1 = failure or gates failed
 
 ---
 
@@ -142,26 +114,57 @@ Baselines are stored in `.kindlm/baselines/` as JSON snapshots. Each baseline co
 
 ### `kindlm login`
 
-Authenticate with KindLM Cloud.
+Authenticate with KindLM Cloud. Create an API token in the Cloud dashboard, then paste it here.
 
 ```bash
+# Interactive: prompts for token paste
 kindlm login
-# Opens browser for OAuth flow, or:
-kindlm login --token <token>
-# Stores token directly
+
+# Non-interactive: pass token directly
+kindlm login --token klm_abc123
+
+# Check current auth status
+kindlm login --status
+
+# Remove stored credentials
+kindlm login --logout
 ```
 
-Token is stored in `~/.kindlm/credentials.json`.
+**Flags:**
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `-t, --token` | string | API token (skips interactive prompt) |
+| `--status` | boolean | Show current authentication status |
+| `--logout` | boolean | Remove stored credentials |
+
+Token is stored in `~/.kindlm/credentials` (file permissions 600). The `KINDLM_API_TOKEN` environment variable can also be used as an alternative to stored credentials.
 
 ---
 
-### `kindlm upload <report>`
+### `kindlm upload`
 
-Upload a previously generated report without re-running tests.
+Upload the last test run to KindLM Cloud. Reads cached results from `.kindlm/last-run.json` (written automatically by `kindlm test`).
 
 ```bash
-kindlm upload kindlm-report.json --project acme-support
+# Upload with auto-detected project name (from git remote)
+kindlm upload
+
+# Specify project name explicitly
+kindlm upload --project acme-support
+
+# Use a specific token (overrides stored credentials)
+kindlm upload --token klm_abc123
 ```
+
+**Flags:**
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `-t, --token` | string | API token (overrides stored/env token) |
+| `-p, --project` | string | Project name (defaults to git remote name or cwd basename) |
+
+**How it works:** The upload command finds or creates the project and suite in Cloud, creates a run, batch-inserts all test results, and finalizes the run with aggregated metrics. Git commit SHA, branch, and CI environment are auto-detected.
 
 Useful when tests are run in a CI step and upload happens in a separate step.
 
@@ -277,28 +280,13 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          kindlm test kindlm.yaml \
-            --format json \
-            --junit junit.xml \
-            --compliance \
-            --out kindlm-report.json
+        run: kindlm test --reporter json --compliance
 
-      - name: Upload test report
+      - name: Upload to KindLM Cloud
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kindlm-reports
-          path: |
-            kindlm-report.json
-            junit.xml
-            compliance-reports/
-
-      - name: Publish JUnit results
-        if: always()
-        uses: mikepenz/action-junit-report@v4
-        with:
-          report_paths: junit.xml
+        env:
+          KINDLM_API_TOKEN: ${{ secrets.KINDLM_API_TOKEN }}
+        run: kindlm upload --project my-project
 ```
 
 ### GitLab CI
@@ -333,8 +321,161 @@ kindlm-test:
 
 | Variable | Purpose |
 |----------|---------|
-| `KINDLM_CLOUD_TOKEN` | Cloud API token (alternative to `kindlm login`) |
-| `KINDLM_CLOUD_URL` | Cloud API URL override |
+| `GOOGLE_API_KEY` | Google Gemini API key |
+| `MISTRAL_API_KEY` | Mistral API key |
+| `CO_API_KEY` | Cohere API key |
+| `KINDLM_API_TOKEN` | Cloud API token (alternative to `kindlm login`) |
+| `KINDLM_CLOUD_URL` | Cloud API URL override (default: `https://api.kindlm.com`) |
 | `KINDLM_NO_COLOR` | Disable ANSI colors |
 | `KINDLM_DEBUG` | Enable debug logging |
 | `CI` | Auto-detected; disables interactive features |
+
+---
+
+## Google Gemini
+
+KindLM supports Google Gemini models via the Generative Language API.
+
+### Configuration
+
+```yaml
+providers:
+  gemini:
+    apiKeyEnv: GOOGLE_API_KEY
+
+models:
+  - id: gemini-2.0-flash
+    provider: gemini
+    model: gemini-2.0-flash
+    params:
+      temperature: 0
+      maxTokens: 2048
+```
+
+### Notes
+
+- **API key**: Get one at https://aistudio.google.com/apikey
+- **Cost tracking**: Pricing table included for Gemini 2.0 Flash, 1.5 Pro, 1.5 Flash variants
+- **Tool support**: Full function calling support
+- **System prompts**: Supported via Gemini's `systemInstruction` field
+
+---
+
+## Mistral
+
+KindLM supports Mistral models via the Mistral API (OpenAI-compatible format).
+
+### Configuration
+
+```yaml
+providers:
+  mistral:
+    apiKeyEnv: MISTRAL_API_KEY
+
+models:
+  - id: mistral-large
+    provider: mistral
+    model: mistral-large-latest
+    params:
+      temperature: 0
+      maxTokens: 2048
+```
+
+### Notes
+
+- **API key**: Get one at https://console.mistral.ai/
+- **Cost tracking**: Not available (returns null)
+- **Tool support**: Full function calling support
+
+---
+
+## Cohere
+
+KindLM supports Cohere models via the v2 Chat API.
+
+### Configuration
+
+```yaml
+providers:
+  cohere:
+    apiKeyEnv: CO_API_KEY
+
+models:
+  - id: command-r-plus
+    provider: cohere
+    model: command-r-plus
+    params:
+      temperature: 0
+      maxTokens: 2048
+```
+
+### Notes
+
+- **API key**: Get one at https://dashboard.cohere.com/
+- **Cost tracking**: Not available (returns null)
+- **Tool support**: Full function calling support
+- **Parameter naming**: `topP` is automatically mapped to Cohere's `p` parameter
+
+---
+
+## Ollama (Local Models)
+
+KindLM supports Ollama for running tests against local open-source models with zero API cost.
+
+### Configuration
+
+```yaml
+providers:
+  ollama:
+    # No apiKeyEnv needed — Ollama runs locally
+    # baseUrl: http://localhost:11434   # default
+
+models:
+  - id: llama3.2
+    provider: ollama
+    model: llama3.2
+    params:
+      temperature: 0
+      maxTokens: 2048
+  - id: mistral
+    provider: ollama
+    model: mistral
+    params:
+      temperature: 0
+```
+
+### Usage
+
+```bash
+# Ensure Ollama is running
+ollama serve
+
+# Pull the model if not already downloaded
+ollama pull llama3.2
+
+# Run tests (no API key needed)
+kindlm test -c kindlm.yaml
+```
+
+### Notes
+
+- **No API key required**: The `apiKeyEnv` field is optional for Ollama
+- **Cost**: Always reported as $0.00 (local inference)
+- **Tool support**: Ollama supports tool calling for compatible models
+- **Custom server**: Use `baseUrl` to point to a remote Ollama instance
+- **Mixed providers**: You can test the same prompts against both cloud and local models:
+
+```yaml
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+  ollama: {}
+
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
+  - id: llama3.2
+    provider: ollama
+    model: llama3.2
+```

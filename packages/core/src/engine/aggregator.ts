@@ -25,6 +25,75 @@ export interface AggregatedTestResult {
   runs: TestCaseRunResult[];
 }
 
-export function aggregateRuns(_runs: TestCaseRunResult[]): AggregatedTestResult {
-  throw new Error("Not implemented");
+export function aggregateRuns(runs: TestCaseRunResult[]): AggregatedTestResult {
+  const first = runs[0];
+  if (!first) {
+    throw new Error("aggregateRuns requires at least one run");
+  }
+  const { testCaseName, modelId } = first;
+
+  const passedRuns = runs.filter((r) =>
+    r.assertions.every((a) => a.passed),
+  ).length;
+  const passRate = passedRuns / runs.length;
+
+  // Group assertion scores by type
+  const scoresByType = new Map<string, number[]>();
+  for (const run of runs) {
+    for (const a of run.assertions) {
+      let arr = scoresByType.get(a.assertionType);
+      if (!arr) {
+        arr = [];
+        scoresByType.set(a.assertionType, arr);
+      }
+      arr.push(a.score);
+    }
+  }
+
+  const assertionScores: Record<string, { mean: number; min: number; max: number }> = {};
+  for (const [type, scores] of scoresByType) {
+    const sum = scores.reduce((a, b) => a + b, 0);
+    assertionScores[type] = {
+      mean: sum / scores.length,
+      min: Math.min(...scores),
+      max: Math.max(...scores),
+    };
+  }
+
+  // Collect unique failure codes
+  const failureCodeSet = new Set<string>();
+  for (const run of runs) {
+    for (const a of run.assertions) {
+      if (!a.passed && a.failureCode) {
+        failureCodeSet.add(a.failureCode);
+      }
+    }
+  }
+
+  const latencyAvgMs =
+    runs.reduce((sum, r) => sum + r.latencyMs, 0) / runs.length;
+
+  const totalCostUsd = runs.reduce(
+    (sum, r) => sum + (r.costEstimateUsd ?? 0),
+    0,
+  );
+
+  const totalTokens = runs.reduce(
+    (sum, r) => sum + r.tokenUsage.totalTokens,
+    0,
+  );
+
+  return {
+    testCaseName,
+    modelId,
+    runCount: runs.length,
+    passed: passRate === 1,
+    passRate,
+    assertionScores,
+    failureCodes: [...failureCodeSet],
+    latencyAvgMs,
+    totalCostUsd,
+    totalTokens,
+    runs,
+  };
 }

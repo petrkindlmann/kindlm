@@ -1,441 +1,432 @@
-"use client";
+import { NavBar } from "./landing/NavBar";
+import { Terminal } from "./landing/Terminal";
+import { Reveal } from "./landing/Reveal";
+import { CopyButton } from "./landing/CopyButton";
 
-import { useState, useEffect, useRef, type ReactNode } from "react";
-import Link from "next/link";
-
-
-/*
-  AUDIT FIXES:
-  - Type scale: 6 steps (48/28/24/16/14/13), no in-between
-  - Category definer: 15px, not 13px — the positioning text should be visible
-  - Mobile: all grids → 1col, no minWidth on code, pre-wrap not pre
-  - Touch: min 44px tap targets everywhere
-  - Nav: Docs + GitHub always visible
-  - Copy: sub-headline = 1 benefit, pain section has heading, grid label = "More"
-  - H1 line-height: 1.18 on mobile (was 1.12 — too tight for multi-line)
-*/
-
-function useMedia() {
-  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
-  useEffect(() => {
-    const h = () => setW(window.innerWidth);
-    window.addEventListener("resize", h);
-    return () => window.removeEventListener("resize", h);
-  }, []);
-  return { mobile: w < 640, desktop: w >= 960 };
-}
-
-// ── Terminal ──
-
-const LINES = [
-  { t: "$ kindlm test", c: "cmd", d: 0 },
-  { t: "", c: "x", d: 400 },
-  { t: "◈ support-agent · 4 tests · 2 models", c: "dim", d: 650 },
-  { t: "", c: "x", d: 850 },
-  { t: "✓ refund        claude  3/3  1.2s", c: "ok", d: 1200 },
-  { t: "✓ refund        gpt-4o  3/3  0.9s", c: "ok", d: 1550 },
-  { t: "✓ order-missing claude  3/3  1.1s", c: "ok", d: 1900 },
-  { t: "✗ order-missing gpt-4o  2/3  1.0s", c: "err", d: 2250 },
-  { t: "  └ lookup_order never called", c: "errsub", d: 2400 },
-  { t: "✓ escalation    claude  3/3  1.3s", c: "ok", d: 2750 },
-  { t: "✓ escalation    gpt-4o  3/3  1.1s", c: "ok", d: 3100 },
-  { t: "✓ greeting      claude  3/3  0.5s", c: "ok", d: 3450 },
-  { t: "✓ greeting      gpt-4o  3/3  0.4s", c: "ok", d: 3800 },
-  { t: "", c: "x", d: 4100 },
-  { t: "7/8 passed · judge 0.89 · $0.12", c: "stat", d: 4300 },
-  { t: "gate: fail — 87.5% < 95%", c: "err", d: 4650 },
-];
-
-function Terminal() {
-  const [vis, setVis] = useState<typeof LINES>([]);
-  const [go, setGo] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { mobile } = useMedia();
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setGo(true); }, { threshold: 0.15 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  useEffect(() => {
-    if (!go) return;
-    const ts = LINES.map((l) => setTimeout(() => setVis(p => [...p, l]), l.d));
-    return () => ts.forEach(clearTimeout);
-  }, [go]);
-  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [vis]);
-
-  const cl: Record<string, string> = { cmd: "#d6d3d1", ok: "#4ade80", err: "#fb7185", errsub: "#fdba74", stat: "#93c5fd", dim: "#57534e", x: "transparent" };
-
-  return (
-    <div ref={ref} style={{
-      background: "#1c1917", borderRadius: 12,
-      padding: mobile ? "14px" : "18px 22px",
-      fontFamily: "var(--font-mono)", fontSize: mobile ? 11.5 : 13,
-      lineHeight: 1.7, maxHeight: mobile ? 320 : 380,
-      overflow: "hidden", overflowX: "auto",
-      WebkitOverflowScrolling: "touch",
-    }}>
-      <div style={{ display: "flex", gap: 6, marginBottom: mobile ? 8 : 12 }}>
-        {["#ef4444","#eab308","#22c55e"].map((c,i) => (
-          <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: c, opacity: 0.6 }} />
-        ))}
-      </div>
-      {vis.map((l,i) => (
-        <div key={i} style={{
-          color: cl[l.c], whiteSpace: "pre-wrap", wordBreak: "break-word",
-          fontWeight: l.c === "cmd" ? 600 : 400,
-          opacity: 0, animation: "lineIn 0.2s ease forwards",
-        }}>{l.t || "\u00A0"}</div>
-      ))}
-      {go && vis.length < LINES.length && <span style={{ color: "#d6d3d1", animation: "blink 1s step-end infinite" }}>▌</span>}
-    </div>
-  );
-}
-
-// ── YAML ──
+// ── Pre-computed YAML syntax highlighting (runs once at build time) ──
 
 const YAML_TEXT = `- name: "refund-happy-path"
-  prompt: "support_agent"
-  vars:
-    message: "Charged twice for #12345"
-  expect:
-    toolCalls:
-      - tool: "lookup_order"
-        argsMatch: { order_id: "12345" }
-      - tool: "escalate_to_human"
-        shouldNotCall: true
-    judge:
-      - criteria: "Empathetic tone"
-        minScore: 0.8
-    guardrails:
-      pii: { enabled: true }`;
+  input: "Charged twice for order #12345"
+  assert:
+    - type: tool_called
+      value: lookup_order
+      args: { order_id: "12345" }
+    - type: tool_not_called
+      value: escalate_to_human
+    - type: judge
+      criteria: "Empathetic tone"
+      threshold: 0.8
+    - type: no_pii`;
 
-function YamlBlock() {
-  const { mobile } = useMedia();
+function colorizeYaml(text: string) {
+  return text.split("\n").map((line) => {
+    let color = "#78716c"; // stone-500 — passes contrast on dark bg
+    if (/^\s*-?\s*\w+:/.test(line)) color = "#7dd3fc";
+    if (line.includes('"')) color = "#86efac";
+    if (/\b\d+\.?\d*\b/.test(line) && !line.includes('"')) color = "#fde68a";
+    if (line.includes("true") || line.includes("false")) color = "#f9a8d4";
+    return { text: line, color };
+  });
+}
+
+const YAML_LINES = colorizeYaml(YAML_TEXT);
+
+// ── Feature code block (matching real KindLM assert syntax) ──
+
+const TOOL_CALL_CODE = [
+  { c: "#7dd3fc", t: "assert:" },
+  { c: "#a8a29e", t: "  # Look up the order first" },
+  { c: "#7dd3fc", t: "  - type: tool_called" },
+  { c: "#86efac", t: "    value: lookup_order" },
+  { c: "#86efac", t: '    args: { order_id: "12345" }' },
+  { c: "#a8a29e", t: "  # Then issue the refund" },
+  { c: "#7dd3fc", t: "  - type: tool_called" },
+  { c: "#86efac", t: "    value: issue_refund" },
+  { c: "#a8a29e", t: "  # Never escalate routine cases" },
+  { c: "#7dd3fc", t: "  - type: tool_not_called" },
+  { c: "#f9a8d4", t: "    value: escalate_to_human" },
+];
+
+const JUDGE_DATA = [
+  { criteria: "Empathetic, addresses the issue", score: 0.92, pass: true },
+  { criteria: "No promises about timeline", score: 0.71, pass: false },
+  { criteria: "Correct company terminology", score: 0.88, pass: true },
+];
+
+const DRIFT_DATA = [
+  { metric: "Pass rate", value: "87.5%", delta: "\u221212.5%", bad: true },
+  { metric: "Judge avg", value: "0.89", delta: "\u22120.02", bad: false },
+  { metric: "Drift", value: "0.04", delta: null, bad: false },
+  { metric: "Latency", value: "940ms", delta: "\u221240ms", bad: false },
+  { metric: "Cost", value: "$0.12", delta: "+9%", bad: false },
+];
+
+const CHECK_ITEMS = [
+  { type: "TOOL", text: "lookup_order called correctly" },
+  { type: "TOOL", text: "escalate_to_human not called" },
+  { type: "JUDGE", text: "Empathetic tone \u2014 0.92" },
+  { type: "PII", text: "No personal data leaked" },
+  { type: "DRIFT", text: "0.04 from baseline" },
+  { type: "COST", text: "$0.003 per execution" },
+];
+
+const GRID_CARDS = [
+  { title: "PII detection", desc: "SSNs, credit cards, emails. Custom patterns. Zero tolerance by default." },
+  { title: "Schema validation", desc: "JSON Schema on structured outputs. Every run, automatically." },
+  { title: "Keyword guardrails", desc: "Words your agent must never say. Phrases it must include." },
+  { title: "Multi-model", desc: "Same tests against OpenAI, Anthropic, Gemini, Mistral, Cohere, and Ollama. Compare quality, cost, latency." },
+  { title: "CI-native", desc: "JUnit XML, JSON, exit codes. GitHub Actions and GitLab CI ready." },
+  { title: "No SDK", desc: "YAML config, CLI execution. Any engineer can read and contribute." },
+];
+
+const PROVIDERS = ["OpenAI", "Anthropic", "Gemini", "Mistral", "Cohere", "Ollama"];
+
+// ── Inline code tag (server component) ──
+
+function Cd({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      background: "#1c1917", borderRadius: 12,
-      padding: mobile ? "14px" : "18px 22px",
-      fontFamily: "var(--font-mono)", fontSize: mobile ? 11 : 12,
-      lineHeight: 1.8, overflowX: "auto",
-      WebkitOverflowScrolling: "touch",
-    }}>
-      {YAML_TEXT.split("\n").map((ln, i) => {
-        let c = "#a8a29e";
-        if (ln.match(/^\s*-?\s*\w+:/)) c = "#7dd3fc";
-        if (ln.includes('"')) c = "#86efac";
-        if (ln.match(/\b\d+\.?\d*\b/) && !ln.includes('"')) c = "#fde68a";
-        if (ln.includes("true")||ln.includes("false")) c = "#f9a8d4";
-        return <div key={i} style={{ color: c, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{ln||"\u00A0"}</div>;
-      })}
-    </div>
+    <code className="bg-stone-100 px-1.5 py-px rounded text-[0.88em] font-mono text-stone-700">
+      {children}
+    </code>
   );
 }
 
-// ── Helpers ──
-
-function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [v, setV] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true); }, { threshold: 0.08 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return <div ref={ref} style={{ opacity: v?1:0, transform: v?"none":"translateY(16px)", transition: `opacity 0.6s ease ${delay}ms, transform 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms` }}>{children}</div>;
-}
-
-function Cd({ children }: { children: ReactNode }) {
-  return <span style={{
-    background: "#f5f5f4", padding: "1px 5px", borderRadius: 3,
-    fontSize: "0.88em", fontFamily: "var(--font-mono)", color: "#44403c",
-  }}>{children}</span>;
-}
-
-// ── Page ──
+// ── Page (server component — no "use client") ──
 
 export default function LandingPage() {
-  const [sy, setSy] = useState(0);
-  const { mobile, desktop } = useMedia();
-  useEffect(() => {
-    const h = () => setSy(window.scrollY);
-    window.addEventListener("scroll", h, { passive: true });
-    return () => window.removeEventListener("scroll", h);
-  }, []);
-
-  const px = mobile ? 20 : 24;
-  const gap = mobile ? 64 : 96;
-
   return (
-    <div style={{ minHeight: "100vh", background: "#fafaf9", color: "#1c1917", fontFamily: "var(--font-inter)", overflowX: "hidden" }}>
+    <div className="min-h-screen bg-stone-50 text-stone-900">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">
+        Skip to content
+      </a>
 
-      {/* NAV */}
-      <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-        padding: `${mobile ? 10 : 12}px ${px}px`,
-        background: sy > 40 ? "rgba(250,250,249,0.92)" : "transparent",
-        backdropFilter: sy > 40 ? "blur(12px)" : "none",
-        WebkitBackdropFilter: sy > 40 ? "blur(12px)" : "none",
-        borderBottom: sy > 40 ? "1px solid #e7e5e4" : "1px solid transparent",
-        transition: "all 0.3s ease",
-      }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.04em" }}>kindlm</span>
-          <div style={{ display: "flex", alignItems: "center", gap: mobile ? 6 : 16 }}>
-            <a href="/docs" style={{ fontSize: 13, fontWeight: 500, color: "#78716c", textDecoration: "none", padding: "8px 6px" }}>Docs</a>
-            <a href="https://github.com/kindlm/kindlm" target="_blank" rel="noopener" style={{ fontSize: 13, fontWeight: 500, color: "#78716c", textDecoration: "none", padding: "8px 6px" }}>GitHub</a>
-            {!mobile && <a href="/docs/getting-started" style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 8, background: "#1c1917", color: "#fafaf9", textDecoration: "none", marginLeft: 4 }}>Get started</a>}
+      <NavBar />
+
+      <main id="main-content">
+        {/* ── HERO ── */}
+        <section className="max-w-[560px] mx-auto pt-[100px] sm:pt-36 pb-6 sm:pb-9 px-5 sm:px-6 text-center">
+          <p
+            className="text-[15px] font-semibold text-indigo-500 mb-3.5 sm:mb-[18px] opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.1s" }}
+          >
+            Testing for AI agents
+          </p>
+          <h1
+            className="text-[30px] sm:text-[40px] lg:text-5xl font-bold tracking-[-0.035em] leading-[1.18] sm:leading-[1.12] text-stone-950 opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            Know what your agent will do before your users do
+          </h1>
+          <p
+            className="text-base text-stone-600 leading-relaxed mt-3.5 sm:mt-[18px] max-w-[400px] mx-auto opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.35s" }}
+          >
+            Regression tests for agentic workflows &mdash; tool calls, output quality, and compliance. Defined in YAML, run in CI.
+          </p>
+          <div
+            className="flex gap-2.5 justify-center mt-6 sm:mt-7 flex-wrap opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.5s" }}
+          >
+            <CopyButton text="npm i -g @kindlm/cli" />
+            <a
+              href="/docs"
+              className="px-5 py-3 rounded-[10px] border border-stone-300 text-stone-700 text-sm font-semibold no-underline min-h-[44px] flex items-center hover:border-stone-400 transition-colors"
+            >
+              Read the docs
+            </a>
           </div>
-        </div>
-      </nav>
+          <p
+            className="text-[13px] text-stone-500 mt-3.5 opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.55s" }}
+          >
+            Open source &middot; MIT &middot; No account needed
+          </p>
+          <div
+            className="flex gap-2.5 sm:gap-4 justify-center flex-wrap mt-[18px] sm:mt-[22px] opacity-0 animate-fade-up"
+            style={{ animationDelay: "0.6s" }}
+          >
+            {PROVIDERS.map((provider) => (
+              <span key={provider} className="text-xs font-medium text-stone-500 tracking-wide">
+                {provider}
+              </span>
+            ))}
+          </div>
+        </section>
 
-      {/* ── HERO ── */}
-      <section style={{ maxWidth: 560, margin: "0 auto", padding: `${mobile ? 100 : 144}px ${px}px ${mobile ? 24 : 36}px`, textAlign: "center" }}>
-        <p style={{ fontSize: 15, fontWeight: 600, color: "#6366f1", marginBottom: mobile ? 14 : 18, opacity: 0, animation: "fadeUp 0.6s ease 0.1s forwards" }}>
-          Testing for AI agents
-        </p>
-        <h1 style={{
-          fontSize: mobile ? 30 : desktop ? 48 : 40,
-          fontWeight: 700, letterSpacing: "-0.035em",
-          lineHeight: mobile ? 1.18 : 1.12, color: "#0c0a09",
-          opacity: 0, animation: "fadeUp 0.6s ease 0.2s forwards",
-        }}>
-          Know what your agent will do before your users do
-        </h1>
-        <p style={{
-          fontSize: 16, color: "#57534e", lineHeight: 1.6,
-          marginTop: mobile ? 14 : 18, maxWidth: 400, marginLeft: "auto", marginRight: "auto",
-          opacity: 0, animation: "fadeUp 0.6s ease 0.35s forwards",
-        }}>
-          Regression tests for agentic workflows — tool calls, output quality, and compliance. Defined in YAML, run in CI.
-        </p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: mobile ? 24 : 28, flexWrap: "wrap", opacity: 0, animation: "fadeUp 0.6s ease 0.5s forwards" }}>
-          <span style={{ padding: "12px 20px", borderRadius: 10, background: "#1c1917", color: "#d6d3d1", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500, minHeight: 44, display: "flex", alignItems: "center" }}>
-            npm i -g @kindlm/cli
-          </span>
-          <a href="/docs" style={{ padding: "12px 20px", borderRadius: 10, border: "1px solid #d6d3d1", color: "#44403c", fontSize: 14, fontWeight: 600, textDecoration: "none", minHeight: 44, display: "flex", alignItems: "center" }}>
-            Read the docs
-          </a>
-        </div>
-        <p style={{ fontSize: 13, color: "#a8a29e", marginTop: 14, opacity: 0, animation: "fadeUp 0.6s ease 0.55s forwards" }}>
-          Open source · MIT · No account needed
-        </p>
-      </section>
+        {/* ── Terminal ── */}
+        <section className="max-w-[560px] mx-auto pt-3 pb-16 sm:pb-24 px-5 sm:px-6">
+          <div className="opacity-0 animate-fade-up" style={{ animationDelay: "0.65s" }}>
+            <Terminal />
+          </div>
+        </section>
 
-      {/* Terminal */}
-      <section style={{ maxWidth: 560, margin: "0 auto", padding: `12px ${px}px ${gap}px` }}>
-        <div style={{ opacity: 0, animation: "fadeUp 0.7s ease 0.65s forwards" }}><Terminal /></div>
-      </section>
+        {/* ── PROBLEM ── */}
+        <section className="border-t border-stone-200 py-12 sm:py-[72px] px-5 sm:px-6">
+          <div className="max-w-[480px] mx-auto">
+            <Reveal>
+              <p className="text-[13px] font-semibold text-indigo-500 mb-3.5">The problem</p>
+              <p className="text-base text-stone-700 leading-[1.7]">
+                You deploy a prompt change on Friday. Monday, your agent approves refunds it shouldn&apos;t &mdash; it stopped calling <Cd>lookup_order</Cd> and started hallucinating.
+              </p>
+              <p className="text-base text-stone-700 leading-[1.7] mt-3.5">
+                No errors. No alerts. The output looked fine. The behavior was wrong.
+              </p>
+              <p className="text-base text-stone-950 leading-[1.7] mt-3.5 font-semibold">
+                KindLM catches this before it ships.
+              </p>
+            </Reveal>
+          </div>
+        </section>
 
-      {/* ── PROBLEM ── */}
-      <section style={{ borderTop: "1px solid #e7e5e4", padding: `${mobile ? 48 : 72}px ${px}px` }}>
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
+        {/* ── HOW IT WORKS ── */}
+        <section className="max-w-[960px] mx-auto py-12 sm:pt-16 pb-16 sm:pb-24 px-5 sm:px-6">
           <Reveal>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#6366f1", marginBottom: 14 }}>The problem</p>
-            <p style={{ fontSize: 16, color: "#44403c", lineHeight: 1.7 }}>
-              You deploy a prompt change on Friday. Monday, your agent approves refunds it shouldn&apos;t — it stopped calling <Cd>lookup_order</Cd> and started hallucinating.
-            </p>
-            <p style={{ fontSize: 16, color: "#44403c", lineHeight: 1.7, marginTop: 14 }}>
-              No errors. No alerts. The output looked fine. The behavior was wrong.
-            </p>
-            <p style={{ fontSize: 16, color: "#0c0a09", lineHeight: 1.7, marginTop: 14, fontWeight: 600 }}>
-              KindLM catches this before it ships.
-            </p>
+            <p className="text-[13px] font-semibold text-indigo-500 mb-2.5">How it works</p>
+            <h2 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.03em]">
+              Describe what should happen. Run it.
+            </h2>
           </Reveal>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section style={{ maxWidth: 960, margin: "0 auto", padding: `${mobile ? 48 : 64}px ${px}px ${gap}px` }}>
-        <Reveal>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#6366f1", marginBottom: 10 }}>How it works</p>
-          <h2 style={{ fontSize: mobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.03em" }}>Describe what should happen. Run it.</h2>
-        </Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: desktop ? "1fr 1fr" : "1fr", gap: mobile ? 16 : 20, marginTop: mobile ? 24 : 36 }}>
-          <Reveal delay={60}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "#a8a29e", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>You write this</p>
-            <YamlBlock />
-          </Reveal>
-          <Reveal delay={120}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "#a8a29e", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>KindLM checks this</p>
-            <div style={{ background: "white", borderRadius: 12, padding: mobile ? 14 : 18, border: "1px solid #e7e5e4" }}>
-              {[
-                { type: "TOOL", text: "lookup_order called correctly" },
-                { type: "TOOL", text: "escalate_to_human not called" },
-                { type: "JUDGE", text: "Empathetic tone — 0.92" },
-                { type: "PII", text: "No personal data leaked" },
-                { type: "DRIFT", text: "0.04 from baseline" },
-                { type: "COST", text: "$0.003 per execution" },
-              ].map((r, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: i < 5 ? "1px solid #f5f5f4" : "none" }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#a8a29e", minWidth: 34, letterSpacing: "0.04em" }}>{r.type}</span>
-                  <span style={{ fontSize: mobile ? 12 : 13, fontFamily: "var(--font-mono)", color: "#44403c" }}>{r.text}</span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section style={{ maxWidth: 960, margin: "0 auto", padding: `0 ${px}px` }}>
-        <Reveal><p style={{ fontSize: 13, fontWeight: 600, color: "#6366f1", marginBottom: 4 }}>Capabilities</p></Reveal>
-
-        {[
-          {
-            title: "Every tool call. Every argument.",
-            body: "Assert which tools were called, in what order, with what arguments. Define tools that must never be called. Test the decisions, not just the output.",
-            visual: "code",
-            code: [
-              { c: "#7dd3fc", t: "toolCalls:" },
-              { c: "#a8a29e", t: "  # Look up the order first" },
-              { c: "#7dd3fc", t: '  - tool: "lookup_order"' },
-              { c: "#86efac", t: '    argsMatch: { order_id: "12345" }' },
-              { c: "#a8a29e", t: "  # Then issue the refund" },
-              { c: "#7dd3fc", t: '  - tool: "issue_refund"' },
-              { c: "#a8a29e", t: "  # Never escalate routine cases" },
-              { c: "#7dd3fc", t: '  - tool: "escalate_to_human"' },
-              { c: "#f9a8d4", t: "    shouldNotCall: true" },
-            ],
-          },
-          {
-            title: "Quality you can measure.",
-            body: "An LLM judge scores each criterion from 0 to 1 — and explains why. Set thresholds. When a score drops, you know exactly which criterion failed.",
-            visual: "judge",
-          },
-          {
-            title: "See exactly what changed.",
-            body: "Save a baseline. Run again after any change. KindLM compares semantically — not string diffs. Cost, latency, and quality tracked together.",
-            visual: "drift",
-          },
-        ].map((f, fi) => (
-          <Reveal key={fi} delay={30}>
-            <div style={{
-              display: "grid", gridTemplateColumns: desktop ? "1fr 1fr" : "1fr",
-              gap: mobile ? 20 : 40, padding: `${mobile ? 32 : 44}px 0`,
-              borderTop: "1px solid #e7e5e4",
-            }}>
-              <div>
-                <h3 style={{ fontSize: mobile ? 20 : 24, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 10 }}>{f.title}</h3>
-                <p style={{ fontSize: 16, color: "#57534e", lineHeight: 1.65 }}>{f.body}</p>
-              </div>
-
-              {f.visual === "code" && (
-                <div style={{ background: "#1c1917", borderRadius: 12, padding: mobile ? "14px" : "18px 22px", fontFamily: "var(--font-mono)", fontSize: mobile ? 11 : 12, lineHeight: 1.85, overflowX: "auto" }}>
-                  {f.code?.map((l, i) => <div key={i} style={{ color: l.c, whiteSpace: "pre-wrap" }}>{l.t}</div>)}
-                </div>
-              )}
-
-              {f.visual === "judge" && (
-                <div style={{ background: "white", borderRadius: 12, padding: mobile ? 14 : 20, border: "1px solid #e7e5e4" }}>
-                  {[
-                    { criteria: "Empathetic, addresses the issue", score: 0.92, pass: true },
-                    { criteria: "No promises about timeline", score: 0.71, pass: false },
-                    { criteria: "Correct company terminology", score: 0.88, pass: true },
-                  ].map((j, i) => (
-                    <div key={i} style={{ padding: "12px 0", borderBottom: i < 2 ? "1px solid #f5f5f4" : "none" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 14, color: "#44403c", flex: 1 }}>{j.criteria}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-mono)", color: j.pass ? "#16a34a" : "#dc2626", flexShrink: 0 }}>{j.score.toFixed(2)}</span>
-                      </div>
-                      <div style={{ marginTop: 6, height: 3, borderRadius: 2, background: "#f5f5f4", overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 2, width: `${j.score * 100}%`, background: j.pass ? "#22c55e" : "#ef4444" }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {f.visual === "drift" && (
-                <div style={{ background: "white", borderRadius: 12, padding: mobile ? 14 : 20, border: "1px solid #e7e5e4" }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "#a8a29e", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>vs. baseline · Feb 10</p>
-                  {[
-                    { m: "Pass rate", v: "87.5%", d: "−12.5%", bad: true },
-                    { m: "Judge avg", v: "0.89", d: "−0.02", bad: false },
-                    { m: "Drift", v: "0.04", d: null, bad: false },
-                    { m: "Latency", v: "940ms", d: "−40ms", bad: false },
-                    { m: "Cost", v: "$0.12", d: "+9%", bad: false },
-                  ].map((r, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: i < 4 ? "1px solid #f5f5f4" : "none" }}>
-                      <span style={{ fontSize: 14, color: "#57534e" }}>{r.m}</span>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "#44403c", fontWeight: 500 }}>{r.v}</span>
-                        {r.d && <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: r.bad ? "#dc2626" : "#78716c", fontWeight: r.bad ? 600 : 400 }}>{r.d}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Reveal>
-        ))}
-      </section>
-
-      {/* ── MORE ── */}
-      <section style={{ maxWidth: 960, margin: "0 auto", padding: `${mobile ? 40 : 56}px ${px}px ${gap}px` }}>
-        <Reveal><p style={{ fontSize: 13, fontWeight: 600, color: "#6366f1", marginBottom: 16 }}>More</p></Reveal>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : desktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: 1, background: "#e7e5e4", borderRadius: 12, overflow: "hidden", border: "1px solid #e7e5e4" }}>
-          {[
-            { t: "PII detection", d: "SSNs, credit cards, emails. Custom patterns. Zero tolerance by default." },
-            { t: "Schema validation", d: "JSON Schema on structured outputs. Every run, automatically." },
-            { t: "Keyword guardrails", d: "Words your agent must never say. Phrases it must include." },
-            { t: "Multi-model", d: "Same tests against Claude and GPT-4o. Compare quality, cost, latency." },
-            { t: "CI-native", d: "JUnit XML, JSON, exit codes. GitHub Actions and GitLab CI ready." },
-            { t: "No SDK", d: "YAML config, CLI execution. Any engineer can read and contribute." },
-          ].map((f, i) => (
-            <Reveal key={i} delay={i * 25}>
-              <div style={{ background: "white", padding: mobile ? "20px 18px" : "24px 22px" }}>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{f.t}</p>
-                <p style={{ fontSize: 13, color: "#78716c", lineHeight: 1.5 }}>{f.d}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mt-6 sm:mt-9">
+            <Reveal delay={60}>
+              <p className="text-[11px] font-semibold text-stone-500 tracking-[0.06em] uppercase mb-2">
+                You write this
+              </p>
+              <div className="bg-stone-900 rounded-xl p-3.5 sm:px-[22px] sm:py-[18px] font-mono text-[11px] sm:text-xs leading-[1.8] overflow-x-auto touch-pan-x">
+                {YAML_LINES.map((line, i) => (
+                  <div
+                    key={i}
+                    className="whitespace-pre-wrap break-words"
+                    style={{ color: line.color }}
+                  >
+                    {line.text || "\u00A0"}
+                  </div>
+                ))}
               </div>
             </Reveal>
-          ))}
-        </div>
-      </section>
+            <Reveal delay={120}>
+              <p className="text-[11px] font-semibold text-stone-500 tracking-[0.06em] uppercase mb-2">
+                KindLM checks this
+              </p>
+              <div className="bg-white rounded-xl p-3.5 sm:p-[18px] border border-stone-200">
+                {CHECK_ITEMS.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-2 py-2 ${i < CHECK_ITEMS.length - 1 ? "border-b border-stone-100" : ""}`}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                    <span className="text-[10px] font-semibold text-stone-500 min-w-[34px] tracking-wide">
+                      {item.type}
+                    </span>
+                    <span className="text-xs sm:text-[13px] font-mono text-stone-700">
+                      {item.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+        </section>
 
-      {/* ── COMPLIANCE ── */}
-      <section style={{ borderTop: "1px solid #e7e5e4", padding: `${mobile ? 48 : 72}px ${px}px` }}>
-        <div style={{ maxWidth: 460, margin: "0 auto", textAlign: "center" }}>
+        {/* ── FEATURES ── */}
+        <section className="max-w-[960px] mx-auto px-5 sm:px-6">
           <Reveal>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#6366f1", marginBottom: 10 }}>EU AI Act · August 2026</p>
-            <h2 style={{ fontSize: mobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.025em", marginBottom: 12 }}>
-              An auditor asks for test records. You have them.
-            </h2>
-            <p style={{ fontSize: 16, color: "#57534e", lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>
-              Add <Cd>--compliance</Cd> to any run. Annex IV–mapped docs, timestamped and hashed.
-            </p>
-            <div style={{ display: "inline-flex", flexDirection: "column", gap: 3, background: "#1c1917", borderRadius: 10, padding: mobile ? "12px 14px" : "14px 20px", fontFamily: "var(--font-mono)", fontSize: mobile ? 11.5 : 13, color: "#a8a29e", textAlign: "left" }}>
-              <span><span style={{ color: "#d6d3d1" }}>$</span> kindlm test --compliance</span>
-              <span style={{ color: "#86efac" }}>  → compliance-2026-02-15.md</span>
-              <span style={{ color: "#57534e" }}>  SHA-256: a1b2c3...e5f6</span>
+            <p className="text-[13px] font-semibold text-indigo-500 mb-1">Capabilities</p>
+          </Reveal>
+
+          {/* Tool calls */}
+          <Reveal delay={30}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-10 py-8 sm:py-11 border-t border-stone-200">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold tracking-[-0.02em] mb-2.5">
+                  Every tool call. Every argument.
+                </h3>
+                <p className="text-base text-stone-600 leading-[1.65]">
+                  Assert which tools were called, in what order, with what arguments. Define tools that must never be called. Test the decisions, not just the output.
+                </p>
+              </div>
+              <div className="bg-stone-900 rounded-xl p-3.5 sm:px-[22px] sm:py-[18px] font-mono text-[11px] sm:text-xs leading-[1.85] overflow-x-auto">
+                {TOOL_CALL_CODE.map((line, i) => (
+                  <div key={i} className="whitespace-pre-wrap" style={{ color: line.c }}>
+                    {line.t}
+                  </div>
+                ))}
+              </div>
             </div>
           </Reveal>
-        </div>
-      </section>
 
-      {/* ── CTA ── */}
-      <section style={{ maxWidth: 460, margin: "0 auto", padding: `${mobile ? 40 : 56}px ${px}px ${mobile ? 80 : 100}px`, textAlign: "center" }}>
-        <Reveal>
-          <h2 style={{ fontSize: mobile ? 22 : 28, fontWeight: 700, letterSpacing: "-0.025em", marginBottom: 10 }}>
-            Three lines of YAML. One command.
-          </h2>
-          <p style={{ fontSize: 16, color: "#57534e", marginBottom: 24 }}>Open source. No account required.</p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <span style={{ padding: "12px 20px", borderRadius: 10, background: "#1c1917", color: "#d6d3d1", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500, minHeight: 44, display: "flex", alignItems: "center" }}>npm i -g @kindlm/cli</span>
-            <a href="/docs" style={{ padding: "12px 20px", borderRadius: 10, border: "1px solid #d6d3d1", color: "#44403c", fontSize: 14, fontWeight: 600, textDecoration: "none", minHeight: 44, display: "flex", alignItems: "center" }}>Read the docs</a>
+          {/* Judge */}
+          <Reveal delay={30}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-10 py-8 sm:py-11 border-t border-stone-200">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold tracking-[-0.02em] mb-2.5">
+                  Quality you can measure.
+                </h3>
+                <p className="text-base text-stone-600 leading-[1.65]">
+                  An LLM judge scores each criterion from 0 to 1 &mdash; and explains why. Set thresholds. When a score drops, you know exactly which criterion failed.
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-3.5 sm:p-5 border border-stone-200">
+                {JUDGE_DATA.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`py-3 ${i < JUDGE_DATA.length - 1 ? "border-b border-stone-100" : ""}`}
+                  >
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm text-stone-700 flex-1">{item.criteria}</span>
+                      <span
+                        className={`text-[13px] font-semibold font-mono shrink-0 ${item.pass ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {item.score.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-[3px] rounded-sm bg-stone-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-sm ${item.pass ? "bg-green-500" : "bg-red-500"}`}
+                        style={{ width: `${item.score * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Drift */}
+          <Reveal delay={30}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-10 py-8 sm:py-11 border-t border-stone-200">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold tracking-[-0.02em] mb-2.5">
+                  See exactly what changed.
+                </h3>
+                <p className="text-base text-stone-600 leading-[1.65]">
+                  Save a baseline. Run again after any change. KindLM compares semantically &mdash; not string diffs. Cost, latency, and quality tracked together.
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-3.5 sm:p-5 border border-stone-200">
+                <p className="text-[11px] font-semibold text-stone-500 tracking-[0.06em] uppercase mb-3">
+                  vs. baseline &middot; Feb 10
+                </p>
+                {DRIFT_DATA.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`flex justify-between items-center py-[7px] ${i < DRIFT_DATA.length - 1 ? "border-b border-stone-100" : ""}`}
+                  >
+                    <span className="text-sm text-stone-600">{item.metric}</span>
+                    <div className="flex gap-2.5 items-center">
+                      <span className="font-mono text-[13px] text-stone-700 font-medium">
+                        {item.value}
+                      </span>
+                      {item.delta && (
+                        <span
+                          className={`font-mono text-xs ${item.bad ? "text-red-600 font-semibold" : "text-stone-500"}`}
+                        >
+                          {item.delta}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
+        {/* ── MORE ── */}
+        <section className="max-w-[960px] mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-16 sm:pb-24">
+          <Reveal>
+            <p className="text-[13px] font-semibold text-indigo-500 mb-4">More</p>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-stone-200 rounded-xl overflow-hidden border border-stone-200">
+            {GRID_CARDS.map((card, i) => (
+              <Reveal key={i} delay={i * 25}>
+                <div className="bg-white p-5 sm:px-[22px] sm:py-6">
+                  <p className="text-sm font-semibold mb-1">{card.title}</p>
+                  <p className="text-[13px] text-stone-500 leading-snug">{card.desc}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
-        </Reveal>
-      </section>
+        </section>
 
-      {/* FOOTER */}
-      <footer style={{ padding: `16px ${px}px`, borderTop: "1px solid #e7e5e4" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ fontSize: 13, color: "#a8a29e" }}><strong style={{ color: "#78716c" }}>kindlm</strong> · MIT</span>
-          <div style={{ display: "flex", gap: 14 }}>
-            <a href="https://github.com/kindlm/kindlm" target="_blank" rel="noopener" style={{ color: "#a8a29e", textDecoration: "none", fontSize: 13, padding: "4px 0" }}>GitHub</a>
-            <a href="/docs" style={{ color: "#a8a29e", textDecoration: "none", fontSize: 13, padding: "4px 0" }}>Docs</a>
-            <a href="https://www.npmjs.com/package/@kindlm/cli" target="_blank" rel="noopener" style={{ color: "#a8a29e", textDecoration: "none", fontSize: 13, padding: "4px 0" }}>npm</a>
+        {/* ── COMPLIANCE ── */}
+        <section className="border-t border-stone-200 py-12 sm:py-[72px] px-5 sm:px-6">
+          <div className="max-w-[460px] mx-auto text-center">
+            <Reveal>
+              <p className="text-[13px] font-semibold text-indigo-500 mb-2.5">
+                EU AI Act &middot; August 2026
+              </p>
+              <h2 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.025em] mb-3">
+                An auditor asks for test records. You have them.
+              </h2>
+              <p className="text-base text-stone-600 leading-relaxed max-w-[380px] mx-auto mb-5">
+                Add <Cd>--compliance</Cd> to any run. Annex IV&ndash;mapped docs, timestamped and hashed.
+              </p>
+              <div className="inline-flex flex-col gap-[3px] bg-stone-900 rounded-[10px] p-3 sm:px-5 sm:py-3.5 font-mono text-[11.5px] sm:text-[13px] text-stone-500 text-left">
+                <span>
+                  <span className="text-stone-300">$</span> kindlm test --compliance
+                </span>
+                <span className="text-green-400">
+                  &nbsp; &rarr; compliance-2026-02-15.md
+                </span>
+                <span className="text-stone-600">
+                  &nbsp; SHA-256: a1b2c3...e5f6
+                </span>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── CTA ── */}
+        <section className="max-w-[460px] mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-20 sm:pb-[100px] text-center">
+          <Reveal>
+            <h2 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.025em] mb-2.5">
+              Three lines of YAML. One command.
+            </h2>
+            <p className="text-base text-stone-600 mb-6">
+              Open source. No account required.
+            </p>
+            <div className="flex gap-2.5 justify-center flex-wrap">
+              <CopyButton text="npm i -g @kindlm/cli" />
+              <a
+                href="/docs"
+                className="px-5 py-3 rounded-[10px] border border-stone-300 text-stone-700 text-sm font-semibold no-underline min-h-[44px] flex items-center hover:border-stone-400 transition-colors"
+              >
+                Read the docs
+              </a>
+            </div>
+          </Reveal>
+        </section>
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer className="px-5 sm:px-6 py-4 border-t border-stone-200">
+        <div className="max-w-[960px] mx-auto flex justify-between items-center flex-wrap gap-2">
+          <span className="text-[13px] text-stone-500">
+            <strong className="text-stone-500 font-semibold">kindlm</strong> &middot; MIT
+          </span>
+          <div className="flex gap-3.5">
+            <a
+              href="https://github.com/kindlm/kindlm"
+              target="_blank"
+              rel="noopener"
+              className="text-stone-500 no-underline text-[13px] py-2 px-1 hover:text-stone-700 transition-colors min-h-[44px] flex items-center"
+            >
+              GitHub
+            </a>
+            <a
+              href="/docs"
+              className="text-stone-500 no-underline text-[13px] py-2 px-1 hover:text-stone-700 transition-colors min-h-[44px] flex items-center"
+            >
+              Docs
+            </a>
+            <a
+              href="https://www.npmjs.com/package/@kindlm/cli"
+              target="_blank"
+              rel="noopener"
+              className="text-stone-500 no-underline text-[13px] py-2 px-1 hover:text-stone-700 transition-colors min-h-[44px] flex items-center"
+            >
+              npm
+            </a>
           </div>
         </div>
       </footer>

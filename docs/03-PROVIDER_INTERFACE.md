@@ -2,7 +2,7 @@
 
 ## Overview
 
-Provider adapters abstract the differences between LLM APIs (OpenAI, Anthropic, etc.) behind a unified interface. The adapter handles:
+Provider adapters abstract the differences between LLM APIs (OpenAI, Anthropic, Google Gemini, Mistral, Cohere, Ollama) behind a unified interface. The adapter handles:
 
 1. Authentication (reading API key from environment)
 2. Request formatting (mapping KindLM's internal format to provider-specific format)
@@ -661,6 +661,182 @@ function matchArgs(
   }
   return true;
 }
+```
+
+---
+
+## Google Gemini Adapter
+
+Google Gemini models are accessed via the `generativelanguage.googleapis.com` API using an API key.
+
+### Configuration
+
+```yaml
+providers:
+  gemini:
+    apiKeyEnv: GOOGLE_API_KEY
+
+models:
+  - id: gemini-2.0-flash
+    provider: gemini
+    model: gemini-2.0-flash
+    params:
+      temperature: 0
+      maxTokens: 2048
+```
+
+### Implementation Details
+
+- **Authentication**: `x-goog-api-key` header (not Bearer token)
+- **Endpoint**: POST `${baseUrl}/models/${model}:generateContent`
+- **Base URL**: `https://generativelanguage.googleapis.com/v1beta`
+- **System prompts**: Sent as `systemInstruction.parts[0].text` (separated from messages)
+- **Tool support**: Tools sent as `functionDeclarations` array. `supportsTools()` always returns `true`
+- **Synthetic tool call IDs**: Gemini does not return tool call `id` fields, so KindLM generates `gemini_call_0`, `gemini_call_1`, etc.
+- **Tool responses**: Mapped to `functionResponse` parts with `role: "function"`
+- **Tool choice**: `auto` → `AUTO`, `required` → `ANY`, `none` → `NONE` (via `toolConfig.functionCallingConfig.mode`)
+- **Cost estimation**: Pricing table for gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-pro, gemini-1.5-flash, gemini-1.5-flash-8b
+- **Usage mapping**: `promptTokenCount` → `inputTokens`, `candidatesTokenCount` → `outputTokens`
+- **Finish reason mapping**: `STOP` → `stop`, `MAX_TOKENS` → `max_tokens`, `SAFETY` → `stop`
+- **Error mapping**: 401/403 → `AUTH_FAILED`, 404 → `MODEL_NOT_FOUND`, 429 → `RATE_LIMITED`
+- **Retry**: Uses the same `withRetry` mechanism as other providers
+
+### Prerequisites
+
+1. Create a Google Cloud project or use Google AI Studio
+2. Generate an API key at https://aistudio.google.com/apikey
+3. Set `GOOGLE_API_KEY` environment variable
+
+---
+
+## Mistral Adapter
+
+Mistral models use an OpenAI-compatible API format.
+
+### Configuration
+
+```yaml
+providers:
+  mistral:
+    apiKeyEnv: MISTRAL_API_KEY
+
+models:
+  - id: mistral-large
+    provider: mistral
+    model: mistral-large-latest
+    params:
+      temperature: 0
+      maxTokens: 2048
+```
+
+### Implementation Details
+
+- **Authentication**: Bearer token (`Authorization: Bearer ${apiKey}`)
+- **Endpoint**: POST `${baseUrl}/chat/completions`
+- **Base URL**: `https://api.mistral.ai/v1`
+- **API format**: OpenAI-compatible (same message/tool format)
+- **Tool support**: OpenAI function calling format. `supportsTools()` always returns `true`
+- **Cost estimation**: Returns `null` (Mistral pricing varies; not tracked)
+- **Finish reason mapping**: `stop` → `stop`, `length` → `max_tokens`, `tool_calls` → `tool_calls`
+- **Error mapping**: Standard HTTP status codes → `ProviderError` codes
+- **Retry**: Uses `withRetry` for transient errors
+
+### Prerequisites
+
+1. Create a Mistral account at https://console.mistral.ai/
+2. Generate an API key
+3. Set `MISTRAL_API_KEY` environment variable
+
+---
+
+## Cohere Adapter
+
+Cohere models use the v2 Chat API with a content-array response format.
+
+### Configuration
+
+```yaml
+providers:
+  cohere:
+    apiKeyEnv: CO_API_KEY
+
+models:
+  - id: command-r-plus
+    provider: cohere
+    model: command-r-plus
+    params:
+      temperature: 0
+      maxTokens: 2048
+```
+
+### Implementation Details
+
+- **Authentication**: Bearer token (`Authorization: Bearer ${apiKey}`)
+- **Endpoint**: POST `${baseUrl}/v2/chat`
+- **Base URL**: `https://api.cohere.com`
+- **Message format**: Messages sent as `{ role, content }` objects
+- **Tool support**: OpenAI function calling format. `supportsTools()` always returns `true`
+- **Response parsing**: Content is an array of `{ type: "text", text: "..." }` blocks (concatenated)
+- **Parameter mapping**: `topP` is sent as `p` (Cohere naming)
+- **Stop sequences**: Sent as `stop_sequences` (not `stop`)
+- **Cost estimation**: Returns `null` (Cohere pricing varies; not tracked)
+- **Usage mapping**: `usage.tokens.input_tokens` / `usage.tokens.output_tokens` (nested under `tokens`)
+- **Finish reason mapping**: `COMPLETE` → `stop`, `MAX_TOKENS` → `max_tokens`, `TOOL_CALL` → `tool_calls`
+- **Error mapping**: Standard HTTP status codes → `ProviderError` codes
+- **Retry**: Uses `withRetry` for transient errors
+
+### Prerequisites
+
+1. Create a Cohere account at https://dashboard.cohere.com/
+2. Generate an API key
+3. Set `CO_API_KEY` environment variable
+
+---
+
+## Ollama Adapter (Local Models)
+
+Ollama enables running open-source models locally. Unlike OpenAI/Anthropic, no API key is required.
+
+### Configuration
+
+```yaml
+providers:
+  ollama:
+    # apiKeyEnv is optional — Ollama runs locally
+    baseUrl: http://localhost:11434   # default, can be overridden
+
+models:
+  - id: llama3.2
+    provider: ollama
+    model: llama3.2
+    params:
+      temperature: 0
+      maxTokens: 1024
+```
+
+### Implementation Details
+
+- **No API key required**: `initialize()` succeeds without an API key (Ollama is local)
+- **Endpoint**: POST `${baseUrl}/api/chat` with `stream: false`
+- **Model params**: Mapped to Ollama's `options` format (`maxTokens` → `num_predict`, `topP` → `top_p`, etc.)
+- **Tool support**: Tools sent in OpenAI-compatible format. Always returns `supportsTools() → true`
+- **Synthetic tool call IDs**: Ollama does not return tool call `id` fields, so KindLM generates `ollama_call_0`, `ollama_call_1`, etc.
+- **Cost estimation**: Always returns `0` (local models have no per-token cost)
+- **Usage mapping**: `prompt_eval_count` → `inputTokens`, `eval_count` → `outputTokens`
+- **Error mapping**: Ollama returns flat `{ error: "msg" }`. HTTP 404 → `MODEL_NOT_FOUND`
+- **Retry**: Uses the same `withRetry` mechanism as other providers
+
+### Prerequisites
+
+```bash
+# Install Ollama (macOS)
+brew install ollama
+
+# Pull a model
+ollama pull llama3.2
+
+# Start the server (if not already running)
+ollama serve
 ```
 
 ---

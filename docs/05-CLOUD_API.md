@@ -23,10 +23,30 @@ The KindLM Cloud API provides persistent storage for test runs, baseline managem
 CREATE TABLE IF NOT EXISTS orgs (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(12)))),
   name        TEXT NOT NULL,
+  github_org  TEXT,
   plan        TEXT NOT NULL DEFAULT 'free', -- free, team, enterprise
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(12)))),
+  github_id   INTEGER NOT NULL UNIQUE,
+  github_login TEXT NOT NULL,
+  email       TEXT,
+  avatar_url  TEXT,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS org_members (
+  org_id      TEXT NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL DEFAULT 'member', -- owner, admin, member
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (org_id, user_id)
+);
+
+CREATE INDEX idx_org_members_org ON org_members(org_id);
 
 CREATE TABLE IF NOT EXISTS tokens (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -201,9 +221,34 @@ CREATE INDEX idx_idempotency_expires ON idempotency_keys(expires_at);
 
 ## REST Endpoints
 
-### Authentication
+### GitHub OAuth (Public)
 
-All endpoints require `Authorization: Bearer <token>` header.
+Authentication is via GitHub OAuth. These routes do not require a Bearer token.
+
+```
+GET /auth/github
+  Redirects to GitHub OAuth authorization page.
+  Query params: none (client_id, redirect_uri, scope generated server-side)
+  Scopes requested: read:user, user:email
+
+GET /auth/github/callback?code=<code>&state=<state>
+  Exchanges authorization code for GitHub access token, creates/finds user and org,
+  generates an API token, returns an HTML page with the token for copy-paste.
+  The user runs `kindlm login --token <token>` to store it locally.
+```
+
+**Flow:**
+1. CLI opens browser to `https://api.kindlm.com/auth/github`
+2. User authorizes on GitHub
+3. GitHub redirects to `/auth/github/callback` with `code`
+4. Server exchanges code → GitHub access token → fetches user + emails
+5. Creates user (or updates existing), creates org (or finds existing)
+6. Generates `klm_*` API token, stores SHA-256 hash in DB
+7. Returns HTML page with the plaintext token for copy-paste
+
+### API Token Authentication
+
+All `/v1/*` endpoints require `Authorization: Bearer <token>` header.
 
 Token is validated by hashing and looking up in the `tokens` table. Revoked tokens are rejected. Expired tokens are rejected.
 
@@ -448,22 +493,28 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { authMiddleware } from "./middleware/auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
+import { oauthRoutes } from "./routes/oauth";
+import { authRoutes } from "./routes/auth";
 import { projectRoutes } from "./routes/projects";
 import { suiteRoutes } from "./routes/suites";
 import { runRoutes } from "./routes/runs";
 import { resultRoutes } from "./routes/results";
 import { baselineRoutes } from "./routes/baselines";
 import { compareRoutes } from "./routes/compare";
-import { authRoutes } from "./routes/auth";
+import { webhookRoutes } from "./routes/webhooks";
+import { billingRoutes, stripeWebhookRoute } from "./routes/billing";
+import { memberRoutes } from "./routes/members";
 
-type Bindings = {
-  DB: D1Database;
-  ENVIRONMENT: string;
-};
-
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<AppEnv>();
 
 app.use("*", cors());
+
+// Public routes (no auth required)
+app.route("/auth", oauthRoutes);
+app.route("/stripe/webhook", stripeWebhookRoute);
+app.get("/health", (c) => c.json({ status: "ok" }));
+
+// Auth + rate-limit for all /v1 routes
 app.use("/v1/*", authMiddleware);
 app.use("/v1/*", rateLimitMiddleware);
 
@@ -474,10 +525,17 @@ app.route("/v1/runs", runRoutes);
 app.route("/v1/results", resultRoutes);
 app.route("/v1/baselines", baselineRoutes);
 app.route("/v1/compare", compareRoutes);
+app.route("/v1/webhooks", webhookRoutes);
+app.route("/v1/billing", billingRoutes);
+app.route("/v1/org/members", memberRoutes);
 
-app.get("/health", (c) => c.json({ status: "ok" }));
+// Scheduled handler for data retention cleanup (cron: daily at 02:00 UTC)
+async function handleScheduled(event, env, ctx) {
+  // Delete old runs per plan retention policy (free: 7d, team: 90d)
+  // Clean up expired idempotency keys
+}
 
-export default app;
+export default { fetch: app.fetch, scheduled: handleScheduled };
 ```
 
 ---
@@ -546,13 +604,250 @@ export function getLimits(plan: Plan) {
 
 ### Billing Integration
 
-Billing is handled via Stripe. The Cloud dashboard exposes plan management at `https://cloud.kindlm.com/settings/billing`.
+Billing is handled via Stripe (see Billing section above for full API). The Cloud dashboard exposes plan management at `https://cloud.kindlm.com/settings/billing`.
 
-- Plan upgrades take effect immediately
+- Plan upgrades take effect immediately via Stripe Checkout
 - Plan downgrades take effect at the end of the billing period
 - Enterprise plans require a sales conversation (contact form)
 - Free plan requires no payment method
+- Stripe webhook events automatically update org plans
 
 ### Data Retention
 
 Test runs older than the plan's retention period are automatically deleted by a scheduled Cloudflare Worker (cron trigger, runs daily at 02:00 UTC). Compliance reports on the Enterprise plan are never deleted unless the organization requests it.
+
+---
+
+## Webhooks
+
+Webhooks allow organizations to receive real-time notifications when test runs complete or fail. Requires a Team or Enterprise plan.
+
+### Endpoints
+
+| Method | Path | Description | Plan |
+|--------|------|-------------|------|
+| `POST /v1/webhooks` | Create webhook | Team+ |
+| `GET /v1/webhooks` | List webhooks (secrets masked) | Team+ |
+| `DELETE /v1/webhooks/:id` | Delete webhook | Team+ |
+
+### Create Webhook
+
+```bash
+curl -X POST https://api.kindlm.com/v1/webhooks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/kindlm-webhook",
+    "events": ["run.completed", "run.failed"]
+  }'
+```
+
+**Constraints:**
+- `url` must use HTTPS
+- `events` must be a subset of `["run.completed", "run.failed"]`
+- A secret is auto-generated and returned in the creation response
+
+### Webhook Payload
+
+When a run completes or fails, KindLM sends a POST request to each matching webhook URL:
+
+```json
+{
+  "event": "run.completed",
+  "timestamp": "2026-02-16T12:00:00.000Z",
+  "data": {
+    "runId": "abc123",
+    "projectId": "proj-1",
+    "suiteId": "suite-1",
+    "status": "completed",
+    "passRate": 0.95,
+    "testCount": 20
+  }
+}
+```
+
+### HMAC Signature Verification
+
+Each webhook request includes an `X-KindLM-Signature` header containing an HMAC-SHA256 hex digest of the request body, signed with the webhook's secret:
+
+```typescript
+// Verify webhook signature
+const encoder = new TextEncoder();
+const key = await crypto.subtle.importKey(
+  "raw",
+  encoder.encode(webhookSecret),
+  { name: "HMAC", hash: "SHA-256" },
+  false,
+  ["verify"],
+);
+
+const signature = hexToBytes(request.headers.get("X-KindLM-Signature"));
+const isValid = await crypto.subtle.verify(
+  "HMAC",
+  key,
+  signature,
+  encoder.encode(requestBody),
+);
+```
+
+### Webhook Dispatch
+
+Webhooks are dispatched asynchronously using `waitUntil()` after the PATCH `/v1/runs/:id` endpoint updates a run's status to `completed` or `failed`. Delivery is fire-and-forget — failed deliveries are not retried.
+
+---
+
+## Team Management
+
+Manage organization members. Requires authenticated API token.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET /v1/org/members` | List all org members (with user details) |
+| `POST /v1/org/members/invite` | Invite a member by GitHub login |
+| `PATCH /v1/org/members/:userId` | Update member role |
+| `DELETE /v1/org/members/:userId` | Remove member from org |
+
+### List Members
+
+```bash
+curl https://api.kindlm.com/v1/org/members \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Response:
+```json
+{
+  "members": [{
+    "userId": "abc123",
+    "role": "owner",
+    "createdAt": "2026-01-15T00:00:00.000Z",
+    "user": {
+      "id": "abc123",
+      "githubLogin": "petr",
+      "email": "petr@example.com",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/123"
+    }
+  }]
+}
+```
+
+### Invite Member
+
+```bash
+curl -X POST https://api.kindlm.com/v1/org/members/invite \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "githubLogin": "teammate", "role": "member" }'
+```
+
+**Constraints:**
+- Caller must be an owner or admin
+- Invited user must have signed in to KindLM Cloud at least once
+- Member count is limited by plan (free: 1, team: 10, enterprise: unlimited)
+- Valid roles: `owner`, `admin`, `member`
+
+### Update Role
+
+```bash
+curl -X PATCH https://api.kindlm.com/v1/org/members/:userId \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "role": "admin" }'
+```
+
+### Remove Member
+
+```bash
+curl -X DELETE https://api.kindlm.com/v1/org/members/:userId \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Returns `204 No Content` on success, `404` if member not found.
+
+---
+
+## Billing (Stripe Integration)
+
+Billing is handled via Stripe. Organizations can self-serve upgrade to Team ($49/mo) or Enterprise ($299/mo) plans.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET /v1/billing` | Get current plan and billing info |
+| `POST /v1/billing/checkout` | Create Stripe Checkout session |
+| `POST /v1/billing/portal` | Create Stripe Customer Portal session |
+| `POST /stripe/webhook` | Stripe webhook handler (public, no auth) |
+
+### Get Billing Info
+
+```bash
+curl https://api.kindlm.com/v1/billing \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Response:
+```json
+{
+  "plan": "team",
+  "billing": {
+    "plan": "team",
+    "periodEnd": "2026-03-15T00:00:00.000Z",
+    "hasPaymentMethod": true
+  }
+}
+```
+
+### Create Checkout Session
+
+```bash
+curl -X POST https://api.kindlm.com/v1/billing/checkout \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "plan": "team" }'
+```
+
+Response:
+```json
+{ "checkoutUrl": "https://checkout.stripe.com/c/pay_..." }
+```
+
+Returns `501` if Stripe is not configured (contact sales@kindlm.com).
+
+### Create Portal Session
+
+```bash
+curl -X POST https://api.kindlm.com/v1/billing/portal \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Response:
+```json
+{ "portalUrl": "https://billing.stripe.com/p/session/..." }
+```
+
+### Stripe Webhook
+
+The `POST /stripe/webhook` route (mounted publicly, no auth middleware) handles Stripe events:
+
+- **`checkout.session.completed`** — Activates the new plan, stores subscription ID
+- **`customer.subscription.updated`** — Updates period end date
+- **`customer.subscription.deleted`** — Downgrades org to free plan
+
+Webhook signature is verified using HMAC-SHA256 with the `STRIPE_WEBHOOK_SECRET`.
+
+### Schema
+
+```sql
+CREATE TABLE IF NOT EXISTS billing (
+  org_id                  TEXT PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  stripe_customer_id      TEXT,
+  stripe_subscription_id  TEXT,
+  plan                    TEXT NOT NULL DEFAULT 'free',
+  period_end              TEXT,
+  created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
+);
+```

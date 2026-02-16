@@ -3,8 +3,29 @@
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
+  "description": "CLI for KindLM — behavioral regression testing for AI agents",
+  "keywords": [
+    "ai",
+    "llm",
+    "testing",
+    "cli",
+    "agents",
+    "tool-calls",
+    "ci-cd",
+    "compliance",
+    "eu-ai-act"
+  ],
+  "homepage": "https://kindlm.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kindlm/kindlm.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/kindlm/kindlm/issues"
+  },
   "bin": {
-    "kindlm": "./dist/bin/kindlm.js"
+    "kindlm": "./dist/kindlm.js"
   },
   "exports": {
     ".": {
@@ -28,6 +49,7 @@
     "@kindlm/core": "*",
     "commander": "^13.0.0",
     "chalk": "^5.4.0",
-    "ora": "^8.1.0"
+    "ora": "^8.1.0",
+    "pdfkit": "^0.15.0"
   }
 }

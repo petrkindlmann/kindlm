@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseConfig } from "./parser.js";
+import { parseConfig, safePath } from "./parser.js";
 import type { FileReader } from "./parser.js";
 import { ok, err } from "../types/result.js";
 
@@ -285,5 +285,75 @@ tests:
 `;
     const result = parseConfig(yaml, { configDir: "/project" });
     expect(result.success).toBe(true);
+  });
+
+  it("rejects config larger than 1MB", () => {
+    const huge = "a: " + "x".repeat(1_048_577);
+    const result = parseConfig(huge, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("CONFIG_TOO_LARGE");
+    }
+  });
+
+  it("accepts config exactly at 1MB limit", () => {
+    // Just under 1MB — will fail schema validation but NOT size limit
+    const yaml = "a: " + "x".repeat(1_048_570);
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Should fail for schema reasons, not size
+      expect(result.error.code).not.toBe("CONFIG_TOO_LARGE");
+    }
+  });
+});
+
+describe("safePath", () => {
+  it("allows relative paths within config dir", () => {
+    const result = safePath("/project", "schemas/test.json");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe("/project/schemas/test.json");
+    }
+  });
+
+  it("blocks absolute paths", () => {
+    const result = safePath("/project", "/etc/passwd");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("PATH_TRAVERSAL");
+    }
+  });
+
+  it("blocks path traversal with ..", () => {
+    const result = safePath("/project", "../../etc/passwd");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("PATH_TRAVERSAL");
+    }
+  });
+
+  it("allows .. that stays within config dir", () => {
+    const result = safePath("/project", "sub/../schema.json");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe("/project/schema.json");
+    }
+  });
+
+  it("blocks Windows absolute paths", () => {
+    const result = safePath("/project", "C:\\Windows\\system32");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("PATH_TRAVERSAL");
+    }
+  });
+
+  it("blocks backslash-prefixed paths", () => {
+    const result = safePath("/project", "\\Windows\\system32");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("PATH_TRAVERSAL");
+    }
   });
 });

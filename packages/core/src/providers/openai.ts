@@ -154,7 +154,17 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
         },
       );
 
-      const json = await response.json();
+      let json: unknown;
+      try {
+        json = await response.json();
+      } catch {
+        throw new ProviderError(
+          "PROVIDER_ERROR",
+          "Malformed response body from OpenAI API",
+          response.status,
+          response.status >= 500,
+        );
+      }
       const latencyMs = Date.now() - startTime;
 
       if (!response.ok) {
@@ -184,14 +194,22 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
       const message = choice?.message;
 
       const toolCalls: ProviderToolCall[] = (message?.tool_calls ?? []).map(
-        (tc) => ({
-          id: tc.id,
-          name: tc.function.name,
-          arguments: JSON.parse(tc.function.arguments || "{}") as Record<
-            string,
-            unknown
-          >,
-        }),
+        (tc) => {
+          let args: Record<string, unknown>;
+          try {
+            args = JSON.parse(tc.function.arguments || "{}") as Record<
+              string,
+              unknown
+            >;
+          } catch {
+            args = { _raw: tc.function.arguments };
+          }
+          return {
+            id: tc.id,
+            name: tc.function.name,
+            arguments: args,
+          };
+        },
       );
 
       return {

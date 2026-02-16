@@ -13,10 +13,22 @@ export interface ParseOptions {
   fileReader?: FileReader;
 }
 
+const MAX_CONFIG_SIZE = 1_048_576; // 1MB
+const MAX_TESTS = 1000;
+const MAX_SUITES = 50;
+
 export function parseConfig(
   yamlContent: string,
   options: ParseOptions,
 ): Result<KindLMConfig> {
+  // Step 0: Size guard
+  if (yamlContent.length > MAX_CONFIG_SIZE) {
+    return err({
+      code: "CONFIG_TOO_LARGE",
+      message: `Config exceeds maximum size of 1MB (got ${(yamlContent.length / 1_048_576).toFixed(1)}MB)`,
+    });
+  }
+
   // Step 1: YAML parse
   let raw: unknown;
   try {
@@ -35,6 +47,23 @@ export function parseConfig(
     return validated;
   }
   const config = validated.data;
+
+  // Step 2.5: Cardinality limits
+  if (config.tests.length > MAX_TESTS) {
+    return err({
+      code: "CONFIG_VALIDATION_ERROR",
+      message: `Config exceeds maximum of ${MAX_TESTS} tests (got ${config.tests.length})`,
+    });
+  }
+
+  // Count unique suites by model grouping — but here "suites" are implicit via test groupings
+  // For simplicity, use the models array length as a proxy
+  if (config.models.length > MAX_SUITES) {
+    return err({
+      code: "CONFIG_VALIDATION_ERROR",
+      message: `Config exceeds maximum of ${MAX_SUITES} models (got ${config.models.length})`,
+    });
+  }
 
   // Step 3: Cross-reference validation (collect all errors)
   const errors: string[] = [];
@@ -103,30 +132,42 @@ export function parseConfig(
   if (options.fileReader) {
     for (const test of config.tests) {
       if (test.expect.output?.schemaFile) {
-        const fullPath = joinPath(
+        const pathResult = safePath(
           options.configDir,
           test.expect.output.schemaFile,
         );
-        const result = options.fileReader.readFile(fullPath);
-        if (!result.success) {
+        if (!pathResult.success) {
           errors.push(
-            `Test "${test.name}": schemaFile "${test.expect.output.schemaFile}" not found at ${fullPath}`,
+            `Test "${test.name}": schemaFile "${test.expect.output.schemaFile}" — ${pathResult.error.message}`,
           );
+        } else {
+          const result = options.fileReader.readFile(pathResult.data);
+          if (!result.success) {
+            errors.push(
+              `Test "${test.name}": schemaFile "${test.expect.output.schemaFile}" not found at ${pathResult.data}`,
+            );
+          }
         }
       }
 
       if (test.expect.toolCalls) {
         for (const tc of test.expect.toolCalls) {
           if (tc.argsSchema) {
-            const fullPath = joinPath(
+            const pathResult = safePath(
               options.configDir,
               tc.argsSchema,
             );
-            const result = options.fileReader.readFile(fullPath);
-            if (!result.success) {
+            if (!pathResult.success) {
               errors.push(
-                `Test "${test.name}": argsSchema "${tc.argsSchema}" for tool "${tc.tool}" not found at ${fullPath}`,
+                `Test "${test.name}": argsSchema "${tc.argsSchema}" for tool "${tc.tool}" — ${pathResult.error.message}`,
               );
+            } else {
+              const result = options.fileReader.readFile(pathResult.data);
+              if (!result.success) {
+                errors.push(
+                  `Test "${test.name}": argsSchema "${tc.argsSchema}" for tool "${tc.tool}" not found at ${pathResult.data}`,
+                );
+              }
             }
           }
         }
@@ -145,8 +186,53 @@ export function parseConfig(
   return ok(config);
 }
 
-function joinPath(base: string, relative: string): string {
-  if (relative.startsWith("/")) return relative;
+export function safePath(base: string, relative: string): Result<string> {
+  // Block absolute paths
+  if (relative.startsWith("/") || relative.startsWith("\\")) {
+    return err({
+      code: "PATH_TRAVERSAL",
+      message: "Absolute paths are not allowed in config references",
+    });
+  }
+
+  // Block Windows absolute paths (e.g. C:\)
+  if (/^[a-zA-Z]:/.test(relative)) {
+    return err({
+      code: "PATH_TRAVERSAL",
+      message: "Absolute paths are not allowed in config references",
+    });
+  }
+
   const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
-  return `${normalizedBase}/${relative}`;
+  const joined = `${normalizedBase}/${relative}`;
+
+  // Normalize away .. and . segments
+  const resolved = normalizePath(joined);
+
+  // Verify resolved path stays under config directory
+  const normalizedRoot = normalizePath(normalizedBase);
+  if (!resolved.startsWith(normalizedRoot + "/") && resolved !== normalizedRoot) {
+    return err({
+      code: "PATH_TRAVERSAL",
+      message: `Path "${relative}" escapes the config directory`,
+    });
+  }
+
+  return ok(resolved);
+}
+
+function normalizePath(p: string): string {
+  const parts = p.split("/");
+  const result: string[] = [];
+  for (const part of parts) {
+    if (part === "." || part === "") continue;
+    if (part === "..") {
+      result.pop();
+    } else {
+      result.push(part);
+    }
+  }
+  // Preserve leading slash for absolute paths
+  const prefix = p.startsWith("/") ? "/" : "";
+  return prefix + result.join("/");
 }

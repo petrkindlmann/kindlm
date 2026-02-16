@@ -1,6 +1,9 @@
 name = "kindlm-api"
 main = "src/index.ts"
-compatibility_date = "2024-12-01"
+compatibility_date = "2026-02-01"
+
+[triggers]
+crons = ["0 2 * * *"]  # Daily retention cleanup at 02:00 UTC
 
 [[d1_databases]]
 binding = "DB"
@@ -9,3 +12,22 @@ database_id = "placeholder-replace-with-real-id"
 
 [vars]
 ENVIRONMENT = "production"
+
+# Secrets (set via `wrangler secret put`):
+# GITHUB_CLIENT_ID
+# GITHUB_CLIENT_SECRET
+# STRIPE_SECRET_KEY        (Phase 3)
+# STRIPE_WEBHOOK_SECRET    (Phase 3)
+
+# ── Staging environment ──
+
+[env.staging]
+name = "kindlm-api-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "kindlm-staging"
+database_id = "placeholder-replace-with-staging-id"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"

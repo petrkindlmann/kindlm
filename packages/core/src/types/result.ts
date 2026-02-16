@@ -15,6 +15,8 @@ export type ErrorCode =
   | "CONFIG_PARSE_ERROR"
   | "CONFIG_VALIDATION_ERROR"
   | "CONFIG_FILE_REF_ERROR"
+  | "CONFIG_TOO_LARGE"
+  | "PATH_TRAVERSAL"
   // Provider errors
   | "PROVIDER_NOT_FOUND"
   | "PROVIDER_AUTH_ERROR"

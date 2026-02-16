@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import type { Plan } from "../types.js";
+import type { AppEnv, Plan } from "../types.js";
 
 const LIMITS: Record<Plan, { projects: number; members: number; retentionDays: number; rateLimit: number }> = {
   free: { projects: 1, members: 1, retentionDays: 7, rateLimit: 100 },
@@ -8,9 +8,19 @@ const LIMITS: Record<Plan, { projects: number; members: number; retentionDays: n
 };
 
 export function requirePlan(...allowed: Plan[]) {
-  return async (c: Context, next: Next) => {
-    void allowed;
-    void c;
+  return async (c: Context<AppEnv>, next: Next) => {
+    const auth = c.get("auth");
+    if (!auth) {
+      return c.json({ error: "Authentication required" }, 401);
+    }
+
+    if (!allowed.includes(auth.org.plan)) {
+      return c.json(
+        { error: `This feature requires a ${allowed.join(" or ")} plan. Please upgrade.` },
+        403,
+      );
+    }
+
     return next();
   };
 }

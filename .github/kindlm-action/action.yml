@@ -1,0 +1,57 @@
+name: "KindLM Test"
+description: "Run KindLM behavioral regression tests against AI agents"
+
+inputs:
+  config:
+    description: "Path to kindlm.yaml config file"
+    required: false
+    default: "kindlm.yaml"
+  reporter:
+    description: "Reporter format (pretty, json, junit)"
+    required: false
+    default: "pretty"
+  gate:
+    description: "Minimum pass rate percentage (0-100)"
+    required: false
+  compliance:
+    description: "Generate compliance report (true/false)"
+    required: false
+    default: "false"
+  token:
+    description: "KindLM Cloud API token for upload"
+    required: false
+  version:
+    description: "Version of @kindlm/cli to install"
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install KindLM CLI
+      shell: bash
+      run: npm install -g @kindlm/cli@${{ inputs.version }}
+
+    - name: Run Tests
+      shell: bash
+      run: |
+        ARGS="--config ${{ inputs.config }} --reporter ${{ inputs.reporter }}"
+        if [ -n "${{ inputs.gate }}" ]; then
+          ARGS="$ARGS --gate ${{ inputs.gate }}"
+        fi
+        if [ "${{ inputs.compliance }}" = "true" ]; then
+          ARGS="$ARGS --compliance"
+        fi
+        kindlm test $ARGS
+
+    - name: Upload Results
+      if: inputs.token != ''
+      shell: bash
+      env:
+        KINDLM_API_TOKEN: ${{ inputs.token }}
+      run: kindlm upload

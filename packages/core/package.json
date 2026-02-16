@@ -3,6 +3,27 @@
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
+  "description": "Core engine for KindLM — behavioral regression testing for AI agents",
+  "keywords": [
+    "ai",
+    "llm",
+    "testing",
+    "agents",
+    "tool-calls",
+    "assertions",
+    "evaluation",
+    "compliance",
+    "eu-ai-act"
+  ],
+  "homepage": "https://kindlm.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kindlm/kindlm.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/kindlm/kindlm/issues"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -26,9 +47,11 @@
     "yaml": "^2.6.0",
     "ajv": "^8.17.0",
     "ajv-formats": "^3.0.0",
-    "uuid": "^11.0.0"
+    "uuid": "^11.0.0",
+    "chalk": "^5.4.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/uuid": "^10.0.0"
   }
 }
