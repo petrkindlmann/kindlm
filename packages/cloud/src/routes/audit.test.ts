@@ -55,7 +55,7 @@ describe("audit routes", () => {
     const body = await res.json() as { entries: Array<{ action: string }>; total: number };
     expect(body.entries).toHaveLength(1);
     expect(body.total).toBe(1);
-    expect(body.entries[0]!.action).toBe("project.create");
+    expect(body.entries[0]?.action).toBe("project.create");
   });
 
   it("GET /v1/audit rejects non-enterprise plans", async () => {

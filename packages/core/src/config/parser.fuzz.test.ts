@@ -16,7 +16,7 @@ describe("parseConfig — property-based fuzz tests", () => {
       model: fc.stringOf(fc.char().filter(c => /[a-zA-Z0-9]/.test(c)), { minLength: 1, maxLength: 30 }),
     });
 
-    const promptArb = fc.record({
+    const _promptArb = fc.record({
       user: fc.stringOf(fc.char().filter(c => /[a-zA-Z0-9]/.test(c)), { minLength: 1, maxLength: 100 }),
     });
 

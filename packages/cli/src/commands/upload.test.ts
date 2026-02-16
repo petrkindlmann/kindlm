@@ -104,8 +104,8 @@ describe("upload command", () => {
     }
 
     expect(mockUploadResults).toHaveBeenCalledOnce();
-    const uploadOptions = mockUploadResults.mock.calls[0]![2];
-    expect(uploadOptions.projectName).toBe("custom-name");
+    const uploadOptions = mockUploadResults.mock.calls[0]?.[2];
+    expect(uploadOptions?.projectName).toBe("custom-name");
     const allOutput = logs.join("\n");
     expect(allOutput).toContain("Project: custom-name");
   });
@@ -130,8 +130,8 @@ describe("upload command", () => {
     }
 
     expect(mockUploadResults).toHaveBeenCalledOnce();
-    const uploadOptions = mockUploadResults.mock.calls[0]![2];
-    expect(uploadOptions.projectName).toBe("my-repo");
+    const uploadOptions = mockUploadResults.mock.calls[0]?.[2];
+    expect(uploadOptions?.projectName).toBe("my-repo");
   });
 
   it("parses project name from SSH git remote URL", async () => {
@@ -154,8 +154,8 @@ describe("upload command", () => {
     }
 
     expect(mockUploadResults).toHaveBeenCalledOnce();
-    const uploadOptions = mockUploadResults.mock.calls[0]![2];
-    expect(uploadOptions.projectName).toBe("ssh-repo");
+    const uploadOptions = mockUploadResults.mock.calls[0]?.[2];
+    expect(uploadOptions?.projectName).toBe("ssh-repo");
   });
 
   it("fails when no token is available", async () => {

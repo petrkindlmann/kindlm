@@ -14,8 +14,8 @@ auditRoutes.get("/", requirePlan("enterprise"), async (c) => {
   const resourceType = c.req.query("resourceType");
   const since = c.req.query("since");
   const until = c.req.query("until");
-  const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!, 10) : undefined;
-  const offset = c.req.query("offset") ? parseInt(c.req.query("offset")!, 10) : undefined;
+  const limit = c.req.query("limit") ? parseInt(c.req.query("limit") ?? "", 10) : undefined;
+  const offset = c.req.query("offset") ? parseInt(c.req.query("offset") ?? "", 10) : undefined;
 
   const { entries, total } = await queries.listAuditLog(auth.org.id, {
     action: action ?? undefined,

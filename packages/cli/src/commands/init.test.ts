@@ -45,7 +45,8 @@ describe("init command", () => {
     await program.parseAsync(["node", "kindlm", "init"]);
 
     expect(mockWriteFileSync).toHaveBeenCalledOnce();
-    const [, content] = mockWriteFileSync.mock.calls[0]!;
+    const call = mockWriteFileSync.mock.calls[0];
+    const content = call?.[1];
     expect(content).toContain("kindlm: 1");
 
     const allOutput = logs.join("\n");
@@ -82,7 +83,8 @@ describe("init command", () => {
 
     await program.parseAsync(["node", "kindlm", "init"]);
 
-    const [, content] = mockWriteFileSync.mock.calls[0]!;
+    const call = mockWriteFileSync.mock.calls[0];
+    const content = call?.[1];
     const yaml = content as string;
     expect(yaml).toContain("kindlm: 1");
     expect(yaml).toContain("suite:");

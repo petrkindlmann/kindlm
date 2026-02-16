@@ -64,10 +64,10 @@ describe("pdf-renderer markdown parsing", () => {
     const sections = parseSections(markdown);
 
     expect(sections).toHaveLength(2);
-    expect(sections[0]!.heading).toBe("Overview");
-    expect(sections[0]!.body).toContain("overview content");
-    expect(sections[1]!.heading).toBe("Test Results");
-    expect(sections[1]!.body).toContain("test-a: pass");
+    expect(sections[0]?.heading).toBe("Overview");
+    expect(sections[0]?.body).toContain("overview content");
+    expect(sections[1]?.heading).toBe("Test Results");
+    expect(sections[1]?.body).toContain("test-a: pass");
   });
 
   it("captures preamble text before the first ## heading", () => {
@@ -83,9 +83,9 @@ describe("pdf-renderer markdown parsing", () => {
 
     expect(sections).toHaveLength(2);
     // First "section" is the preamble (no heading)
-    expect(sections[0]!.heading).toBe("");
-    expect(sections[0]!.body).toContain("Compliance Report");
-    expect(sections[1]!.heading).toBe("Section One");
+    expect(sections[0]?.heading).toBe("");
+    expect(sections[0]?.body).toContain("Compliance Report");
+    expect(sections[1]?.heading).toBe("Section One");
   });
 
   it("extracts title from # heading", () => {
@@ -120,7 +120,7 @@ describe("pdf-renderer markdown parsing", () => {
 
     const sections = parseSections(markdown);
     expect(sections).toHaveLength(1);
-    expect(sections[0]!.body).toContain("```yaml");
-    expect(sections[0]!.body).toContain("kindlm: 1");
+    expect(sections[0]?.body).toContain("```yaml");
+    expect(sections[0]?.body).toContain("kindlm: 1");
   });
 });

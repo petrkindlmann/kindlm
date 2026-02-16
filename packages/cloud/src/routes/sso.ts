@@ -53,14 +53,14 @@ ssoRoutes.post("/callback", async (c) => {
   if (!nameIdMatch) {
     return c.json({ error: "Could not extract NameID from SAML assertion" }, 400);
   }
-  const email = nameIdMatch[1]!.trim().toLowerCase();
+  const email = (nameIdMatch[1] ?? "").trim().toLowerCase();
 
   // Extract Issuer to identify the org
   const issuerMatch = xml.match(/<(?:saml2?:)?Issuer[^>]*>([^<]+)<\/(?:saml2?:)?Issuer>/);
   if (!issuerMatch) {
     return c.json({ error: "Could not extract Issuer from SAML assertion" }, 400);
   }
-  const issuer = issuerMatch[1]!.trim();
+  const issuer = (issuerMatch[1] ?? "").trim();
 
   const queries = getQueries(c.env.DB);
 
@@ -75,7 +75,7 @@ ssoRoutes.post("/callback", async (c) => {
     return c.json({ error: "No SAML configuration found for this IdP" }, 404);
   }
 
-  const row = configRows[0]!;
+  const row = configRows[0] as Record<string, unknown>;
   const orgId = row.org_id as string;
 
   // Verify the signature against the stored IdP certificate
@@ -102,7 +102,7 @@ ssoRoutes.post("/callback", async (c) => {
 
   let userId: string;
   if (userRows && userRows.length > 0) {
-    userId = userRows[0]!.id as string;
+    userId = userRows[0]?.id as string;
   } else {
     // Create a placeholder user for SAML-only users
     userId = crypto.randomUUID();

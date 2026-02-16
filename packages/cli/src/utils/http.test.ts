@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { createHttpClient } from "./http.js";
 
 describe("createHttpClient", () => {
@@ -84,7 +84,7 @@ describe("createHttpClient", () => {
     });
 
     expect(capturedSignal).toBeDefined();
-    expect(capturedSignal!.aborted).toBe(false);
+    expect(capturedSignal?.aborted).toBe(false);
   });
 
   it("always passes an AbortController signal but only sets timeout when timeoutMs is provided", async () => {
@@ -105,6 +105,6 @@ describe("createHttpClient", () => {
     // Signal is always present (AbortController is always created)
     // but it should not be aborted since no timeout was set
     expect(capturedSignal).toBeDefined();
-    expect(capturedSignal!.aborted).toBe(false);
+    expect(capturedSignal?.aborted).toBe(false);
   });
 });
