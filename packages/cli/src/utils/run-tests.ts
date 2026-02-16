@@ -120,7 +120,7 @@ async function runTestsInner(
         console.error(chalk.red(`Missing environment variable: ${providerConfig.apiKeyEnv}`));
         process.exit(1);
       }
-      apiKey = key;
+      apiKey = key.trim();
     } else if (name !== "ollama") {
       console.error(chalk.red(`Provider "${name}" requires apiKeyEnv to be configured`));
       process.exit(1);

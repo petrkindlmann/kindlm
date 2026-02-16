@@ -88,7 +88,7 @@ describe("upload command", () => {
   it("uses explicit --project flag for project name", async () => {
     mockLoadToken.mockReturnValue("klm_test");
     mockLoadLastRun.mockReturnValue({
-      runnerResult: { runResult: { totalTests: 1, passed: 1, failed: 0, passRate: 1, durationMs: 100 }, aggregated: [] },
+      runnerResult: { runResult: { totalTests: 1, passed: 1, failed: 0, errored: 0, skipped: 0, suites: [], durationMs: 100 }, aggregated: [] },
       suiteName: "my-suite",
       configHash: "abc",
       timestamp: "2026-01-01T00:00:00Z",
@@ -113,7 +113,7 @@ describe("upload command", () => {
   it("parses project name from HTTPS git remote URL", async () => {
     mockLoadToken.mockReturnValue("klm_test");
     mockLoadLastRun.mockReturnValue({
-      runnerResult: { runResult: { totalTests: 2, passed: 2, failed: 0, passRate: 1, durationMs: 200 }, aggregated: [] },
+      runnerResult: { runResult: { totalTests: 2, passed: 2, failed: 0, errored: 0, skipped: 0, suites: [], durationMs: 200 }, aggregated: [] },
       suiteName: "suite",
       configHash: "def",
       timestamp: "2026-01-01T00:00:00Z",
@@ -137,7 +137,7 @@ describe("upload command", () => {
   it("parses project name from SSH git remote URL", async () => {
     mockLoadToken.mockReturnValue("klm_test");
     mockLoadLastRun.mockReturnValue({
-      runnerResult: { runResult: { totalTests: 1, passed: 1, failed: 0, passRate: 1, durationMs: 50 }, aggregated: [] },
+      runnerResult: { runResult: { totalTests: 1, passed: 1, failed: 0, errored: 0, skipped: 0, suites: [], durationMs: 50 }, aggregated: [] },
       suiteName: "suite",
       configHash: "ghi",
       timestamp: "2026-01-01T00:00:00Z",

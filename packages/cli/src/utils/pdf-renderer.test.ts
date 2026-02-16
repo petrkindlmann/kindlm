@@ -39,12 +39,12 @@ function parseSections(markdown: string): Section[] {
 
 function extractTitle(markdown: string): string {
   const match = markdown.match(/^# (.+)$/m);
-  return match ? match[1].trim() : "KindLM Compliance Report";
+  return match?.[1] ? match[1].trim() : "KindLM Compliance Report";
 }
 
 function extractHash(markdown: string): string | null {
   const match = markdown.match(/SHA-256:\s*`([a-f0-9]+)`/i);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 // --- Tests ---
