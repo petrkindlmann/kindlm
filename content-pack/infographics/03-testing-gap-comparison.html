@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Agent Testing Gap</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', sans-serif; 
+    background: #0a0e1a; 
+    color: #fff;
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .card {
+    width: 1080px;
+    padding: 60px;
+    background: linear-gradient(135deg, #0d1225 0%, #131a35 100%);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 48px;
+    line-height: 1.2;
+  }
+  .title span { color: #60a5fa; }
+  
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .col-header {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid;
+  }
+  .col-left .col-header { color: #64748b; border-color: #334155; }
+  .col-right .col-header { color: #60a5fa; border-color: #3b82f6; }
+  
+  .feature-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .check {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .check-grey { background: rgba(100, 116, 139, 0.2); color: #64748b; }
+  .check-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+  .check-green { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+  
+  .feature-text {
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .col-left .feature-text { color: #94a3b8; }
+  .col-right .feature-text { color: #e2e8f0; }
+  
+  .new-badge {
+    display: inline-block;
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+  }
+  
+  .gap-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 32px 0;
+    padding: 20px;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px dashed rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+  }
+  .gap-label {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ef4444;
+    margin-bottom: 4px;
+  }
+  .gap-desc {
+    font-size: 13px;
+    color: #f87171;
+  }
+  
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 40px 0 24px;
+  }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+  }
+  .brand-name { font-size: 18px; font-weight: 700; }
+  .footer-cta { font-size: 14px; color: #60a5fa; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">Competitive Landscape</div>
+  <div class="title">What Existing Tools Test vs.<br>What <span>Agents Actually Need</span></div>
+  
+  <div class="comparison">
+    <div class="col-left">
+      <div class="col-header">Existing Eval Tools</div>
+      <div class="feature-row"><div class="check check-grey">✓</div><div class="feature-text">Text output quality</div></div>
+      <div class="feature-row"><div class="check check-grey">✓</div><div class="feature-text">Response relevance</div></div>
+      <div class="feature-row"><div class="check check-grey">✓</div><div class="feature-text">Tone / sentiment</div></div>
+      <div class="feature-row"><div class="check check-grey">✓</div><div class="feature-text">Semantic similarity</div></div>
+      <div class="feature-row"><div class="check check-grey">✓</div><div class="feature-text">Hallucination detection</div></div>
+      <div class="feature-row"><div class="check check-grey">—</div><div class="feature-text" style="color:#475569">Tool call verification</div></div>
+      <div class="feature-row"><div class="check check-grey">—</div><div class="feature-text" style="color:#475569">Argument validation</div></div>
+      <div class="feature-row"><div class="check check-grey">—</div><div class="feature-text" style="color:#475569">Call sequence assertion</div></div>
+      <div class="feature-row"><div class="check check-grey">—</div><div class="feature-text" style="color:#475569">PII leak detection</div></div>
+      <div class="feature-row"><div class="check check-grey">—</div><div class="feature-text" style="color:#475569">Behavioral drift detection</div></div>
+      <div class="feature-row"><div class="check check-grey">—</div><div class="feature-text" style="color:#475569">EU AI Act compliance docs</div></div>
+    </div>
+    
+    <div class="col-right">
+      <div class="col-header">KindLM</div>
+      <div class="feature-row"><div class="check check-green">✓</div><div class="feature-text">Text output quality</div></div>
+      <div class="feature-row"><div class="check check-green">✓</div><div class="feature-text">Response relevance</div></div>
+      <div class="feature-row"><div class="check check-green">✓</div><div class="feature-text">Tone / sentiment</div></div>
+      <div class="feature-row"><div class="check check-green">✓</div><div class="feature-text">Semantic similarity</div></div>
+      <div class="feature-row"><div class="check check-green">✓</div><div class="feature-text">Hallucination detection</div></div>
+      <div class="feature-row"><div class="check check-blue">✓</div><div class="feature-text">Tool call verification <span class="new-badge">Unique</span></div></div>
+      <div class="feature-row"><div class="check check-blue">✓</div><div class="feature-text">Argument validation <span class="new-badge">Unique</span></div></div>
+      <div class="feature-row"><div class="check check-blue">✓</div><div class="feature-text">Call sequence assertion <span class="new-badge">Unique</span></div></div>
+      <div class="feature-row"><div class="check check-blue">✓</div><div class="feature-text">PII leak detection <span class="new-badge">Unique</span></div></div>
+      <div class="feature-row"><div class="check check-blue">✓</div><div class="feature-text">Behavioral drift detection <span class="new-badge">Unique</span></div></div>
+      <div class="feature-row"><div class="check check-blue">✓</div><div class="feature-text">EU AI Act compliance docs <span class="new-badge">Unique</span></div></div>
+    </div>
+  </div>
+  
+  <div class="gap-arrow">
+    <div class="gap-label">← THE GAP →</div>
+    <div class="gap-desc">Existing tools test what agents SAY. KindLM tests what agents DO.</div>
+  </div>
+  
+  <div class="divider"></div>
+  
+  <div class="footer">
+    <div class="brand">
+      <div class="brand-icon">K</div>
+      <div class="brand-name">KindLM</div>
+    </div>
+    <div class="footer-cta">Open source → kindlm.com</div>
+  </div>
+</div>
+</body>
+</html>

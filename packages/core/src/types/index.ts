@@ -1,0 +1,46 @@
+export type {
+  HttpClient,
+  HttpRequestInit,
+  HttpResponse,
+  ProviderMessage,
+  ProviderToolDefinition,
+  ProviderToolCall,
+  ProviderRequest,
+  ProviderResponse,
+  ProviderErrorCode,
+  ProviderAdapter,
+  ProviderAdapterConfig,
+  ConversationTurn,
+  ConversationResult,
+} from "./provider.js";
+export { ProviderError } from "./provider.js";
+
+export type {
+  Result,
+  KindlmError,
+  ErrorCode,
+} from "./result.js";
+export { ok, err } from "./result.js";
+
+export type {
+  KindLMConfig,
+  KindlmConfig,
+  TestCase,
+  Expect,
+  ModelConfig,
+  ProviderConfig,
+  GatesConfig,
+  JudgeCriterion,
+  ToolCallExpect,
+  ToolSimulation,
+  ComplianceConfig,
+} from "./config.js";
+
+export type {
+  ComplianceReport,
+  ComplianceSection,
+  ComplianceEvidence,
+  JUnitReport,
+  JUnitTestSuite,
+  JUnitTestCase,
+} from "./report.js";

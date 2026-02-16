@@ -1,0 +1,234 @@
+# KindLM — Roadmap & Timeline
+
+**Planning assumptions:**
+- Solo developer (Petr), ~20 hrs/week dedicated to KindLM
+- Claude Code handles bulk of implementation from specs
+- "Week 1" = first week of active development
+- Dates are relative — anchor Week 1 to actual start date
+
+---
+
+## Phase 1: MVP (Weeks 1–8)
+
+**Goal:** Ship a working CLI that someone can `npm install`, write YAML, and get pass/fail in CI. Show HN.
+
+### Week 1–2: Foundation
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Monorepo setup (Turborepo, npm workspaces, tsup, Vitest) | — | Build passes, test runner works |
+| Config parser (YAML → Zod validated typed config) | 1 | `kindlm validate` works |
+| Provider adapter interface + OpenAI adapter | 2 | Can call GPT-4o and get typed response |
+| Anthropic adapter | 2 | Can call Claude and get typed response |
+| Basic test engine (single run, single suite) | 1 | `kindlm test` executes one test |
+
+**Milestone:** `kindlm test` runs one test against one provider and prints result.
+
+### Week 3–4: Assertions
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| `tool_called` assertion | 2 | Verify tool name + args |
+| `tool_not_called` assertion | 2 | Verify tool absence |
+| `tool_order` assertion | 2 | Verify tool sequence |
+| `schema` assertion (AJV) | 2 | Validate JSON output against schema |
+| `judge` assertion (LLM-as-judge) | 2 | Score responses with criteria |
+| `no_pii` assertion | 2 | Detect SSN, CC, email, phone, IBAN |
+| `keywords_present` / `keywords_absent` | 2 | Keyword guardrails |
+| `latency` / `cost` assertions | 2 | Performance gates |
+| Multi-turn tool simulation | 2 | Tool response injection loop |
+
+**Milestone:** All 11 assertion types working. Full test suite against mock providers passes.
+
+### Week 5–6: Reporters & CLI
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Terminal reporter (colored output) | 3 | Pretty pass/fail in terminal |
+| JSON reporter | 3 | Structured report file |
+| JUnit XML reporter | 3 | CI-compatible output |
+| Compliance reporter (markdown) | 5 | EU AI Act Annex IV document |
+| Multi-run aggregation (N runs per test) | 2 | Configurable `runs` count |
+| Pass/fail gates | 3 | `--gate 90` sets threshold |
+| `kindlm init` command (scaffolding) | 1 | Creates starter `kindlm.yaml` |
+| `kindlm validate` command | 1 | Config validation without API calls |
+| Suite/test filtering (`-s`, `-t`, `--grep`) | 1 | Run subset of tests |
+| Ollama adapter | 2 | Local model support |
+
+**Milestone:** Full CLI feature-complete. Can init, validate, test, filter, report.
+
+### Week 7: Baselines & Polish
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| `kindlm baseline set` | 4 | Save current results |
+| `kindlm baseline compare` | 4 | Diff against baseline |
+| `kindlm baseline list` | 4 | Show saved baselines |
+| `drift` assertion | 4 | Semantic drift detection |
+| Multi-provider comparison | 6 | Same tests across models |
+| CI auto-detection (GitHub Actions, GitLab CI) | 3 | Git metadata in reports |
+| Error messages polish | — | Actionable, friendly errors |
+| README with examples | — | Install → first test in README |
+
+**Milestone:** Complete MVP. All features working, documented, tested.
+
+### Week 8: Launch
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| npm publish `@kindlm/core` + `@kindlm/cli` v0.1.0 | — | Package live on npm |
+| GitHub repo public | — | MIT licensed, stars welcome |
+| Landing page live (kindlm.com) | — | React landing page deployed |
+| Show HN post | — | Launch post with demo |
+| Blog post: "Why we built KindLM" | — | Origin story, problem statement |
+| Twitter/X announcement thread | — | 5-tweet thread with terminal GIF |
+| YouTube: "First test in 5 minutes" tutorial | — | Quick start video |
+
+**Milestone:** Public launch. Target 200+ GitHub stars in first week.
+
+---
+
+## Phase 2: Cloud Beta (Weeks 9–14)
+
+**Goal:** Ship Cloud dashboard for test history, trends, and team collaboration. Validate willingness to pay.
+
+### Week 9–10: Cloud API
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Cloudflare Workers + Hono setup | 7 | `/v1/health` responds |
+| D1 schema + migrations | 7 | All tables created |
+| GitHub OAuth flow | 7 | `kindlm login` works |
+| Token generation + auth middleware | 7 | Authenticated API calls |
+| `POST /v1/runs/upload` | 7 | CLI can upload results |
+| `GET /v1/projects`, CRUD | 7 | Project management |
+| `GET /v1/projects/:id/runs` (list, filter) | 7 | Run history with pagination |
+| Rate limiting middleware | 7 | Per-org limits enforced |
+| Plan gating middleware | 7 | Free/Team/Enterprise limits |
+
+**Milestone:** API complete. CLI can login, upload, and API returns historical data.
+
+### Week 11–12: Dashboard
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Dashboard app setup (React + Cloudflare Pages) | 7 | `cloud.kindlm.com` loads |
+| Login page (GitHub OAuth redirect) | 7 | User can authenticate |
+| Project list view | 7 | See all projects |
+| Run history view (table + pass rate chart) | 7 | See trends over time |
+| Run detail view (assertion breakdown) | 7 | Click into specific run |
+| Run comparison view (diff against baseline) | 7 | Side-by-side comparison |
+| Responsive mobile layout | 7 | Works on phone |
+
+**Milestone:** Dashboard usable. Beta testers can see their test history.
+
+### Week 13–14: Beta & Content
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Invite 20 beta testers from CLI users | — | Real usage data |
+| Slack webhook notifications | 7 | Alerts on failures |
+| Team management (invite, roles) | 7 | Multi-user orgs |
+| Data retention cron | 7 | Auto-cleanup per plan |
+| Blog: "EU AI Act compliance with KindLM" | — | Compliance content push |
+| Product Hunt launch | — | Cloud announcement |
+| Blog: "From CLI to Cloud" | — | Cloud launch story |
+| YouTube: "Team dashboard walkthrough" | — | Feature demo |
+
+**Milestone:** Cloud beta live with 20 users. Product Hunt launch. Collecting feedback.
+
+---
+
+## Phase 3: GA & Monetization (Weeks 15–22)
+
+**Goal:** Turn on billing, ship enterprise features, reach $7,890 MRR by month 6.
+
+### Week 15–16: Billing
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Stripe integration (Team plan $49/mo) | 9 | Self-serve upgrade |
+| Billing settings page | 9 | Card management, invoices |
+| Plan upgrade/downgrade flow | 9 | Immediate feature access change |
+| Enterprise contact form | 9 | "Contact us" → Slack notification |
+| Compliance PDF export (Team+) | 5 | Branded PDF download |
+
+**Milestone:** Revenue! First paying customer.
+
+### Week 17–18: Enterprise Features
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| SSO / SAML integration | 8 | Okta, Azure AD support |
+| Audit log API | 8 | Queryable compliance trail |
+| Signed compliance reports (Ed25519) | 8 | Tamper-proof reports |
+| SLA monitoring setup | — | 99.9% uptime tracking |
+
+**Milestone:** Enterprise tier feature-complete. Ready for regulated companies.
+
+### Week 19–20: Growth
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Documentation site (docs.kindlm.com) | — | Full docs with search |
+| "AI Agent Testing Guide" (SEO content) | — | Organic traffic driver |
+| Conference talk (local Prague/Berlin) | — | In-person credibility |
+| Plugin system for custom assertions | — | Community extensibility |
+| GitHub Actions marketplace action | 3 | One-click CI setup |
+| VS Code extension (YAML autocomplete) | — | DX improvement |
+
+**Milestone:** Organic growth flywheel active. Community contributing.
+
+### Week 21–22: Optimization
+
+| Task | Epic | Deliverable |
+|------|------|-------------|
+| Performance optimization (parallel test execution) | — | Faster runs |
+| Additional providers (Google Gemini, Mistral, Cohere) | 2 | Broader model support |
+| Webhook integrations (Teams, Discord, PagerDuty) | 7 | Beyond Slack |
+| Annual pricing option | 9 | Discount for commitment |
+| Customer interviews (10 paying users) | — | Roadmap input |
+
+**Milestone:** Stable product, growing revenue, clear roadmap for H2.
+
+---
+
+## Key Milestones Summary
+
+| Week | Milestone | Success Metric |
+|------|-----------|---------------|
+| 2 | First test runs | `kindlm test` works end-to-end |
+| 4 | All assertions | 11 assertion types passing |
+| 7 | MVP complete | Full CLI, all features, tested |
+| 8 | **Public launch** | 200+ GitHub stars first week |
+| 10 | Cloud API live | Upload + retrieve working |
+| 12 | Dashboard live | Beta testers using it |
+| 14 | **Cloud beta launch** | Product Hunt, 50 Cloud signups |
+| 16 | **First revenue** | Stripe billing active |
+| 18 | Enterprise GA | SSO, audit log, signed reports |
+| 22 | **Month 6 target** | $7,890 MRR |
+
+---
+
+## Dependencies & Blockers
+
+| Dependency | Blocks | Mitigation |
+|-----------|--------|------------|
+| Cloudflare D1 GA stability | Cloud launch | Monitor D1 status; Turso as fallback |
+| GitHub OAuth App approval | Cloud auth | Apply early, use personal OAuth app for dev |
+| Stripe account activation | Billing | Apply during Phase 2 |
+| EU AI Act final technical standards | Compliance spec accuracy | Track EASA/CEN publications, update mapping |
+| Domain registration (kindlm.com) | Landing page launch | Register in Week 1 |
+
+---
+
+## What's NOT on this roadmap (Backlog for H2 2026+)
+
+- Visual test builder (GUI for writing tests)
+- Real-time monitoring / observability mode
+- Prompt optimization suggestions from test results
+- Multi-language SDK (Python, Go)
+- Self-hosted Cloud option (Docker image)
+- Marketplace for community assertion plugins
+- SOC 2 certification for Cloud
+- Mobile app for test monitoring

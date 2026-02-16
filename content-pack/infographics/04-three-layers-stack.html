@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3 Layers of Agent Testing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', sans-serif; 
+    background: #0a0e1a; 
+    color: #fff;
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .card {
+    width: 1080px;
+    padding: 60px;
+    background: linear-gradient(135deg, #0d1225 0%, #131a35 100%);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: #94a3b8;
+    margin-bottom: 48px;
+  }
+  
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .layer {
+    border-radius: 16px;
+    padding: 28px 32px;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .layer::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+  }
+  
+  .layer-1 { background: rgba(34, 197, 94, 0.06); border: 1px solid rgba(34, 197, 94, 0.15); }
+  .layer-1::before { background: #22c55e; }
+  .layer-2 { background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.15); }
+  .layer-2::before { background: #3b82f6; }
+  .layer-3 { background: rgba(139, 92, 246, 0.06); border: 1px solid rgba(139, 92, 246, 0.15); }
+  .layer-3::before { background: #8b5cf6; }
+  
+  .layer-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .layer-1 .layer-icon { background: rgba(34, 197, 94, 0.15); }
+  .layer-2 .layer-icon { background: rgba(59, 130, 246, 0.15); }
+  .layer-3 .layer-icon { background: rgba(139, 92, 246, 0.15); }
+  
+  .layer-content { flex: 1; }
+  .layer-num {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+  }
+  .layer-1 .layer-num { color: #22c55e; }
+  .layer-2 .layer-num { color: #3b82f6; }
+  .layer-3 .layer-num { color: #8b5cf6; }
+  
+  .layer-name {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .layer-desc {
+    font-size: 14px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .layer-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .layer-1 .tag { background: rgba(34, 197, 94, 0.1); color: #4ade80; }
+  .layer-2 .tag { background: rgba(59, 130, 246, 0.1); color: #93c5fd; }
+  .layer-3 .tag { background: rgba(139, 92, 246, 0.1); color: #c4b5fd; }
+  
+  .layer-meta {
+    text-align: right;
+    flex-shrink: 0;
+    min-width: 140px;
+  }
+  .meta-label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .meta-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+  
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 40px 0 24px;
+  }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+  }
+  .brand-name { font-size: 18px; font-weight: 700; }
+  .footer-cta { font-size: 14px; color: #a78bfa; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">Engineering Framework</div>
+  <div class="title">The Agent Testing Stack</div>
+  <div class="subtitle">Three layers that make AI agents reliable — from unit tests to compliance documentation.</div>
+  
+  <div class="stack">
+    <div class="layer layer-1">
+      <div class="layer-icon">🔧</div>
+      <div class="layer-content">
+        <div class="layer-num">Layer 1 — Foundation</div>
+        <div class="layer-name">Behavioral Assertions</div>
+        <div class="layer-desc">Verify what your agent does — which tools it calls, with what arguments, in what order. The deterministic checks that catch broken behavior before deployment.</div>
+        <div class="layer-tags">
+          <span class="tag">tool_called</span>
+          <span class="tag">tool_order</span>
+          <span class="tag">schema</span>
+          <span class="tag">no_pii</span>
+          <span class="tag">keywords</span>
+        </div>
+      </div>
+      <div class="layer-meta">
+        <div class="meta-label">Speed</div>
+        <div class="meta-value">Instant</div>
+        <div class="meta-label" style="margin-top:8px">Cost</div>
+        <div class="meta-value">$0 per check</div>
+      </div>
+    </div>
+    
+    <div class="layer layer-2">
+      <div class="layer-icon">📊</div>
+      <div class="layer-content">
+        <div class="layer-num">Layer 2 — Regression</div>
+        <div class="layer-name">Drift Detection</div>
+        <div class="layer-desc">Compare current behavior against a known-good baseline. Catch subtle regressions that don't trigger hard failures — quality degradation, argument formatting shifts, changed tool patterns.</div>
+        <div class="layer-tags">
+          <span class="tag">baseline save</span>
+          <span class="tag">semantic diff</span>
+          <span class="tag">LLM judge</span>
+          <span class="tag">threshold alerts</span>
+        </div>
+      </div>
+      <div class="layer-meta">
+        <div class="meta-label">Speed</div>
+        <div class="meta-value">~2s per test</div>
+        <div class="meta-label" style="margin-top:8px">Cost</div>
+        <div class="meta-value">~$0.01 / judge</div>
+      </div>
+    </div>
+    
+    <div class="layer layer-3">
+      <div class="layer-icon">📋</div>
+      <div class="layer-content">
+        <div class="layer-num">Layer 3 — Compliance</div>
+        <div class="layer-name">Audit Documentation</div>
+        <div class="layer-desc">Generate EU AI Act Annex IV documentation from test results. Timestamped, hash-chained, version-controlled. Compliance as a byproduct of good engineering.</div>
+        <div class="layer-tags">
+          <span class="tag">Annex IV mapping</span>
+          <span class="tag">SHA-256 chains</span>
+          <span class="tag">PDF export</span>
+          <span class="tag">signed reports</span>
+        </div>
+      </div>
+      <div class="layer-meta">
+        <div class="meta-label">Speed</div>
+        <div class="meta-value">Auto-generated</div>
+        <div class="meta-label" style="margin-top:8px">Cost</div>
+        <div class="meta-value">Free (CLI)</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="divider"></div>
+  
+  <div class="footer">
+    <div class="brand">
+      <div class="brand-icon">K</div>
+      <div class="brand-name">KindLM</div>
+    </div>
+    <div class="footer-cta">All three layers. One CLI. → kindlm.com</div>
+  </div>
+</div>
+</body>
+</html>

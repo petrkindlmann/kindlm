@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Failure Stats 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', sans-serif; 
+    background: #0a0e1a; 
+    color: #fff;
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .card {
+    width: 1080px;
+    padding: 60px;
+    background: linear-gradient(135deg, #0d1225 0%, #131a35 100%);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .title {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+  .stat-card:nth-child(1)::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+  .stat-card:nth-child(2)::before { background: linear-gradient(90deg, #f97316, #eab308); }
+  .stat-card:nth-child(3)::before { background: linear-gradient(90deg, #eab308, #22c55e); }
+  .stat-card:nth-child(4)::before { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .stat-number {
+    font-size: 64px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .stat-card:nth-child(1) .stat-number { color: #ef4444; }
+  .stat-card:nth-child(2) .stat-number { color: #f97316; }
+  .stat-card:nth-child(3) .stat-number { color: #eab308; }
+  .stat-card:nth-child(4) .stat-number { color: #ef4444; }
+  .stat-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+  }
+  .stat-source {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 400;
+  }
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 40px 0 30px;
+  }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 18px;
+  }
+  .brand-name {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .brand-tag {
+    font-size: 13px;
+    color: #64748b;
+  }
+  .cta {
+    font-size: 14px;
+    color: #94a3b8;
+    text-align: right;
+  }
+  .cta strong {
+    color: #e2e8f0;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="badge">The State of AI Agents — 2026</div>
+    <div class="title">The Numbers Nobody<br>Wants to Talk About</div>
+  </div>
+  
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number">80%+</div>
+      <div class="stat-label">AI projects fail before reaching production</div>
+      <div class="stat-source">RAND Corporation — 2× the rate of non-AI IT projects</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">11%</div>
+      <div class="stat-label">Organizations with AI agents in production</div>
+      <div class="stat-source">Deloitte Tech Trends 2026</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">&lt;25%</div>
+      <div class="stat-label">Real-world tasks completed on first attempt</div>
+      <div class="stat-source">APEX-Agents Benchmark — top-performing models</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">€35M</div>
+      <div class="stat-label">Maximum EU AI Act penalty per violation</div>
+      <div class="stat-source">Regulation 2024/1689 — or 7% of global revenue</div>
+    </div>
+  </div>
+  
+  <div class="divider"></div>
+  
+  <div class="footer">
+    <div class="brand">
+      <div class="brand-icon">K</div>
+      <div>
+        <div class="brand-name">KindLM</div>
+        <div class="brand-tag">Behavioral Testing for AI Agents</div>
+      </div>
+    </div>
+    <div class="cta">
+      <strong>Test what agents DO, not just what they SAY</strong><br>
+      kindlm.com
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "kindlm",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "packageManager": "npm@11.6.0",
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"packages/*/src/**/*.ts\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
+    "dev:cli": "npm run dev -w packages/cli",
+    "dev:cloud": "npm run dev -w packages/cloud"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "eslint": "^9.17.0",
+    "@eslint/js": "^9.17.0",
+    "typescript-eslint": "^8.18.0",
+    "prettier": "^3.4.0",
+    "@changesets/cli": "^2.27.0",
+    "tsup": "^8.3.0"
+  }
+}
