@@ -130,9 +130,9 @@ export function parseIntBounded(
   return Math.min(Math.max(parsed, min), max);
 }
 
-type ValidationOk<T> = { readonly success: true; readonly data: T };
-type ValidationErr = { readonly success: false; readonly error: string };
-export type ValidationResult<T> = ValidationOk<T> | ValidationErr;
+export type ValidationResult<T> =
+  | { success: true; data: T; error?: undefined }
+  | { success: false; data?: undefined; error: string };
 
 export function validateBody<T>(
   schema: z.ZodSchema<T>,
