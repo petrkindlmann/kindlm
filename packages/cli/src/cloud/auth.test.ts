@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// Create a temp dir manually without importing os.tmpdir (since we mock node:os)
-const testDir = mkdtempSync(join("/tmp", "kindlm-auth-test-"));
+// Use process.env for temp dir (works cross-platform, not affected by vi.mock hoisting)
+const sysTmp = process.env["TMPDIR"] ?? process.env["TMP"] ?? process.env["TEMP"] ?? "/tmp";
+const testDir = mkdtempSync(join(sysTmp, "kindlm-auth-test-"));
 
 vi.mock("node:os", () => ({
   homedir: () => testDir,
