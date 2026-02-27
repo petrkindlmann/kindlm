@@ -1,0 +1,44 @@
+kindlm: 1
+project: my-project
+
+suite:
+  name: my-agent-tests
+  description: Behavioral tests for my AI agent
+
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
+    params:
+      temperature: 0
+      maxTokens: 1024
+
+prompts:
+  greeting:
+    system: You are a helpful assistant.
+    user: "{{message}}"
+
+tests:
+  - name: basic-greeting
+    prompt: greeting
+    vars:
+      message: Hello, how are you?
+    expect:
+      output:
+        contains:
+          - hello
+      guardrails:
+        pii:
+          enabled: true
+
+gates:
+  passRateMin: 0.95
+
+defaults:
+  repeat: 1
+  concurrency: 4
+  timeoutMs: 60000

@@ -1,0 +1,104 @@
+{
+  "kindlm-init": {
+    "prefix": "kindlm-init",
+    "description": "Full KindLM config file skeleton with version, defaults, suites, and tests",
+    "body": [
+      "version: \"1\"",
+      "",
+      "defaults:",
+      "  provider: ${1:openai:gpt-4o}",
+      "  temperature: ${2:0}",
+      "  runs: ${3:3}",
+      "  max_tokens: ${4:1024}",
+      "",
+      "suites:",
+      "  - name: \"${5:my-agent}\"",
+      "    system_prompt: |",
+      "      ${6:You are a helpful assistant.}",
+      "    tests:",
+      "      - name: \"${7:happy-path}\"",
+      "        input: \"${8:Hello, how can you help me?}\"",
+      "        assert:",
+      "          - type: ${9|tool_called,tool_not_called,tool_order,schema,judge,no_pii,keywords_present,keywords_absent,drift,latency,cost|}",
+      "            ${10:value: example}",
+      "$0"
+    ]
+  },
+  "kindlm-test": {
+    "prefix": "kindlm-test",
+    "description": "Single KindLM test case with name, input, and assertions",
+    "body": [
+      "- name: \"${1:test-name}\"",
+      "  input: \"${2:User message to the agent}\"",
+      "  assert:",
+      "    - type: ${3|tool_called,tool_not_called,tool_order,schema,judge,no_pii,keywords_present,keywords_absent,drift,latency,cost|}",
+      "      ${4:value: example}",
+      "$0"
+    ]
+  },
+  "kindlm-tool-assert": {
+    "prefix": "kindlm-tool-assert",
+    "description": "tool_called assertion with value and args",
+    "body": [
+      "- type: tool_called",
+      "  value: ${1:tool_name}",
+      "  args:",
+      "    ${2:param_name}: \"${3:expected_value}\"",
+      "$0"
+    ]
+  },
+  "kindlm-judge": {
+    "prefix": "kindlm-judge",
+    "description": "judge assertion with criteria and threshold",
+    "body": [
+      "- type: judge",
+      "  criteria: \"${1:Response is helpful, accurate, and professional}\"",
+      "  threshold: ${2:0.8}",
+      "$0"
+    ]
+  },
+  "kindlm-pii": {
+    "prefix": "kindlm-pii",
+    "description": "no_pii assertion (detects SSN, credit card, email, phone, IBAN)",
+    "body": [
+      "- type: no_pii",
+      "$0"
+    ]
+  },
+  "kindlm-schema": {
+    "prefix": "kindlm-schema",
+    "description": "schema assertion with inline JSON Schema",
+    "body": [
+      "- type: schema",
+      "  value:",
+      "    type: object",
+      "    required:",
+      "      - ${1:action}",
+      "      - ${2:reason}",
+      "    properties:",
+      "      ${1:action}:",
+      "        type: string",
+      "        ${3:enum: [approve, deny]}",
+      "      ${2:reason}:",
+      "        type: string",
+      "$0"
+    ]
+  },
+  "kindlm-suite": {
+    "prefix": "kindlm-suite",
+    "description": "Suite definition with name, system prompt, and tests array",
+    "body": [
+      "- name: \"${1:suite-name}\"",
+      "  description: \"${2:Description of what this suite tests}\"",
+      "  system_prompt: |",
+      "    ${3:You are a helpful assistant.}",
+      "  tests:",
+      "    - name: \"${4:test-name}\"",
+      "      input: \"${5:User input}\"",
+      "      assert:",
+      "        - type: ${6|tool_called,tool_not_called,tool_order,schema,judge,no_pii,keywords_present,keywords_absent,drift,latency,cost|}",
+      "          ${7:value: example}",
+      "$0"
+    ]
+  }
+}

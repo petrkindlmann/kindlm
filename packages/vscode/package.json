@@ -1,0 +1,49 @@
+{
+  "name": "kindlm",
+  "displayName": "KindLM",
+  "description": "YAML validation, completions, and hover docs for KindLM config files",
+  "version": "0.0.1",
+  "publisher": "kindlm",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Linters",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "workspaceContains:kindlm.yaml",
+    "workspaceContains:kindlm.yml"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "yamlValidation": [
+      {
+        "fileMatch": "kindlm.yaml",
+        "url": "./schemas/kindlm.schema.json"
+      },
+      {
+        "fileMatch": "kindlm.yml",
+        "url": "./schemas/kindlm.schema.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "yaml",
+        "path": "./snippets/kindlm.code-snippets"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "esbuild --bundle --platform=node --outdir=dist --external:vscode src/extension.ts",
+    "package": "npx vsce package"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

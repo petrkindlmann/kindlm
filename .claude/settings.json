@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(git:*)",
+      "Bash(turbo:*)",
+      "Bash(wrangler:*)",
+      "Bash(vitest:*)",
+      "Bash(tsc:*)",
+      "Bash(tsup:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)",
+      "Bash(mkdir:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Read(*)",
+      "Write(packages/**)",
+      "Write(templates/**)",
+      "Write(docs/**)",
+      "Write(examples/**)",
+      "Write(turbo.json)",
+      "Write(tsconfig.base.json)",
+      "Write(package.json)",
+      "Write(.eslintrc.js)",
+      "Write(.prettierrc)",
+      "Write(.github/**)",
+      "Write(README.md)",
+      "Write(CONTRIBUTING.md)",
+      "Write(CHANGELOG.md)",
+      "Write(LICENSE)"
+    ],
+    "deny": [
+      "Write(.env*)",
+      "Bash(rm -rf /)"
+    ]
+  }
+}
