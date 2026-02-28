@@ -18,3 +18,6 @@ export * from "./reporters/index.js";
 
 // Baseline
 export * from "./baseline/index.js";
+
+// Trace
+export * from "./trace/index.js";

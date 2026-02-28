@@ -36,12 +36,14 @@ kindlm/
 │   │   │   │   ├── judge.ts          # LLM-as-judge assertion
 │   │   │   │   ├── tool-calls.ts     # Tool call assertions
 │   │   │   │   ├── drift.ts          # Baseline drift (LLM-judge + field-level)
+│   │   │   │   ├── classification.ts # Assertion category classification (deterministic/probabilistic)
 │   │   │   │   ├── registry.ts       # Assertion registry
 │   │   │   │   └── index.ts
 │   │   │   ├── engine/
 │   │   │   │   ├── runner.ts         # Test execution engine
 │   │   │   │   ├── aggregator.ts     # Multi-run aggregation logic
 │   │   │   │   ├── gate.ts           # Gate evaluation (pass/fail)
+│   │   │   │   ├── command.ts        # Command test executor interface + output parser
 │   │   │   │   └── index.ts
 │   │   │   ├── reporters/
 │   │   │   │   ├── interface.ts      # Reporter interface
@@ -53,6 +55,11 @@ kindlm/
 │   │   │   ├── baseline/
 │   │   │   │   ├── store.ts          # Local baseline storage (JSON files)
 │   │   │   │   ├── compare.ts        # Baseline comparison logic
+│   │   │   │   └── index.ts
+│   │   │   ├── trace/
+│   │   │   │   ├── types.ts          # OTLP wire types, ParsedSpan, TraceConfig
+│   │   │   │   ├── parser.ts         # OTLP JSON payload parser
+│   │   │   │   ├── mapper.ts         # Span filtering, mapping, context builder
 │   │   │   │   └── index.ts
 │   │   │   ├── types/
 │   │   │   │   ├── config.ts         # Config types (inferred from Zod)
@@ -73,11 +80,14 @@ kindlm/
 │   │   │   │   ├── test.ts           # kindlm test
 │   │   │   │   ├── login.ts          # kindlm login
 │   │   │   │   ├── upload.ts         # kindlm upload
-│   │   │   │   └── baseline.ts       # kindlm baseline set/list/compare
+│   │   │   │   ├── baseline.ts       # kindlm baseline set/list/compare
+│   │   │   │   └── trace.ts          # kindlm trace (OTel trace ingestion)
 │   │   │   ├── utils/
 │   │   │   │   ├── git.ts            # Git info (commit, branch)
 │   │   │   │   ├── env.ts            # Environment detection
-│   │   │   │   └── spinner.ts        # Terminal spinner/progress
+│   │   │   │   ├── spinner.ts        # Terminal spinner/progress
+│   │   │   │   ├── command-executor.ts # Node.js command executor (child_process)
+│   │   │   │   └── trace-server.ts   # OTLP HTTP server for trace collection
 │   │   │   ├── cloud/
 │   │   │   │   ├── client.ts         # Cloud API HTTP client
 │   │   │   │   ├── auth.ts           # Token storage (~/.kindlm/credentials)
@@ -122,14 +132,30 @@ kindlm/
 │       ├── fintech-agent.yaml        # Fintech compliance suite
 │       └── hr-screening.yaml         # HR/recruitment suite
 │
-├── docs/                             # Documentation site (later)
-│   ├── getting-started.md
-│   ├── config-reference.md
-│   ├── assertions.md
-│   ├── providers.md
-│   ├── ci-integration.md
-│   ├── compliance.md
-│   └── cloud.md
+├── docs/                             # Project documentation
+│   ├── 00-README.md
+│   ├── 01-PROJECT_STRUCTURE.md
+│   ├── 02-CONFIG_SCHEMA.md
+│   ├── 03-PROVIDER_INTERFACE.md
+│   ├── 04-ASSERTION_ENGINE.md
+│   ├── 05-CLOUD_API.md
+│   ├── 06-COMPLIANCE_SPEC.md
+│   ├── 07-CONTRIBUTING.md
+│   ├── 08-CLI_REFERENCE.md
+│   ├── 09-DEEP_RESEARCH.md
+│   ├── 11-PRICING.md
+│   ├── 12-PRD.md
+│   ├── 13-EPICS.md
+│   ├── 14-ADR.md
+│   ├── 15-OPENAPI.md
+│   ├── 16-TESTING_STRATEGY.md
+│   ├── 17-ERROR_HANDLING.md
+│   ├── 18-SECURITY.md
+│   ├── 19-DEPLOYMENT.md
+│   ├── 20-ROADMAP.md
+│   └── archive/                      # Legacy/marketing materials
+│       ├── architecture-legacy.md
+│       └── PRD_Gemini_V2.md
 │
 ├── examples/                         # Real-world example projects
 │   ├── basic-prompt-test/

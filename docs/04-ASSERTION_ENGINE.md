@@ -878,6 +878,38 @@ export function evaluateGates(
 }
 ```
 
+### Deterministic vs Probabilistic Gates
+
+Assertions are classified into two categories:
+
+| Category | Assertion Types |
+|----------|----------------|
+| **Deterministic** | tool_called, tool_not_called, tool_order, schema, pii, keywords_present, keywords_absent, contains, not_contains, max_length, latency, cost |
+| **Probabilistic** | judge, drift |
+
+Two optional gate fields allow separate pass-rate thresholds for each category:
+
+```yaml
+gates:
+  passRateMin: 0.90           # Overall minimum
+  deterministicPassRate: 0.99  # Stricter for deterministic checks
+  probabilisticPassRate: 0.75  # Looser for LLM-scored checks
+```
+
+**Why split?** Deterministic assertions (schema validation, tool calls) should almost never fail — a 1% failure rate indicates a real bug. Probabilistic assertions (LLM-as-judge, drift) have inherent variance and benefit from a separate, more lenient threshold.
+
+The classification is implemented in `packages/core/src/assertions/classification.ts`:
+
+```typescript
+import { classifyAssertion, isDeterministic, isProbabilistic } from "@kindlm/core";
+
+classifyAssertion("schema");  // "deterministic"
+classifyAssertion("judge");   // "probabilistic"
+classifyAssertion("unknown"); // "deterministic" (default)
+```
+
+Pass rates are computed per-assertion across all runs, not per-test. If no assertions of a given category exist, the gate passes by default (rate = 1.0).
+
 ---
 
 ## Exit Code Mapping

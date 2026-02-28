@@ -86,9 +86,9 @@ export function parseConfig(
     testNames.add(test.name);
   }
 
-  // test.prompt must exist in config.prompts
+  // test.prompt must exist in config.prompts (only for prompt-based tests)
   for (const test of config.tests) {
-    if (!(test.prompt in config.prompts)) {
+    if (test.prompt && !(test.prompt in config.prompts)) {
       errors.push(
         `Test "${test.name}" references prompt "${test.prompt}" which is not defined`,
       );

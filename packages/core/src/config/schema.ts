@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Result, KindlmError } from "../types/result.js";
 import { ok, err } from "../types/result.js";
+import { TraceConfigSchema } from "../trace/types.js";
 
 // ============================================================
 // Primitive / Reusable Schemas
@@ -346,18 +347,21 @@ const TestCaseSchema = z.object({
   name: NonEmptyString.describe(
     "Unique test case name within the suite. Used in reports and JUnit output.",
   ),
-  prompt: NonEmptyString.describe(
-    "Reference to a key in the prompts section",
+  prompt: NonEmptyString.optional().describe(
+    "Reference to a key in the prompts section. Exactly one of prompt or command must be set.",
+  ),
+  command: NonEmptyString.optional().describe(
+    "Shell command to execute. Stdout is captured and assertions run against it. Exactly one of prompt or command must be set.",
   ),
   vars: z
     .record(z.string())
     .default({})
-    .describe("Variables to interpolate into the prompt template"),
+    .describe("Variables to interpolate into the prompt template or command"),
   models: z
     .array(z.string())
     .optional()
     .describe(
-      "Override: run this test only against these model IDs. Defaults to all models.",
+      "Override: run this test only against these model IDs. Defaults to all models. Ignored for command tests.",
     ),
   repeat: z
     .number()
@@ -387,7 +391,14 @@ const TestCaseSchema = z.object({
     .optional()
     .default(false)
     .describe("Skip this test case during execution"),
-});
+}).refine(
+  (test) => {
+    const hasPrompt = test.prompt !== undefined;
+    const hasCommand = test.command !== undefined;
+    return (hasPrompt || hasCommand) && !(hasPrompt && hasCommand);
+  },
+  { message: "Exactly one of 'prompt' or 'command' must be set on each test case" },
+);
 
 // ============================================================
 // Gates Schema
@@ -437,6 +448,12 @@ const GatesSchema = z.object({
     .describe(
       "Maximum average latency in ms. Fails gate if exceeded.",
     ),
+  deterministicPassRate: Score01.optional().describe(
+    "Minimum pass rate for deterministic assertions only (tool_called, schema, pii, keywords, etc.)",
+  ),
+  probabilisticPassRate: Score01.optional().describe(
+    "Minimum pass rate for probabilistic assertions only (judge, drift)",
+  ),
 });
 
 // ============================================================
@@ -534,6 +551,9 @@ export const KindLMConfigSchema = z.object({
     .min(1, "At least one test case must be defined"),
   gates: GatesSchema.default({}),
   compliance: ComplianceSchema.optional(),
+  trace: TraceConfigSchema.optional().describe(
+    "OpenTelemetry trace ingestion configuration for the 'kindlm trace' command",
+  ),
   upload: UploadSchema.default({}),
   defaults: z
     .object({

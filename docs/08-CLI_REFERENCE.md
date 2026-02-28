@@ -86,7 +86,60 @@ kindlm test \
 | `--gate` | number | from config | Fail if pass rate below threshold (percent) |
 | `--compliance` | boolean | false | Generate EU AI Act compliance report |
 
+**Command tests:** Tests can use `command:` instead of `prompt:` to run shell commands and assert on their output. Command tests run once per repeat (not multiplied by models). See [10-COMMAND-TESTS.md](./10-COMMAND-TESTS.md) for details.
+
 **Exit codes:** 0 = all gates passed, 1 = failure or gates failed
+
+---
+
+### `kindlm trace`
+
+Ingests OpenTelemetry traces and runs assertions against them. Use this to test real agent executions by collecting their OTLP trace data.
+
+```bash
+# Listen for traces on default port, run assertions from config
+kindlm trace
+
+# Spawn a command and collect its traces
+kindlm trace --command "python run_agent.py"
+
+# Custom port and timeout
+kindlm trace --port 9318 --timeout 60000
+```
+
+**Flags:**
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-c, --config` | string | `kindlm.yaml` | Path to config file |
+| `--port` | int | `4318` | OTLP HTTP listener port |
+| `--command` | string | — | Command to spawn (traces collected while it runs) |
+| `--timeout` | int | `30000` | Timeout in ms to wait for traces |
+| `--reporter` | `pretty\|json\|junit` | `pretty` | Output format |
+
+**How it works:**
+1. Starts an OTLP/HTTP listener on `POST /v1/traces`
+2. Optionally spawns a command with `OTEL_EXPORTER_OTLP_ENDPOINT` set
+3. Collects spans, filters by config, maps to assertion context
+4. Evaluates assertions from config against the trace data
+5. Reports results and exits with code 0 (pass) or 1 (fail)
+
+**Trace config in kindlm.yaml:**
+```yaml
+trace:
+  port: 4318
+  timeoutMs: 30000
+  spanMapping:
+    outputTextAttr: gen_ai.completion.0.content
+    modelAttr: gen_ai.response.model
+    inputTokensAttr: gen_ai.usage.input_tokens
+    outputTokensAttr: gen_ai.usage.output_tokens
+  spanFilter:
+    namePattern: "^chat\\."
+    minDurationMs: 100
+```
+
+**Exit codes:** 0 = all assertions passed, 1 = any assertion failed
 
 ---
 
@@ -328,6 +381,8 @@ kindlm-test:
 | `KINDLM_CLOUD_URL` | Cloud API URL override (default: `https://api.kindlm.com`) |
 | `KINDLM_NO_COLOR` | Disable ANSI colors |
 | `KINDLM_DEBUG` | Enable debug logging |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Auto-set when using `kindlm trace --command` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Auto-set to `http/json` by trace command |
 | `CI` | Auto-detected; disables interactive features |
 
 ---

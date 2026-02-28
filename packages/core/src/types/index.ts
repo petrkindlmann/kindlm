@@ -34,6 +34,9 @@ export type {
   ToolCallExpect,
   ToolSimulation,
   ComplianceConfig,
+  TraceConfig,
+  SpanMapping,
+  SpanFilter,
 } from "./config.js";
 
 export type {

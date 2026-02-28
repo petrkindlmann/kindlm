@@ -13,3 +13,5 @@ export type {
 
 // Backward compatibility alias
 export type { KindLMConfig as KindlmConfig } from "../config/schema.js";
+
+export type { TraceConfig, SpanMapping, SpanFilter } from "../trace/types.js";

@@ -17,6 +17,7 @@ import type {
 import { createHttpClient } from "./http.js";
 import { createSpinner } from "./spinner.js";
 import { createNodeFileReader } from "./file-reader.js";
+import { createNodeCommandExecutor } from "./command-executor.js";
 
 export interface RunTestsOptions {
   configPath: string;
@@ -158,12 +159,17 @@ async function runTestsInner(
     }
   };
 
+  // Check if any tests use command mode
+  const hasCommandTests = config.tests.some((t) => t.command);
+  const commandExecutor = hasCommandTests ? createNodeCommandExecutor() : undefined;
+
   const runner = createRunner(config, {
     adapters,
     configDir,
     fileReader,
     onProgress,
     baselineData: options.baselineData,
+    commandExecutor,
   });
 
   const runResult = await runner.run();
@@ -186,9 +192,13 @@ function countExecutionUnits(config: KindLMConfig): number {
   let count = 0;
   for (const test of config.tests) {
     if (test.skip) continue;
-    const modelCount = test.models?.length ?? config.models.length;
     const repeat = test.repeat ?? config.defaults.repeat;
-    count += modelCount * repeat;
+    if (test.command) {
+      count += repeat;
+    } else {
+      const modelCount = test.models?.length ?? config.models.length;
+      count += modelCount * repeat;
+    }
   }
   return count;
 }

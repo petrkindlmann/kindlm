@@ -1,5 +1,6 @@
 import type { GatesConfig } from "../types/config.js";
 import type { AggregatedTestResult } from "./aggregator.js";
+import { classifyAssertion } from "../assertions/classification.js";
 
 export interface GateResult {
   gateName: string;
@@ -152,10 +153,59 @@ export function evaluateGates(
     });
   }
 
+  // 9. deterministicPassRate (optional)
+  if (config.deterministicPassRate !== undefined) {
+    const rate = computeCategoryPassRate(results, "deterministic");
+    gates.push({
+      gateName: "deterministicPassRate",
+      passed: rate >= config.deterministicPassRate,
+      actual: rate,
+      threshold: config.deterministicPassRate,
+      message:
+        rate >= config.deterministicPassRate
+          ? `Deterministic pass rate ${fmt(rate)} meets minimum ${fmt(config.deterministicPassRate)}`
+          : `Deterministic pass rate ${fmt(rate)} below minimum ${fmt(config.deterministicPassRate)}`,
+    });
+  }
+
+  // 10. probabilisticPassRate (optional)
+  if (config.probabilisticPassRate !== undefined) {
+    const rate = computeCategoryPassRate(results, "probabilistic");
+    gates.push({
+      gateName: "probabilisticPassRate",
+      passed: rate >= config.probabilisticPassRate,
+      actual: rate,
+      threshold: config.probabilisticPassRate,
+      message:
+        rate >= config.probabilisticPassRate
+          ? `Probabilistic pass rate ${fmt(rate)} meets minimum ${fmt(config.probabilisticPassRate)}`
+          : `Probabilistic pass rate ${fmt(rate)} below minimum ${fmt(config.probabilisticPassRate)}`,
+    });
+  }
+
   return {
     passed: gates.every((g) => g.passed),
     gates,
   };
+}
+
+function computeCategoryPassRate(
+  results: AggregatedTestResult[],
+  category: "deterministic" | "probabilistic",
+): number {
+  let total = 0;
+  let passed = 0;
+  for (const r of results) {
+    for (const run of r.runs) {
+      for (const a of run.assertions) {
+        if (classifyAssertion(a.assertionType) === category) {
+          total++;
+          if (a.passed) passed++;
+        }
+      }
+    }
+  }
+  return total > 0 ? passed / total : 1;
 }
 
 function countFailures(

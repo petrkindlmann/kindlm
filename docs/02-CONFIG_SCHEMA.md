@@ -273,8 +273,11 @@ const TestCaseSchema = z.object({
   name: NonEmptyString.describe(
     "Unique test case name within the suite. Used in reports and JUnit output."
   ),
-  prompt: NonEmptyString.describe(
+  prompt: NonEmptyString.optional().describe(
     "Reference to a key in the prompts section"
+  ),
+  command: NonEmptyString.optional().describe(
+    "Shell command to execute as the test input (mutually exclusive with prompt)"
   ),
   vars: z.record(z.string()).default({}).describe(
     "Variables to interpolate into the prompt template"
@@ -297,7 +300,10 @@ const TestCaseSchema = z.object({
   skip: z.boolean().optional().default(false).describe(
     "Skip this test case during execution"
   ),
-});
+}).refine(
+  (tc) => (tc.prompt !== undefined) !== (tc.command !== undefined),
+  { message: "Exactly one of 'prompt' or 'command' must be set" }
+);
 
 // ============================================================
 // Gates Schema
@@ -327,6 +333,12 @@ const GatesSchema = z.object({
   ),
   latencyMaxMs: z.number().positive().optional().describe(
     "Maximum average latency in ms. Fails gate if exceeded."
+  ),
+  deterministicPassRate: Score01.optional().describe(
+    "Minimum pass rate for deterministic assertions (tool_called, schema, pii, keywords, etc.)"
+  ),
+  probabilisticPassRate: Score01.optional().describe(
+    "Minimum pass rate for probabilistic assertions (judge, drift)"
   ),
 });
 
@@ -392,6 +404,9 @@ export const KindLMConfigSchema = z.object({
   tests: z.array(TestCaseSchema).min(1, "At least one test case must be defined"),
   gates: GatesSchema.default({}),
   compliance: ComplianceSchema.optional(),
+  trace: TraceConfigSchema.optional().describe(
+    "OpenTelemetry trace ingestion configuration for the 'kindlm trace' command"
+  ),
   upload: UploadSchema.default({}),
   defaults: z.object({
     repeat: z.number().int().min(1).default(1).describe("Default repeat count per test case"),
@@ -474,7 +489,7 @@ export function parseConfig(filePath: string): ParseResult {
 
   // Verify all test.prompt references exist
   for (const test of config.tests) {
-    if (!(test.prompt in config.prompts)) {
+    if (test.prompt && !(test.prompt in config.prompts)) {
       crossErrors.push(
         `Test "${test.name}" references prompt "${test.prompt}" which is not defined`
       );
@@ -752,6 +767,8 @@ gates:
   judgeAvgMin: 0.8
   driftScoreMax: 0.15
   piiFailuresMax: 0
+  # deterministicPassRate: 0.99   # Minimum pass rate for deterministic assertions
+  # probabilisticPassRate: 0.80   # Minimum pass rate for probabilistic assertions
 
 defaults:
   repeat: 3
@@ -769,6 +786,11 @@ compliance:
     riskLevel: "limited"
     operator: "ACME Corp"
     intendedPurpose: "Automated customer support for order inquiries and refund processing"
+
+# trace:                          # OpenTelemetry trace ingestion configuration
+#   endpoint: "http://localhost:4318/v1/traces"
+#   headers:
+#     Authorization: "Bearer ${OTEL_TOKEN}"
 
 upload:
   enabled: false

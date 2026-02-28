@@ -5,6 +5,7 @@ import { registerTestCommand } from "./commands/test.js";
 import { registerBaselineCommand } from "./commands/baseline.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerUploadCommand } from "./commands/upload.js";
+import { registerTraceCommand } from "./commands/trace.js";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -20,6 +21,7 @@ export function createProgram(): Command {
   registerBaselineCommand(program);
   registerLoginCommand(program);
   registerUploadCommand(program);
+  registerTraceCommand(program);
 
   return program;
 }

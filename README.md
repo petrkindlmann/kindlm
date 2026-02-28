@@ -15,11 +15,12 @@ kindlm test
 ## Repository layout
 
 ```
-packages/       Monorepo packages (core, cli, cloud)
-docs/           Technical specs and documentation
-site/           Documentation website (Next.js)
-reference/      Design prototypes
-content-pack/   Marketing material
+packages/
+  core/       @kindlm/core  — Business logic, zero I/O dependencies
+  cli/        @kindlm/cli   — CLI entry point, thin wrapper around core
+  cloud/      @kindlm/cloud — Cloudflare Workers API + D1 database
+docs/         Technical specs and documentation
+site/         Documentation website (Next.js)
 ```
 
 ## Documentation

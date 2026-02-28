@@ -11,6 +11,8 @@ import { runConversation } from "../providers/conversation.js";
 import type { TestCaseRunResult, AggregatedTestResult } from "./aggregator.js";
 import { aggregateRuns } from "./aggregator.js";
 import type { BaselineData } from "../baseline/store.js";
+import type { CommandExecutor } from "./command.js";
+import { parseCommandOutput } from "./command.js";
 
 // ============================================================
 // Public Types
@@ -22,6 +24,7 @@ export interface RunnerDeps {
   fileReader: FileReader;
   onProgress?: (event: ProgressEvent) => void;
   baselineData?: BaselineData;
+  commandExecutor?: CommandExecutor;
 }
 
 export type ProgressEvent =
@@ -66,7 +69,7 @@ export interface RunnerResult {
 
 interface ExecutionUnit {
   test: TestCase;
-  modelConfig: ModelConfig;
+  modelConfig: ModelConfig | null;
   runIndex: number;
 }
 
@@ -106,15 +109,22 @@ export function createRunner(
       for (const test of config.tests) {
         if (test.skip) continue;
 
-        const modelIds = test.models ?? config.models.map((m) => m.id);
         const repeat = test.repeat ?? config.defaults.repeat;
 
-        for (const modelId of modelIds) {
-          const modelConfig = config.models.find((m) => m.id === modelId);
-          if (!modelConfig) continue;
-
+        if (test.command) {
+          // Command tests run once per repeat, no model multiplication
           for (let runIndex = 0; runIndex < repeat; runIndex++) {
-            units.push({ test, modelConfig, runIndex });
+            units.push({ test, modelConfig: null, runIndex });
+          }
+        } else {
+          const modelIds = test.models ?? config.models.map((m) => m.id);
+          for (const modelId of modelIds) {
+            const modelConfig = config.models.find((m) => m.id === modelId);
+            if (!modelConfig) continue;
+
+            for (let runIndex = 0; runIndex < repeat; runIndex++) {
+              units.push({ test, modelConfig, runIndex });
+            }
           }
         }
       }
@@ -209,6 +219,14 @@ async function executeUnit(
 ): Promise<TestCaseRunResult> {
   const { test, modelConfig, runIndex } = unit;
 
+  if (test.command) {
+    return executeCommandUnit(config, deps, test, runIndex, schemaCache);
+  }
+
+  if (!modelConfig) {
+    return errorResult(test.name, "unknown", runIndex, "No model config for prompt-based test");
+  }
+
   deps.onProgress?.({
     type: "test_start",
     test: test.name,
@@ -224,7 +242,7 @@ async function executeUnit(
     }
 
     // Resolve prompt
-    const promptDef = config.prompts[test.prompt];
+    const promptDef = test.prompt ? config.prompts[test.prompt] : undefined;
     if (!promptDef) {
       return errorResult(test.name, modelConfig.id, runIndex, `Prompt "${test.prompt}" not defined`);
     }
@@ -341,6 +359,127 @@ async function executeUnit(
     return errorResult(
       test.name,
       modelConfig.id,
+      runIndex,
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
+
+async function executeCommandUnit(
+  config: KindLMConfig,
+  deps: RunnerDeps,
+  test: TestCase,
+  runIndex: number,
+  schemaCache: Map<string, Record<string, unknown>>,
+): Promise<TestCaseRunResult> {
+  const modelId = "command";
+
+  deps.onProgress?.({
+    type: "test_start",
+    test: test.name,
+    model: modelId,
+    run: runIndex,
+  });
+
+  try {
+    if (!deps.commandExecutor) {
+      return errorResult(test.name, modelId, runIndex, "Command executor not available");
+    }
+
+    if (!test.command) {
+      return errorResult(test.name, modelId, runIndex, "No command specified");
+    }
+
+    // Interpolate vars into command string
+    const cmdResult = interpolate(test.command, test.vars);
+    if (!cmdResult.success) {
+      return errorResult(test.name, modelId, runIndex, cmdResult.error.message);
+    }
+
+    const startTime = Date.now();
+    const execResult = await deps.commandExecutor.execute(cmdResult.data, {
+      timeoutMs: config.defaults.timeoutMs,
+      cwd: deps.configDir,
+    });
+
+    if (!execResult.success) {
+      return errorResult(test.name, modelId, runIndex, execResult.error.message);
+    }
+
+    const latencyMs = Date.now() - startTime;
+    const parsed = parseCommandOutput(execResult.data);
+
+    // Build assertions
+    const overrides: AssertionOverrides = {};
+    if (test.expect.output?.schemaFile && schemaCache.has(test.name)) {
+      overrides.schemaContent = schemaCache.get(test.name);
+    }
+    const assertions = createAssertionsFromExpect(test.expect, overrides);
+
+    // Resolve judge adapter if needed
+    const judgeModelId = config.defaults.judgeModel ?? config.models[0]?.id;
+    const judgeModelConfig = config.models.find((m) => m.id === judgeModelId);
+    const judgeAdapter = judgeModelConfig ? deps.adapters.get(judgeModelConfig.provider) : undefined;
+
+    // Build assertion context
+    const context: AssertionContext = {
+      outputText: parsed.outputText,
+      outputJson: parsed.outputJson,
+      toolCalls: parsed.toolCalls,
+      configDir: deps.configDir,
+      latencyMs,
+      judgeAdapter,
+      judgeModel: judgeModelConfig?.model,
+    };
+
+    // Inject baseline text for drift assertions
+    if (deps.baselineData) {
+      const baselineKey = `${test.name}::${modelId}`;
+      const baselineEntry = deps.baselineData.results[baselineKey];
+      if (baselineEntry) {
+        context.baselineText = baselineEntry.outputText;
+      }
+    }
+
+    // Evaluate all assertions
+    const allResults: AssertionResult[] = [];
+    for (const assertion of assertions) {
+      const results = await assertion.evaluate(context);
+      allResults.push(...results);
+    }
+
+    const allPassed = allResults.every((r) => r.passed);
+
+    deps.onProgress?.({
+      type: "test_complete",
+      test: test.name,
+      model: modelId,
+      run: runIndex,
+      passed: allPassed,
+    });
+
+    return {
+      testCaseName: test.name,
+      modelId,
+      runIndex,
+      outputText: parsed.outputText,
+      assertions: allResults,
+      latencyMs,
+      tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      costEstimateUsd: null,
+    };
+  } catch (e) {
+    deps.onProgress?.({
+      type: "test_complete",
+      test: test.name,
+      model: modelId,
+      run: runIndex,
+      passed: false,
+    });
+
+    return errorResult(
+      test.name,
+      modelId,
       runIndex,
       e instanceof Error ? e.message : String(e),
     );
