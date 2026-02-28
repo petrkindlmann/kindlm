@@ -1,25 +1,26 @@
-import chalk from "chalk";
-import type { Reporter, ReporterOutput } from "./interface.js";
+import type { Colorize, Reporter, ReporterOutput } from "./interface.js";
+import { noColor } from "./interface.js";
 import type { RunResult, SuiteRunResult, TestRunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
 
-export function createPrettyReporter(): Reporter {
+export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
   return {
     name: "pretty",
     generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput {
       const lines: string[] = [];
+      const c = colorize;
 
       lines.push("");
-      lines.push(chalk.bold("  KindLM Test Results"));
+      lines.push(c.bold("  KindLM Test Results"));
       lines.push("");
 
       for (const suite of runResult.suites) {
-        lines.push(formatSuite(suite));
+        lines.push(formatSuite(suite, c));
         for (const test of suite.tests) {
-          lines.push(formatTest(test));
+          lines.push(formatTest(test, c));
           for (const a of test.assertions) {
             if (!a.passed) {
-              lines.push(`      ${chalk.red("✗")} ${chalk.dim(a.label)}: ${a.failureMessage ?? "failed"}`);
+              lines.push(`      ${c.red("✗")} ${c.dim(a.label)}: ${a.failureMessage ?? "failed"}`);
             }
           }
         }
@@ -27,15 +28,15 @@ export function createPrettyReporter(): Reporter {
       }
 
       // Summary
-      lines.push(chalk.bold("  Summary"));
-      const passStr = chalk.green(`${runResult.passed} passed`);
+      lines.push(c.bold("  Summary"));
+      const passStr = c.green(`${runResult.passed} passed`);
       const failStr =
         runResult.failed > 0
-          ? chalk.red(`${runResult.failed} failed`)
+          ? c.red(`${runResult.failed} failed`)
           : `${runResult.failed} failed`;
       const errorStr =
         runResult.errored > 0
-          ? chalk.yellow(`${runResult.errored} errored`)
+          ? c.yellow(`${runResult.errored} errored`)
           : `${runResult.errored} errored`;
       lines.push(`    ${passStr}, ${failStr}, ${errorStr} (${runResult.totalTests} total)`);
       lines.push(`    Duration: ${formatDuration(runResult.durationMs)}`);
@@ -43,9 +44,9 @@ export function createPrettyReporter(): Reporter {
 
       // Gates
       if (gateEvaluation.gates.length > 0) {
-        lines.push(chalk.bold("  Quality Gates"));
+        lines.push(c.bold("  Quality Gates"));
         for (const gate of gateEvaluation.gates) {
-          const icon = gate.passed ? chalk.green("✓") : chalk.red("✗");
+          const icon = gate.passed ? c.green("✓") : c.red("✗");
           lines.push(`    ${icon} ${gate.message}`);
         }
         lines.push("");
@@ -54,9 +55,9 @@ export function createPrettyReporter(): Reporter {
       // Verdict
       const allPassed = runResult.failed === 0 && runResult.errored === 0 && gateEvaluation.passed;
       if (allPassed) {
-        lines.push(chalk.green.bold("  ✓ All tests passed"));
+        lines.push(c.greenBold("  ✓ All tests passed"));
       } else {
-        lines.push(chalk.red.bold("  ✗ Some tests failed"));
+        lines.push(c.redBold("  ✗ Some tests failed"));
       }
       lines.push("");
 
@@ -65,23 +66,23 @@ export function createPrettyReporter(): Reporter {
   };
 }
 
-function formatSuite(suite: SuiteRunResult): string {
+function formatSuite(suite: SuiteRunResult, c: Colorize): string {
   const icon =
     suite.status === "passed"
-      ? chalk.green("✓")
+      ? c.green("✓")
       : suite.status === "skipped"
-        ? chalk.yellow("○")
-        : chalk.red("✗");
-  return `  ${icon} ${chalk.bold(suite.name)}`;
+        ? c.yellow("○")
+        : c.red("✗");
+  return `  ${icon} ${c.bold(suite.name)}`;
 }
 
-function formatTest(test: TestRunResult): string {
+function formatTest(test: TestRunResult, c: Colorize): string {
   const icon =
     test.status === "passed"
-      ? chalk.green("✓")
+      ? c.green("✓")
       : test.status === "skipped"
-        ? chalk.yellow("○")
-        : chalk.red("✗");
+        ? c.yellow("○")
+        : c.red("✗");
   return `    ${icon} ${test.name}`;
 }
 

@@ -10,3 +10,25 @@ export interface Reporter {
   readonly name: string;
   generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput;
 }
+
+export interface Colorize {
+  bold: (text: string) => string;
+  red: (text: string) => string;
+  green: (text: string) => string;
+  yellow: (text: string) => string;
+  dim: (text: string) => string;
+  greenBold: (text: string) => string;
+  redBold: (text: string) => string;
+}
+
+const identity = (t: string): string => t;
+
+export const noColor: Colorize = {
+  bold: identity,
+  red: identity,
+  green: identity,
+  yellow: identity,
+  dim: identity,
+  greenBold: identity,
+  redBold: identity,
+};

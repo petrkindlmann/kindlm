@@ -49,7 +49,8 @@ describe("filterSpans", () => {
     ];
     const result = filterSpans(spans, { attributeMatch: { "gen_ai.system": "openai" } });
     expect(result).toHaveLength(1);
-    expect(result[0].attributes["gen_ai.system"]).toBe("openai");
+    const first = result[0] ?? expect.fail("expected span");
+    expect(first.attributes["gen_ai.system"]).toBe("openai");
   });
 
   it("filters by minimum duration", () => {
@@ -139,8 +140,9 @@ describe("mapSpansToResult", () => {
     ];
     const result = mapSpansToResult(spans, defaultMapping);
     expect(result.toolCalls).toHaveLength(1);
-    expect(result.toolCalls[0].name).toBe("search");
-    expect(result.toolCalls[0].arguments).toEqual({ query: "test" });
+    const tc = result.toolCalls[0] ?? expect.fail("expected tool call");
+    expect(tc.name).toBe("search");
+    expect(tc.arguments).toEqual({ query: "test" });
   });
 
   it("handles malformed tool arguments JSON", () => {
@@ -153,7 +155,8 @@ describe("mapSpansToResult", () => {
       }),
     ];
     const result = mapSpansToResult(spans, defaultMapping);
-    expect(result.toolCalls[0].arguments).toEqual({});
+    const tc = result.toolCalls[0] ?? expect.fail("expected tool call");
+    expect(tc.arguments).toEqual({});
   });
 
   it("returns empty result for no spans", () => {
@@ -182,7 +185,8 @@ describe("buildContextFromTrace", () => {
 
     expect(context.outputText).toBe("Agent response");
     expect(context.toolCalls).toHaveLength(1);
-    expect(context.toolCalls[0].name).toBe("search");
+    const tc = context.toolCalls[0] ?? expect.fail("expected tool call");
+    expect(tc.name).toBe("search");
     expect(context.latencyMs).toBe(1500);
     expect(context.configDir).toBe("/test");
   });

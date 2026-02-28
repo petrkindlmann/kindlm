@@ -8,6 +8,7 @@ export default defineConfig([
     splitting: false,
     clean: true,
     sourcemap: true,
+    minify: true,
   },
   {
     entry: ["src/bin/kindlm.ts"],
@@ -15,5 +16,6 @@ export default defineConfig([
     banner: { js: "#!/usr/bin/env node" },
     splitting: false,
     sourcemap: true,
+    minify: true,
   },
 ]);

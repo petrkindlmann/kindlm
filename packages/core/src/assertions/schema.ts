@@ -1,22 +1,42 @@
 import type { Assertion, AssertionContext, AssertionResult } from "./interface.js";
 
 // AJV is CJS — dynamic import to avoid verbatimModuleSyntax issues
-async function getAjv() {
+let ajvInstance: AjvInstance | undefined;
+
+async function getAjvInstance(): Promise<AjvInstance> {
+  if (ajvInstance) return ajvInstance;
   const ajvMod = await import("ajv");
   const formatsMod = await import("ajv-formats");
   const Ajv = (ajvMod as unknown as { default: { new (opts: object): AjvInstance } }).default;
   const addFormats = (formatsMod as unknown as { default: (ajv: AjvInstance) => void }).default;
-  return { Ajv, addFormats };
+  const instance = new Ajv({ allErrors: true, strict: false });
+  addFormats(instance);
+  ajvInstance = instance;
+  return instance;
 }
 
 interface AjvInstance {
   compile(schema: object): AjvValidateFunction;
+  getSchema(key: string): AjvValidateFunction | undefined;
+  addSchema(schema: object, key: string): AjvInstance;
   errorsText(errors: unknown[] | null | undefined): string;
 }
 
 interface AjvValidateFunction {
   (data: unknown): boolean;
   errors: unknown[] | null;
+}
+
+// Cache compiled validators keyed by JSON-serialized schema
+const validatorCache = new Map<string, AjvValidateFunction>();
+
+function getOrCompileValidator(ajv: AjvInstance, schema: Record<string, unknown>): AjvValidateFunction {
+  const key = JSON.stringify(schema);
+  const cached = validatorCache.get(key);
+  if (cached) return cached;
+  const validate = ajv.compile(schema);
+  validatorCache.set(key, validate);
+  return validate;
 }
 
 export interface SchemaAssertionConfig {
@@ -58,10 +78,8 @@ export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion 
       }
 
       if (config.schemaContent) {
-        const { Ajv, addFormats } = await getAjv();
-        const ajv = new Ajv({ allErrors: true, strict: false });
-        addFormats(ajv);
-        const validate = ajv.compile(config.schemaContent);
+        const ajv = await getAjvInstance();
+        const validate = getOrCompileValidator(ajv, config.schemaContent);
         const valid = validate(parsed ?? context.outputText);
         results.push({
           assertionType: "schema",

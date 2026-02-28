@@ -9,7 +9,7 @@ import {
   createComplianceReporter,
   ProviderError,
 } from "@kindlm/core";
-import type { KindlmError } from "@kindlm/core";
+import type { Colorize, KindlmError } from "@kindlm/core";
 import { runTests } from "../utils/run-tests.js";
 import { saveLastRun, computeConfigHash } from "../utils/last-run.js";
 import { renderCompliancePdf } from "../utils/pdf-renderer.js";
@@ -112,6 +112,16 @@ export function registerTestCommand(program: Command): void {
     });
 }
 
+const chalkColorize: Colorize = {
+  bold: (t) => chalk.bold(t),
+  red: (t) => chalk.red(t),
+  green: (t) => chalk.green(t),
+  yellow: (t) => chalk.yellow(t),
+  dim: (t) => chalk.dim(t),
+  greenBold: (t) => chalk.green.bold(t),
+  redBold: (t) => chalk.red.bold(t),
+};
+
 function selectReporter(type: string) {
   switch (type) {
     case "json":
@@ -120,7 +130,7 @@ function selectReporter(type: string) {
       return createJunitReporter();
     case "pretty":
     default:
-      return createPrettyReporter();
+      return createPrettyReporter(chalkColorize);
   }
 }
 

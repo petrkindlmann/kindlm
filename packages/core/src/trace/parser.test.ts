@@ -42,7 +42,7 @@ describe("parseOtlpPayload", () => {
     if (!result.success) return;
 
     expect(result.data).toHaveLength(1);
-    const span = result.data[0];
+    const span = result.data[0] ?? expect.fail("expected span");
     expect(span.traceId).toBe("abc123");
     expect(span.spanId).toBe("span1");
     expect(span.name).toBe("chat.completions");
@@ -110,8 +110,9 @@ describe("parseOtlpPayload", () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
 
-    expect(result.data[0].attributes["score"]).toBe(0.95);
-    expect(result.data[0].attributes["cached"]).toBe(true);
+    const span = result.data[0] ?? expect.fail("expected span");
+    expect(span.attributes["score"]).toBe(0.95);
+    expect(span.attributes["cached"]).toBe(true);
   });
 
   it("rejects null payload", () => {
@@ -157,6 +158,7 @@ describe("parseOtlpPayload", () => {
     const result = parseOtlpPayload(payload);
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.data[0].parentSpanId).toBe("parent");
+    const span = result.data[0] ?? expect.fail("expected span");
+    expect(span.parentSpanId).toBe("parent");
   });
 });

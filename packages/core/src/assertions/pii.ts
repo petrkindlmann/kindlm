@@ -26,6 +26,8 @@ function safeRegexExec(
 ): string[] {
   const results: string[] = [];
   const start = Date.now();
+  // Reset lastIndex for global regexes reused across evaluations
+  regex.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = regex.exec(text)) !== null) {
     results.push(m[0]);
@@ -36,45 +38,52 @@ function safeRegexExec(
 }
 
 export function createPiiAssertion(config: PiiAssertionConfig): Assertion {
+  // Pre-compile all regexes once at assertion creation time
+  const compiledPatterns: Array<{ name: string; regex: RegExp }> = [];
+  let compilationError: AssertionResult[] | undefined;
+
+  for (let i = 0; i < config.denyPatterns.length; i++) {
+    const pattern = config.denyPatterns[i];
+    if (pattern === undefined) continue;
+    compiledPatterns.push({
+      name: `pii-pattern-${i + 1}`,
+      regex: new RegExp(pattern, "gi"),
+    });
+  }
+
+  if (config.customPatterns) {
+    for (const cp of config.customPatterns) {
+      if (hasNestedQuantifiers(cp.pattern)) {
+        compilationError = [
+          {
+            assertionType: "pii",
+            label: "No PII detected",
+            passed: false,
+            score: 0,
+            failureCode: "INVALID_PATTERN",
+            failureMessage: `Custom pattern "${cp.name}" contains nested quantifiers and may cause catastrophic backtracking`,
+          },
+        ];
+        break;
+      }
+      compiledPatterns.push({
+        name: cp.name,
+        regex: new RegExp(cp.pattern, "gi"),
+      });
+    }
+  }
+
   return {
     type: "pii",
     evaluate(context: AssertionContext): Promise<AssertionResult[]> {
-      const allPatterns: Array<{ name: string; regex: RegExp }> = [];
-
-      for (let i = 0; i < config.denyPatterns.length; i++) {
-        const pattern = config.denyPatterns[i];
-        if (pattern === undefined) continue;
-        allPatterns.push({
-          name: `pii-pattern-${i + 1}`,
-          regex: new RegExp(pattern, "gi"),
-        });
-      }
-
-      if (config.customPatterns) {
-        for (const cp of config.customPatterns) {
-          if (hasNestedQuantifiers(cp.pattern)) {
-            return Promise.resolve([
-              {
-                assertionType: "pii",
-                label: "No PII detected",
-                passed: false,
-                score: 0,
-                failureCode: "INVALID_PATTERN",
-                failureMessage: `Custom pattern "${cp.name}" contains nested quantifiers and may cause catastrophic backtracking`,
-              },
-            ]);
-          }
-          allPatterns.push({
-            name: cp.name,
-            regex: new RegExp(cp.pattern, "gi"),
-          });
-        }
+      if (compilationError) {
+        return Promise.resolve(compilationError);
       }
 
       const matches: Array<{ name: string; redacted: string }> = [];
       let totalMatches = 0;
 
-      for (const { name, regex } of allPatterns) {
+      for (const { name, regex } of compiledPatterns) {
         if (totalMatches >= MAX_PII_MATCHES) break;
         const remaining = MAX_PII_MATCHES - totalMatches;
         const found = safeRegexExec(regex, context.outputText, remaining);
