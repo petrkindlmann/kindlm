@@ -50,7 +50,7 @@ export default function BlogLayout({
           </div>
         </div>
       </nav>
-      <main className="pt-14 px-5 sm:px-6 py-10 lg:py-12 max-w-[700px] mx-auto">
+      <main className="pt-24 pb-10 lg:pb-12 px-5 sm:px-6 max-w-[700px] mx-auto">
         {children}
       </main>
     </div>
