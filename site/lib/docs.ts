@@ -30,9 +30,7 @@ const DOC_MAP: Record<string, { slug: string; title: string }> = {
   "19-DEPLOYMENT.md": { slug: "deployment", title: "Deployment" },
   "architecture.md": { slug: "architecture", title: "Architecture" },
   "10-COMMAND-TESTS.md": { slug: "command-tests", title: "Command Tests" },
-  "20-ROADMAP.md": { slug: "roadmap", title: "Roadmap" },
   "21-OTEL-TRACE.md": { slug: "otel-trace", title: "OpenTelemetry Traces" },
-  "22-CHANGELOG.md": { slug: "changelog", title: "Changelog" },
 };
 
 export function getAllDocs(): DocMeta[] {
@@ -96,7 +94,7 @@ export function getNavGroups(): NavGroup[] {
     {
       label: "Reference",
       items: docs.filter((d) =>
-        ["adr", "pricing", "changelog", "roadmap"].includes(d.slug)
+        ["adr", "pricing"].includes(d.slug)
       ),
     },
     {
