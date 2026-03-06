@@ -27,6 +27,8 @@ export interface ProviderMessage {
   toolCallId?: string;
   /** For role=tool: the tool name */
   toolName?: string;
+  /** For role=assistant: tool calls made in this message (needed for multi-turn conversations) */
+  toolCalls?: ProviderToolCall[];
 }
 
 // ============================================================
@@ -595,7 +597,7 @@ export async function runConversation(
     // Add assistant message with tool calls
     messages = [
       ...messages,
-      { role: "assistant", content: response.text },
+      { role: "assistant", content: response.text, toolCalls: response.toolCalls },
     ];
 
     // Simulate tool responses

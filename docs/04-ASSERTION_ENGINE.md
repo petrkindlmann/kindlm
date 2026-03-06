@@ -182,10 +182,11 @@ export class SchemaAssertion implements Assertion {
       }
     }
 
-    // --- Contains checks ---
+    // --- Contains checks (case-insensitive) ---
     if (this.contains) {
+      const lowerOutput = ctx.outputText.toLowerCase();
       for (const substring of this.contains) {
-        const found = ctx.outputText.includes(substring);
+        const found = lowerOutput.includes(substring.toLowerCase());
         results.push({
           assertionType: "schema",
           label: `Contains: "${substring}"`,
@@ -199,10 +200,11 @@ export class SchemaAssertion implements Assertion {
       }
     }
 
-    // --- NotContains checks ---
+    // --- NotContains checks (case-insensitive) ---
     if (this.notContains) {
+      const lowerOutput = ctx.outputText.toLowerCase();
       for (const substring of this.notContains) {
-        const found = ctx.outputText.includes(substring);
+        const found = lowerOutput.includes(substring.toLowerCase());
         results.push({
           assertionType: "schema",
           label: `Not contains: "${substring}"`,

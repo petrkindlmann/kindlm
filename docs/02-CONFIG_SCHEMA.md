@@ -58,7 +58,10 @@ const ProviderConfigSchema = z.object({
 const ProvidersSchema = z.object({
   openai: ProviderConfigSchema.optional(),
   anthropic: ProviderConfigSchema.optional(),
-  // Extensible: add more providers here
+  gemini: ProviderConfigSchema.optional(),
+  mistral: ProviderConfigSchema.optional(),
+  cohere: ProviderConfigSchema.optional(),
+  ollama: ProviderConfigSchema.optional(),
 }).refine(
   (providers) => Object.keys(providers).some((k) => providers[k as keyof typeof providers] !== undefined),
   { message: "At least one provider must be configured" }
@@ -82,7 +85,7 @@ const ModelSchema = z.object({
   id: NonEmptyString.describe(
     "Unique identifier for this model config, referenced in reports"
   ),
-  provider: z.enum(["openai", "anthropic"]).describe(
+  provider: z.enum(["openai", "anthropic", "gemini", "mistral", "cohere", "ollama"]).describe(
     "Must match a key in the providers section"
   ),
   model: NonEmptyString.describe(
@@ -118,10 +121,10 @@ const OutputExpectSchema = z.object({
     "Path to JSON Schema file (relative to config file). Required if format is 'json'."
   ),
   contains: z.array(z.string()).optional().describe(
-    "Output must contain all of these substrings"
+    "Output must contain all of these substrings (case-insensitive)"
   ),
   notContains: z.array(z.string()).optional().describe(
-    "Output must not contain any of these substrings"
+    "Output must not contain any of these substrings (case-insensitive)"
   ),
   maxLength: z.number().int().positive().optional().describe(
     "Maximum character length of the output"

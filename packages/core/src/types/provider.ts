@@ -28,6 +28,7 @@ export interface ProviderMessage {
   content: string;
   toolCallId?: string;
   toolName?: string;
+  toolCalls?: ProviderToolCall[];
 }
 
 export interface ProviderToolDefinition {

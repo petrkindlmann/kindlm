@@ -116,6 +116,18 @@ export function createGeminiAdapter(httpClient: HttpClient): ProviderAdapter {
           continue;
         }
 
+        if (m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0) {
+          const parts: Record<string, unknown>[] = [];
+          if (m.content) parts.push({ text: m.content });
+          for (const tc of m.toolCalls) {
+            parts.push({
+              functionCall: { name: tc.name, args: tc.arguments },
+            });
+          }
+          contents.push({ role: "model", parts });
+          continue;
+        }
+
         const geminiRole = m.role === "assistant" ? "model" : "user";
         contents.push({
           role: geminiRole,

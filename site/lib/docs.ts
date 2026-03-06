@@ -21,17 +21,13 @@ const DOC_MAP: Record<string, { slug: string; title: string }> = {
   "06-COMPLIANCE_SPEC.md": { slug: "compliance", title: "Compliance (EU AI Act)" },
   "07-CONTRIBUTING.md": { slug: "contributing", title: "Contributing" },
   "08-CLI_REFERENCE.md": { slug: "cli", title: "CLI Reference" },
-  "09-DEEP_RESEARCH.md": { slug: "research", title: "Market Research" },
   "11-PRICING.md": { slug: "pricing", title: "Pricing" },
-  "12-PRD.md": { slug: "prd", title: "Product Requirements" },
-  "13-EPICS.md": { slug: "epics", title: "Epics" },
   "14-ADR.md": { slug: "adr", title: "Architecture Decisions" },
   "15-OPENAPI.md": { slug: "openapi", title: "OpenAPI Spec" },
   "16-TESTING_STRATEGY.md": { slug: "testing-strategy", title: "Testing Strategy" },
   "17-ERROR_HANDLING.md": { slug: "error-handling", title: "Error Handling" },
   "18-SECURITY.md": { slug: "security", title: "Security" },
   "19-DEPLOYMENT.md": { slug: "deployment", title: "Deployment" },
-  "20-ROADMAP.md": { slug: "roadmap", title: "Roadmap" },
   "architecture.md": { slug: "architecture", title: "Architecture" },
 };
 
@@ -96,13 +92,13 @@ export function getNavGroups(): NavGroup[] {
     {
       label: "Reference",
       items: docs.filter((d) =>
-        ["adr", "prd", "epics", "pricing", "roadmap"].includes(d.slug)
+        ["adr", "pricing"].includes(d.slug)
       ),
     },
     {
       label: "Other",
       items: docs.filter((d) =>
-        ["compliance", "contributing", "research", "testing-strategy", "error-handling"].includes(d.slug)
+        ["compliance", "contributing", "testing-strategy", "error-handling"].includes(d.slug)
       ),
     },
   ];

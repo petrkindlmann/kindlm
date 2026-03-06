@@ -57,7 +57,7 @@ Core is pure logic with zero side effects. Every function takes input and return
 | `config/schema.ts` | Zod validation edge cases | Optional fields, nested defaults, string coercion |
 | `assertions/tool-called.ts` | Match/no-match with various arg patterns | Partial args, nested args, wildcards, wrong tool |
 | `assertions/tool-order.ts` | Sequence matching with extras allowed | `[A, B, C]` matches `[A, X, B, C]` |
-| `assertions/schema.ts` | AJV validation with various schemas | Valid JSON, invalid JSON, non-JSON response, `$ref` |
+| `assertions/schema.ts` | AJV validation, contains/notContains (case-insensitive), maxLength | Valid JSON, invalid JSON, non-JSON response, `$ref`, case-insensitive substring matching |
 | `assertions/judge.ts` | Score parsing, threshold comparison | Score 0.8 vs threshold 0.7 = pass |
 | `assertions/no-pii.ts` | Regex detection per PII type | SSN, CC, email, phone, IBAN, custom patterns |
 | `assertions/keywords.ts` | Present/absent, case sensitivity, regex | Substring match, whole word, regex pattern |

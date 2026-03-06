@@ -109,6 +109,21 @@ export function createAnthropicAdapter(
             };
           }
           if (m.role === "assistant") {
+            if (m.toolCalls && m.toolCalls.length > 0) {
+              const contentBlocks: unknown[] = [];
+              if (m.content) {
+                contentBlocks.push({ type: "text", text: m.content });
+              }
+              for (const tc of m.toolCalls) {
+                contentBlocks.push({
+                  type: "tool_use",
+                  id: tc.id,
+                  name: tc.name,
+                  input: tc.arguments,
+                });
+              }
+              return { role: "assistant", content: contentBlocks };
+            }
             return { role: "assistant", content: m.content };
           }
           return { role: "user", content: m.content };

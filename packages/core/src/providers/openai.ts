@@ -103,6 +103,20 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
               tool_call_id: m.toolCallId,
             };
           }
+          if (m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0) {
+            return {
+              role: "assistant",
+              content: m.content || null,
+              tool_calls: m.toolCalls.map((tc) => ({
+                id: tc.id,
+                type: "function",
+                function: {
+                  name: tc.name,
+                  arguments: JSON.stringify(tc.arguments),
+                },
+              })),
+            };
+          }
           return { role: m.role, content: m.content };
         }),
         temperature: request.params.temperature,

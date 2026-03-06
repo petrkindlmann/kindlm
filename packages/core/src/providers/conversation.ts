@@ -51,7 +51,7 @@ export async function runConversation(
 
     messages = [
       ...messages,
-      { role: "assistant", content: response.text },
+      { role: "assistant", content: response.text, toolCalls: response.toolCalls },
     ];
 
     for (const toolCall of response.toolCalls) {

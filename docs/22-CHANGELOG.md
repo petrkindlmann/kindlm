@@ -4,6 +4,12 @@ All notable changes to KindLM are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- **Case-insensitive contains/notContains** — `contains` and `notContains` assertions now compare case-insensitively, consistent with the `keywords` assertion. Previously, `contains: ["hello"]` would fail if the model returned "Hello".
+
+- **Multi-turn tool conversations** — Fixed broken multi-turn tool conversations where the OpenAI API returned `messages with role 'tool' must be a response to a preceding message with 'tool_calls'`. The conversation manager now preserves `toolCalls` on assistant messages, and all 6 provider adapters (OpenAI, Anthropic, Gemini, Mistral, Cohere, Ollama) correctly serialize tool calls when replaying conversation history.
+
 ### Added
 
 - **Command test input** — Tests can now use `command:` instead of `prompt:` to run shell commands and assert on their stdout. Commands can emit KindLM protocol events (`{"kindlm":"tool_call",...}` and `{"kindlm":"output_json",...}`) to report structured data. Command tests run once per repeat (not multiplied by models) and use `modelId: "command"` in reports. See [10-COMMAND-TESTS.md](./10-COMMAND-TESTS.md).

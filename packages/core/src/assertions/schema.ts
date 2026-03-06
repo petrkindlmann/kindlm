@@ -95,8 +95,9 @@ export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion 
       }
 
       if (config.contains) {
+        const lowerOutput = context.outputText.toLowerCase();
         for (const substring of config.contains) {
-          const found = context.outputText.includes(substring);
+          const found = lowerOutput.includes(substring.toLowerCase());
           results.push({
             assertionType: "schema",
             label: `Output contains "${substring}"`,
@@ -111,8 +112,9 @@ export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion 
       }
 
       if (config.notContains) {
+        const lowerOutputNc = context.outputText.toLowerCase();
         for (const substring of config.notContains) {
-          const found = context.outputText.includes(substring);
+          const found = lowerOutputNc.includes(substring.toLowerCase());
           results.push({
             assertionType: "schema",
             label: `Output does not contain "${substring}"`,

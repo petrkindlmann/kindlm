@@ -99,6 +99,15 @@ describe("createSchemaAssertion", () => {
       expect(results[0]).toMatchObject({ passed: true });
     });
 
+    it("is case-insensitive", async () => {
+      const assertion = createSchemaAssertion({
+        format: "text",
+        contains: ["hello"],
+      });
+      const results = await assertion.evaluate(ctx("Hello World"));
+      expect(results[0]).toMatchObject({ passed: true });
+    });
+
     it("fails when substring missing", async () => {
       const assertion = createSchemaAssertion({
         format: "text",

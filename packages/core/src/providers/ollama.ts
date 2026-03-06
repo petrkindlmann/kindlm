@@ -70,6 +70,18 @@ export function createOllamaAdapter(httpClient: HttpClient): ProviderAdapter {
             content: m.content,
           };
         }
+        if (m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0) {
+          return {
+            role: "assistant" as const,
+            content: m.content || "",
+            tool_calls: m.toolCalls.map((tc) => ({
+              function: {
+                name: tc.name,
+                arguments: tc.arguments,
+              },
+            })),
+          };
+        }
         return { role: m.role, content: m.content };
       });
 
