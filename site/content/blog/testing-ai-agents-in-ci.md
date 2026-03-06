@@ -169,8 +169,4 @@ For pull request checks, `--runs 3` with `--gate 95` is a good baseline. For pro
 
 **Store secrets properly.** API keys go in GitHub Actions secrets, never in your config file. KindLM reads them from environment variables via `apiKeyEnv` — the key name in your config just tells it which env var to look for.
 
-## What's next
-
-Once your CI pipeline is catching behavioral regressions, consider adding [compliance reports](https://kindlm.com/docs) with `--compliance` for EU AI Act documentation, or connecting to [KindLM Cloud](https://kindlm.com) for test history tracking across deployments.
-
 The full CLI reference and assertion documentation are at [kindlm.com/docs](https://kindlm.com/docs).
