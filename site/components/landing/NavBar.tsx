@@ -30,6 +30,12 @@ export function NavBar() {
         </a>
         <div className="flex items-center gap-1.5 sm:gap-4">
           <a
+            href="/blog"
+            className="text-[13px] font-medium text-stone-500 no-underline p-2 hover:text-stone-700 transition-colors"
+          >
+            Blog
+          </a>
+          <a
             href="/docs"
             className="text-[13px] font-medium text-stone-500 no-underline p-2 hover:text-stone-700 transition-colors"
           >

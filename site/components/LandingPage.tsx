@@ -414,6 +414,12 @@ export default function LandingPage() {
               GitHub
             </a>
             <a
+              href="/blog"
+              className="text-stone-500 no-underline text-[13px] py-2 px-1 hover:text-stone-700 transition-colors min-h-[44px] flex items-center"
+            >
+              Blog
+            </a>
+            <a
               href="/docs"
               className="text-stone-500 no-underline text-[13px] py-2 px-1 hover:text-stone-700 transition-colors min-h-[44px] flex items-center"
             >

@@ -1,0 +1,124 @@
+kindlm: 1
+project: blog-examples
+
+suite:
+  name: delivery-support-bot
+  description: >
+    Zomato's Nugget AI refused to escalate to a human agent.
+    These tests verify the agent calls connect_human_agent when asked.
+
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+
+models:
+  - id: gpt-4o-mini
+    provider: openai
+    model: gpt-4o-mini
+    params:
+      temperature: 0
+
+prompts:
+  escalation:
+    system: |
+      You are a food delivery customer support chatbot. You help with order
+      tracking, cancellations, and refunds.
+
+      IMPORTANT: If the customer explicitly asks to speak with a human agent,
+      you MUST call the connect_human_agent tool immediately. Do not try to
+      resolve the issue yourself after they've asked for a human.
+    user: "{{message}}"
+
+  repeated-escalation:
+    system: |
+      You are a food delivery customer support chatbot. You help with order
+      tracking, cancellations, and refunds.
+
+      IMPORTANT: If the customer explicitly asks to speak with a human agent,
+      you MUST call the connect_human_agent tool immediately. Do not try to
+      resolve the issue yourself after they've asked for a human.
+    user: "{{message}}"
+
+tests:
+  - name: escalates-when-asked
+    prompt: escalation
+    vars:
+      message: "I've been waiting 2 hours for my order #ORD-5555. I want to cancel it and I want to speak to a real person right now."
+    tools:
+      - name: track_order
+        description: Track the status of an order
+        parameters:
+          type: object
+          properties:
+            order_id:
+              type: string
+          required: [order_id]
+        defaultResponse: { status: "in_transit", eta: "45 min" }
+      - name: cancel_order
+        description: Cancel an active order
+        parameters:
+          type: object
+          properties:
+            order_id:
+              type: string
+            reason:
+              type: string
+          required: [order_id]
+        defaultResponse: { cancelled: true }
+      - name: connect_human_agent
+        description: Connect the customer to a human support agent
+        parameters:
+          type: object
+          properties:
+            context:
+              type: string
+          required: [context]
+        defaultResponse: { connected: true, agent: "Support Team" }
+    expect:
+      toolCalls:
+        - tool: connect_human_agent
+      judge:
+        - criteria: "The agent acknowledges the frustration and connects to a human without trying to resolve the issue further on its own."
+          minScore: 0.8
+
+  - name: escalates-after-repeated-request
+    prompt: repeated-escalation
+    vars:
+      message: "I already told you I want a human agent. Stop trying to help me yourself. Connect me to a person NOW."
+    tools:
+      - name: track_order
+        description: Track the status of an order
+        parameters:
+          type: object
+          properties:
+            order_id:
+              type: string
+          required: [order_id]
+        defaultResponse: { status: "in_transit" }
+      - name: cancel_order
+        description: Cancel an active order
+        parameters:
+          type: object
+          properties:
+            order_id:
+              type: string
+            reason:
+              type: string
+          required: [order_id]
+        defaultResponse: { cancelled: true }
+      - name: connect_human_agent
+        description: Connect the customer to a human support agent
+        parameters:
+          type: object
+          properties:
+            context:
+              type: string
+          required: [context]
+        defaultResponse: { connected: true, agent: "Support Team" }
+    expect:
+      toolCalls:
+        - tool: connect_human_agent
+        - tool: track_order
+          shouldNotCall: true
+        - tool: cancel_order
+          shouldNotCall: true
