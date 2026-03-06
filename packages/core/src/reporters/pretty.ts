@@ -2,6 +2,7 @@ import type { Colorize, Reporter, ReporterOutput } from "./interface.js";
 import { noColor } from "./interface.js";
 import type { RunResult, SuiteRunResult, TestRunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
+import type { AssertionResult } from "../assertions/interface.js";
 
 export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
   return {
@@ -14,15 +15,24 @@ export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
       lines.push(c.bold("  KindLM Test Results"));
       lines.push("");
 
+      let totalCost = 0;
+
       for (const suite of runResult.suites) {
         lines.push(formatSuite(suite, c));
+
         for (const test of suite.tests) {
           lines.push(formatTest(test, c));
+
+          // Show model, latency, cost on the next line
+          const meta = formatTestMeta(test, c);
+          if (meta) lines.push(meta);
+
+          // Show all assertions
           for (const a of test.assertions) {
-            if (!a.passed) {
-              lines.push(`      ${c.red("✗")} ${c.dim(a.label)}: ${a.failureMessage ?? "failed"}`);
-            }
+            lines.push(formatAssertion(a, c));
           }
+
+          totalCost += test.costUsd;
         }
         lines.push("");
       }
@@ -40,6 +50,9 @@ export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
           : `${runResult.errored} errored`;
       lines.push(`    ${passStr}, ${failStr}, ${errorStr} (${runResult.totalTests} total)`);
       lines.push(`    Duration: ${formatDuration(runResult.durationMs)}`);
+      if (totalCost > 0) {
+        lines.push(`    Cost: ${formatCost(totalCost)}`);
+      }
       lines.push("");
 
       // Gates
@@ -86,7 +99,64 @@ function formatTest(test: TestRunResult, c: Colorize): string {
   return `    ${icon} ${test.name}`;
 }
 
+function formatTestMeta(test: TestRunResult, c: Colorize): string | null {
+  if (test.status === "skipped") return null;
+
+  const parts: string[] = [];
+  if (test.modelId) parts.push(test.modelId);
+  if (test.latencyMs > 0) parts.push(formatDuration(test.latencyMs));
+  if (test.costUsd >= 0.00005) parts.push(formatCost(test.costUsd));
+
+  if (parts.length === 0) return null;
+  return `      ${c.dim(parts.join(" · "))}`;
+}
+
+function formatAssertion(a: AssertionResult, c: Colorize): string {
+  if (a.passed) {
+    const scoreStr = formatScore(a);
+    const label = scoreStr ? `${a.label} ${c.cyan(scoreStr)}` : a.label;
+    return `      ${c.green("✓")} ${c.dim(label)}`;
+  }
+  const scoreStr = formatScore(a);
+  const detail = a.failureMessage ?? "failed";
+  const label = scoreStr ? `${a.label} ${c.cyan(scoreStr)}` : a.label;
+  return `      ${c.red("✗")} ${label}: ${detail}`;
+}
+
+function formatScore(a: AssertionResult): string {
+  // Show score for judge and drift assertions where score is meaningful
+  if (a.assertionType === "judge" || a.assertionType === "drift") {
+    const threshold = extractThreshold(a);
+    if (threshold !== null) {
+      const symbol = a.passed ? "≥" : "<";
+      return `(${a.score.toFixed(2)} ${symbol} ${threshold.toFixed(2)})`;
+    }
+    return `(${a.score.toFixed(2)})`;
+  }
+  return "";
+}
+
+function extractThreshold(a: AssertionResult): number | null {
+  if (a.metadata && typeof a.metadata === "object" && "threshold" in a.metadata) {
+    const t = a.metadata.threshold;
+    if (typeof t === "number") return t;
+  }
+  // Try to extract from label like "Judge: criteria" or failure message
+  if (a.failureMessage) {
+    const match = a.failureMessage.match(/threshold (\d+\.?\d*)/i);
+    if (match?.[1]) return parseFloat(match[1]);
+    const belowMatch = a.failureMessage.match(/below (\d+\.?\d*)/i);
+    if (belowMatch?.[1]) return parseFloat(belowMatch[1]);
+  }
+  return null;
+}
+
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function formatCost(usd: number): string {
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
 }

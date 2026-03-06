@@ -16,6 +16,7 @@ export interface Colorize {
   red: (text: string) => string;
   green: (text: string) => string;
   yellow: (text: string) => string;
+  cyan: (text: string) => string;
   dim: (text: string) => string;
   greenBold: (text: string) => string;
   redBold: (text: string) => string;
@@ -28,6 +29,7 @@ export const noColor: Colorize = {
   red: identity,
   green: identity,
   yellow: identity,
+  cyan: identity,
   dim: identity,
   greenBold: identity,
   redBold: identity,

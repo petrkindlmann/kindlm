@@ -117,6 +117,7 @@ const chalkColorize: Colorize = {
   red: (t) => chalk.red(t),
   green: (t) => chalk.green(t),
   yellow: (t) => chalk.yellow(t),
+  cyan: (t) => chalk.cyan(t),
   dim: (t) => chalk.dim(t),
   greenBold: (t) => chalk.green.bold(t),
   redBold: (t) => chalk.red.bold(t),

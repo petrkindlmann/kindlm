@@ -18,23 +18,23 @@ function makeRunResult(overrides: Partial<RunResult> = {}): RunResult {
         tests: [
           {
             name: "happy-path",
-            modelId: "",
+            modelId: "gpt-4o-mini",
             status: "passed",
             assertions: [
-              { assertionType: "tool_called", label: "tool_called:lookup_order", passed: true, score: 1 },
+              { assertionType: "tool_called", label: 'Tool "lookup_order" called', passed: true, score: 1 },
             ],
             latencyMs: 500,
-            costUsd: 0.01,
+            costUsd: 0.001,
           },
           {
             name: "edge-case",
-            modelId: "",
+            modelId: "gpt-4o-mini",
             status: "passed",
             assertions: [
-              { assertionType: "no_pii", label: "no_pii", passed: true, score: 1 },
+              { assertionType: "no_pii", label: "No PII detected", passed: true, score: 1 },
             ],
             latencyMs: 600,
-            costUsd: 0.01,
+            costUsd: 0.001,
           },
         ],
       },
@@ -71,7 +71,25 @@ describe("createPrettyReporter", () => {
     expect(output.content).toContain("All tests passed");
   });
 
-  it("shows failure details for failing tests", () => {
+  it("shows passing assertions", () => {
+    const output = reporter.generate(makeRunResult(), makeGateEval());
+    expect(output.content).toContain('✓ Tool "lookup_order" called');
+    expect(output.content).toContain("✓ No PII detected");
+  });
+
+  it("shows model and latency per test", () => {
+    const output = reporter.generate(makeRunResult(), makeGateEval());
+    expect(output.content).toContain("gpt-4o-mini");
+    expect(output.content).toContain("500ms");
+  });
+
+  it("shows total cost in summary", () => {
+    const output = reporter.generate(makeRunResult(), makeGateEval());
+    expect(output.content).toContain("Cost:");
+    expect(output.content).toContain("$0.0020");
+  });
+
+  it("shows failure details with assertion label", () => {
     const failRun = makeRunResult({
       passed: 1,
       failed: 1,
@@ -82,20 +100,20 @@ describe("createPrettyReporter", () => {
           tests: [
             {
               name: "happy-path",
-              modelId: "",
+              modelId: "gpt-4o-mini",
               status: "passed",
-              assertions: [{ assertionType: "tool_called", label: "tool_called:lookup_order", passed: true, score: 1 }],
+              assertions: [{ assertionType: "tool_called", label: 'Tool "lookup_order" called', passed: true, score: 1 }],
               latencyMs: 500,
               costUsd: 0.01,
             },
             {
               name: "pii-leak",
-              modelId: "",
+              modelId: "gpt-4o-mini",
               status: "failed",
               assertions: [
                 {
                   assertionType: "no_pii",
-                  label: "no_pii",
+                  label: "No PII detected",
                   passed: false,
                   score: 0,
                   failureCode: "PII_DETECTED",
@@ -110,13 +128,104 @@ describe("createPrettyReporter", () => {
       ],
     });
     const output = reporter.generate(failRun, makeGateEval({ passed: false }));
-    expect(output.content).toContain("SSN detected in output");
+    expect(output.content).toContain("✗ No PII detected: SSN detected in output");
     expect(output.content).toContain("Some tests failed");
+  });
+
+  it("shows judge scores", () => {
+    const judgeRun = makeRunResult({
+      suites: [
+        {
+          name: "support-bot",
+          status: "passed",
+          tests: [
+            {
+              name: "grounding-check",
+              modelId: "gpt-4o-mini",
+              status: "passed",
+              assertions: [
+                {
+                  assertionType: "judge",
+                  label: "Judge: Response is grounded",
+                  passed: true,
+                  score: 0.92,
+                  metadata: { threshold: 0.8 },
+                },
+              ],
+              latencyMs: 1200,
+              costUsd: 0.003,
+            },
+          ],
+        },
+      ],
+    });
+    const output = reporter.generate(judgeRun, makeGateEval());
+    expect(output.content).toContain("0.92");
+    expect(output.content).toContain("0.80");
+  });
+
+  it("shows failing judge score below threshold", () => {
+    const failJudge = makeRunResult({
+      passed: 0,
+      failed: 1,
+      suites: [
+        {
+          name: "support-bot",
+          status: "failed",
+          tests: [
+            {
+              name: "grounding-check",
+              modelId: "gpt-4o-mini",
+              status: "failed",
+              assertions: [
+                {
+                  assertionType: "judge",
+                  label: "Judge: Response is grounded",
+                  passed: false,
+                  score: 0.5,
+                  failureCode: "JUDGE_BELOW_THRESHOLD",
+                  failureMessage: "Score 0.5 below threshold 0.8",
+                  metadata: { threshold: 0.8 },
+                },
+              ],
+              latencyMs: 800,
+              costUsd: 0.002,
+            },
+          ],
+        },
+      ],
+    });
+    const output = reporter.generate(failJudge, makeGateEval({ passed: false }));
+    expect(output.content).toContain("0.50");
+    expect(output.content).toContain("0.80");
   });
 
   it("includes quality gates section", () => {
     const output = reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("Quality Gates");
     expect(output.content).toContain("Pass rate 100.0% meets minimum 95.0%");
+  });
+
+  it("omits cost line when all costs are zero", () => {
+    const noCostRun = makeRunResult({
+      suites: [
+        {
+          name: "cmd-suite",
+          status: "passed",
+          tests: [
+            {
+              name: "test-cmd",
+              modelId: "command",
+              status: "passed",
+              assertions: [],
+              latencyMs: 100,
+              costUsd: 0,
+            },
+          ],
+        },
+      ],
+    });
+    const output = reporter.generate(noCostRun, makeGateEval());
+    expect(output.content).not.toContain("Cost:");
   });
 });
