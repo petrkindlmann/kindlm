@@ -20,6 +20,8 @@ interface GitHubUser {
 
 export const oauthRoutes = new Hono<AppEnv>();
 
+const AUTH_CODE_TTL_SECONDS = 60;
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -37,36 +39,93 @@ function getAllowedOrigins(env: AppEnv["Bindings"]): string[] {
   return origins;
 }
 
+// HMAC-sign a value using the client secret as key
+async function signState(value: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(mac))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function verifyState(value: string, signature: string, secret: string): Promise<boolean> {
+  const expected = await signState(value, secret);
+  const a = new TextEncoder().encode(expected);
+  const b = new TextEncoder().encode(signature);
+  if (a.byteLength !== b.byteLength) return false;
+  return crypto.subtle.timingSafeEqual(a, b);
+}
+
+function isAllowedOrigin(url: string, env: AppEnv["Bindings"]): boolean {
+  try {
+    const parsed = new URL(url);
+    return getAllowedOrigins(env).includes(parsed.origin);
+  } catch {
+    return false;
+  }
+}
+
 // GET /github — Redirect to GitHub OAuth authorization
-oauthRoutes.get("/github", (c) => {
+oauthRoutes.get("/github", async (c) => {
   const clientId = c.env.GITHUB_CLIENT_ID;
   const redirectUri = new URL("/auth/github/callback", c.req.url).toString();
-  const state = crypto.randomUUID();
+  const nonce = crypto.randomUUID();
   const dashboardRedirect = c.req.query("redirect_uri");
+
+  // Build state: nonce (or nonce|redirect_uri)
+  let stateValue = nonce;
+  if (dashboardRedirect && isAllowedOrigin(dashboardRedirect, c.env)) {
+    stateValue = `${nonce}|${dashboardRedirect}`;
+  }
+
+  // HMAC-sign the state to prevent CSRF
+  const sig = await signState(stateValue, c.env.GITHUB_CLIENT_SECRET);
+  const state = `${stateValue}.${sig}`;
 
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("scope", "read:user user:email");
-
-  // Encode dashboard redirect URI in state if provided and allowed
-  const allowedOrigins = getAllowedOrigins(c.env);
-  const isAllowedRedirect = (() => {
-    if (!dashboardRedirect) return false;
-    try {
-      const parsed = new URL(dashboardRedirect);
-      return allowedOrigins.includes(parsed.origin);
-    } catch {
-      return false;
-    }
-  })();
-  if (isAllowedRedirect) {
-    url.searchParams.set("state", `${state}|${dashboardRedirect}`);
-  } else {
-    url.searchParams.set("state", state);
-  }
+  url.searchParams.set("state", state);
 
   return c.redirect(url.toString());
+});
+
+// POST /exchange — Exchange a short-lived auth code for an API token
+oauthRoutes.post("/exchange", async (c) => {
+  const body = await c.req.json<{ code?: string }>().catch(() => ({ code: undefined }));
+  const code = body.code;
+  if (!code || typeof code !== "string") {
+    return c.json({ error: "Missing code" }, 400);
+  }
+
+  const db = c.env.DB;
+
+  // Look up and delete the code atomically
+  const row = await db
+    .prepare("SELECT token, expires_at FROM auth_codes WHERE code = ?")
+    .bind(code)
+    .first<{ token: string; expires_at: string }>();
+
+  if (!row) {
+    return c.json({ error: "Invalid or expired code" }, 400);
+  }
+
+  // Delete immediately (single-use)
+  await db.prepare("DELETE FROM auth_codes WHERE code = ?").bind(code).run();
+
+  // Check expiry
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    return c.json({ error: "Code expired" }, 400);
+  }
+
+  return c.json({ token: row.token });
 });
 
 // GET /github/callback — Exchange code for token, create/find user
@@ -74,6 +133,19 @@ oauthRoutes.get("/github/callback", async (c) => {
   const code = c.req.query("code");
   if (!code) {
     return c.json({ error: "Missing code parameter" }, 400);
+  }
+
+  // Verify OAuth state (CSRF protection)
+  const stateParam = c.req.query("state") ?? "";
+  const lastDot = stateParam.lastIndexOf(".");
+  if (lastDot === -1) {
+    return c.json({ error: "Invalid state parameter" }, 400);
+  }
+  const stateValue = stateParam.slice(0, lastDot);
+  const stateSig = stateParam.slice(lastDot + 1);
+  const valid = await verifyState(stateValue, stateSig, c.env.GITHUB_CLIENT_SECRET);
+  if (!valid) {
+    return c.json({ error: "Invalid state — possible CSRF attack" }, 400);
   }
 
   // Exchange code for GitHub access token
@@ -139,7 +211,6 @@ oauthRoutes.get("/github/callback", async (c) => {
   // Find or create user
   let user = await queries.getUserByGithubId(githubUser.id);
   if (user) {
-    // Update user info on each login
     await queries.updateUser(user.id, {
       githubLogin: githubUser.login,
       email,
@@ -163,9 +234,9 @@ oauthRoutes.get("/github/callback", async (c) => {
   }
 
   // Generate API token
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  const hex = Array.from(bytes)
+  const tokenBytes = new Uint8Array(16);
+  crypto.getRandomValues(tokenBytes);
+  const hex = Array.from(tokenBytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
   const plaintext = `klm_${hex}`;
@@ -181,24 +252,32 @@ oauthRoutes.get("/github/callback", async (c) => {
     user.id,
   );
 
-  // If a dashboard redirect was encoded in state, redirect with token
-  const stateParam = c.req.query("state") ?? "";
-  const pipeIdx = stateParam.indexOf("|");
+  // If a dashboard redirect was encoded in state, use auth code exchange
+  const pipeIdx = stateValue.indexOf("|");
   if (pipeIdx !== -1) {
-    const dashboardRedirect = stateParam.slice(pipeIdx + 1);
-    try {
+    const dashboardRedirect = stateValue.slice(pipeIdx + 1);
+    if (isAllowedOrigin(dashboardRedirect, c.env)) {
+      // Store short-lived auth code instead of putting token in URL
+      const codeBytes = new Uint8Array(32);
+      crypto.getRandomValues(codeBytes);
+      const authCode = Array.from(codeBytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      const expiresAt = new Date(Date.now() + AUTH_CODE_TTL_SECONDS * 1000).toISOString();
+
+      await c.env.DB.prepare(
+        "INSERT INTO auth_codes (code, token, expires_at) VALUES (?, ?, ?)",
+      )
+        .bind(authCode, plaintext, expiresAt)
+        .run();
+
       const redirectUrl = new URL(dashboardRedirect);
-      const cbAllowedOrigins = getAllowedOrigins(c.env);
-      if (cbAllowedOrigins.includes(redirectUrl.origin)) {
-        redirectUrl.searchParams.set("token", plaintext);
-        return c.redirect(redirectUrl.toString());
-      }
-    } catch {
-      // Invalid URL, fall through to HTML page
+      redirectUrl.searchParams.set("code", authCode);
+      return c.redirect(redirectUrl.toString());
     }
   }
 
-  // Return an HTML page showing the token for copy-paste into CLI
+  // CLI flow — return an HTML page showing the token for copy-paste
   const html = `<!DOCTYPE html>
 <html>
 <head>

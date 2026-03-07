@@ -79,7 +79,7 @@ export async function rateLimitMiddleware(
       .run();
     return next();
   } catch {
-    // Fail-open: if D1 query fails, allow the request
-    return next();
+    // Fail closed: if D1 is unreachable, reject rather than allow unbounded requests
+    return c.json({ error: "Service temporarily unavailable" }, 503);
   }
 }

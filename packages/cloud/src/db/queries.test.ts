@@ -72,6 +72,7 @@ describe("getQueries", () => {
       expect(token).toEqual({
         id: "tok-1",
         orgId: "org-1",
+        userId: null,
         name: "my-token",
         tokenHash: "hash123",
         scope: "full",

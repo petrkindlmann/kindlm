@@ -82,7 +82,7 @@ describe("rateLimitMiddleware (D1-based)", () => {
     expect(res.status).toBe(200);
   });
 
-  it("fails open when D1 query errors", async () => {
+  it("fails closed when D1 query errors", async () => {
     const mockD1 = createMockD1();
     // Make prepare throw
     mockD1.prepare = vi.fn(() => {
@@ -91,7 +91,7 @@ describe("rateLimitMiddleware (D1-based)", () => {
 
     const app = createApp(mockD1);
     const res = await testRequest(app, "/test");
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(503);
   });
 
   it("passes through when no auth context", async () => {

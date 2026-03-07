@@ -67,7 +67,7 @@ describe("SSO routes", () => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: "",
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(501);
   });
 
   it("GET /v1/sso/config returns not configured when no config", async () => {

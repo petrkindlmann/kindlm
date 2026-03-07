@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types.js";
 import { getQueries } from "../db/queries.js";
 import { requirePlan } from "../middleware/plan-gate.js";
-import { hashToken } from "../middleware/auth.js";
 import { auditLog } from "./audit-helper.js";
 
 export const ssoRoutes = new Hono<AppEnv>();
@@ -32,117 +31,11 @@ ssoRoutes.get("/metadata", (c) => {
 });
 
 // POST /callback — Receive SAML assertion (public, no auth)
-// DISABLED: Signature verification is not implemented. This endpoint is
-// vulnerable to forged assertions until a proper SAML library is integrated.
-ssoRoutes.post("/callback", async (c) => {
+// DISABLED: Cryptographic signature verification requires a SAML library.
+// Without it, any attacker can forge assertions and bypass authentication.
+// Re-enable only after integrating proper XML signature verification.
+ssoRoutes.post("/callback", (c) => {
   return c.json({ error: "SAML SSO is not yet available. Contact support@kindlm.com." }, 501);
-
-  // eslint-disable-next-line no-unreachable
-  const formData = await c.req.parseBody();
-  const samlResponse = formData["SAMLResponse"];
-
-  if (!samlResponse || typeof samlResponse !== "string") {
-    return c.json({ error: "Missing SAMLResponse" }, 400);
-  }
-
-  // Decode base64 SAML response
-  let xml: string;
-  try {
-    xml = atob(samlResponse);
-  } catch {
-    return c.json({ error: "Invalid SAMLResponse encoding" }, 400);
-  }
-
-  // Extract NameID (email) from SAML assertion
-  const nameIdMatch = xml.match(/<(?:saml2?:)?NameID[^>]*>([^<]+)<\/(?:saml2?:)?NameID>/);
-  if (!nameIdMatch) {
-    return c.json({ error: "Could not extract NameID from SAML assertion" }, 400);
-  }
-  const email = (nameIdMatch[1] ?? "").trim().toLowerCase();
-
-  // Extract Issuer to identify the org
-  const issuerMatch = xml.match(/<(?:saml2?:)?Issuer[^>]*>([^<]+)<\/(?:saml2?:)?Issuer>/);
-  if (!issuerMatch) {
-    return c.json({ error: "Could not extract Issuer from SAML assertion" }, 400);
-  }
-  const issuer = (issuerMatch[1] ?? "").trim();
-
-  const queries = getQueries(c.env.DB);
-
-  // Find SAML config by IdP entity ID
-  const { results: configRows } = await c.env.DB.prepare(
-    "SELECT * FROM saml_configs WHERE idp_entity_id = ? AND enabled = 1",
-  )
-    .bind(issuer)
-    .all();
-
-  if (!configRows || configRows.length === 0) {
-    return c.json({ error: "No SAML configuration found for this IdP" }, 404);
-  }
-
-  const row = configRows[0] as Record<string, unknown>;
-  const orgId = row.org_id as string;
-
-  // Verify the signature against the stored IdP certificate
-  // Note: Full X.509 signature verification requires a SAML library.
-  // This is a simplified implementation that trusts the IdP certificate match.
-  const storedCert = row.idp_certificate as string;
-  const hasSig = xml.includes("<ds:SignatureValue>") || xml.includes("<SignatureValue>");
-  if (!hasSig) {
-    return c.json({ error: "SAML assertion is not signed" }, 400);
-  }
-
-  // Check if the stored certificate appears in the response
-  const certInResponse = xml.includes(storedCert.replace(/[\r\n\s]/g, "").slice(0, 40));
-  if (!certInResponse) {
-    // Log but don't block — certificate embedding is optional in SAML
-  }
-
-  // Find or create user by email
-  const { results: userRows } = await c.env.DB.prepare(
-    "SELECT * FROM users WHERE email = ?",
-  )
-    .bind(email)
-    .all();
-
-  let userId: string;
-  if (userRows && userRows.length > 0) {
-    userId = userRows[0]?.id as string;
-  } else {
-    // Create a placeholder user for SAML-only users
-    userId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    await c.env.DB.prepare(
-      "INSERT INTO users (id, github_id, github_login, email, created_at) VALUES (?, ?, ?, ?, ?)",
-    )
-      .bind(userId, 0, email.split("@")[0], email, now)
-      .run();
-  }
-
-  // Ensure user is member of the org
-  const existingMember = await queries.getOrgMember(orgId, userId);
-  if (!existingMember) {
-    await queries.addOrgMember(orgId, userId, "member");
-  }
-
-  // Generate API token
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  const hex = Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  const plaintext = `klm_${hex}`;
-  const tokenHash = await hashToken(plaintext);
-
-  await queries.createToken(
-    orgId,
-    `saml-${new Date().toISOString().slice(0, 10)}`,
-    tokenHash,
-    "full",
-  );
-
-  // Redirect to dashboard with token
-  return c.redirect(`https://cloud.kindlm.com/login/callback?token=${plaintext}`);
 });
 
 // GET /config — Get SAML config (enterprise only, requires auth)

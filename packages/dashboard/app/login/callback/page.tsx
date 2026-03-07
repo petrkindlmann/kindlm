@@ -4,21 +4,44 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setToken } from "@/lib/auth";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://api.kindlm.com";
+
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const code = searchParams.get("code");
 
-    if (!token) {
-      setError("No token received from authentication server.");
+    if (!code) {
+      setError("No authorization code received.");
       return;
     }
 
-    setToken(token);
-    router.replace("/projects");
+    // Exchange the short-lived code for an API token via POST
+    fetch(`${API_URL}/auth/exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error((body as { error?: string }).error ?? "Token exchange failed");
+        }
+        return res.json() as Promise<{ token: string }>;
+      })
+      .then(({ token }) => {
+        setToken(token);
+        // Replace URL to remove the code from browser history
+        window.history.replaceState({}, "", "/login/callback");
+        router.replace("/projects");
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+      });
   }, [searchParams, router]);
 
   if (error) {

@@ -125,6 +125,8 @@ async function handleScheduled(
     }
     // Clean up expired idempotency keys
     await queries.cleanupExpiredIdempotencyKeys();
+    // Clean up expired auth codes
+    await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at < datetime('now')").run();
   };
 
   ctx.waitUntil(work());
