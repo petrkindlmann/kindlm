@@ -13,7 +13,7 @@ export function createProgram(): Command {
   program
     .name("kindlm")
     .description("AI agent behavioral regression testing")
-    .version("0.0.0");
+    .version("0.4.0");
 
   registerInitCommand(program);
   registerValidateCommand(program);
