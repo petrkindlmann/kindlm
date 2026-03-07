@@ -59,6 +59,9 @@ app.use(
 app.route("/auth", oauthRoutes);
 app.route("/stripe/webhook", stripeWebhookRoute);
 
+// Root — so browsers don't see a 404
+app.get("/", (c) => c.json({ name: "KindLM API", docs: "https://kindlm.com/docs" }));
+
 // Health check — verify D1 is reachable
 app.get("/health", async (c) => {
   try {

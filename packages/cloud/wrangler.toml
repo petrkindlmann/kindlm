@@ -2,13 +2,17 @@ name = "kindlm-api"
 main = "src/index.ts"
 compatibility_date = "2026-02-01"
 
+routes = [
+  { pattern = "api.kindlm.com/*", zone_name = "kindlm.com" }
+]
+
 [triggers]
 crons = ["0 2 * * *"]  # Daily retention cleanup at 02:00 UTC
 
 [[d1_databases]]
 binding = "DB"
 database_name = "kindlm-prod"
-database_id = "placeholder-replace-with-real-id"
+database_id = "7fcb217f-d830-4199-955b-a6341bc79fff"
 
 [vars]
 ENVIRONMENT = "production"

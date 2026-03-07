@@ -7,3 +7,4 @@ dist/
 .DS_Store
 .kindlm/
 settings.local.json
+.vercel
