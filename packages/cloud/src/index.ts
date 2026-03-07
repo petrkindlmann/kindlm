@@ -40,20 +40,19 @@ app.use("*", async (c, next) => {
   return next();
 });
 
-app.use(
-  "*",
-  cors({
-    origin: [
-      "https://cloud.kindlm.com",
-      "https://kindlm.com",
-      "http://localhost:3000",
-      "http://localhost:3001",
-    ],
+app.use("*", async (c, next) => {
+  const origins = ["https://cloud.kindlm.com", "https://kindlm.com"];
+  if (c.env.ENVIRONMENT !== "production") {
+    origins.push("http://localhost:3000", "http://localhost:3001");
+  }
+  const middleware = cors({
+    origin: origins,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  }),
-);
+  });
+  return middleware(c, next);
+});
 
 // Public routes (no auth required)
 app.route("/auth", oauthRoutes);

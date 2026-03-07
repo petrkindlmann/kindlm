@@ -20,10 +20,22 @@ interface GitHubUser {
 
 export const oauthRoutes = new Hono<AppEnv>();
 
-const ALLOWED_DASHBOARD_ORIGINS = [
-  "https://cloud.kindlm.com",
-  "http://localhost:3001",
-];
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getAllowedOrigins(env: AppEnv["Bindings"]): string[] {
+  const origins = ["https://cloud.kindlm.com"];
+  if (env.ENVIRONMENT !== "production") {
+    origins.push("http://localhost:3001");
+  }
+  return origins;
+}
 
 // GET /github — Redirect to GitHub OAuth authorization
 oauthRoutes.get("/github", (c) => {
@@ -38,7 +50,17 @@ oauthRoutes.get("/github", (c) => {
   url.searchParams.set("scope", "read:user user:email");
 
   // Encode dashboard redirect URI in state if provided and allowed
-  if (dashboardRedirect && ALLOWED_DASHBOARD_ORIGINS.some((o) => dashboardRedirect.startsWith(o))) {
+  const allowedOrigins = getAllowedOrigins(c.env);
+  const isAllowedRedirect = (() => {
+    if (!dashboardRedirect) return false;
+    try {
+      const parsed = new URL(dashboardRedirect);
+      return allowedOrigins.includes(parsed.origin);
+    } catch {
+      return false;
+    }
+  })();
+  if (isAllowedRedirect) {
     url.searchParams.set("state", `${state}|${dashboardRedirect}`);
   } else {
     url.searchParams.set("state", state);
@@ -164,10 +186,15 @@ oauthRoutes.get("/github/callback", async (c) => {
   const pipeIdx = stateParam.indexOf("|");
   if (pipeIdx !== -1) {
     const dashboardRedirect = stateParam.slice(pipeIdx + 1);
-    if (ALLOWED_DASHBOARD_ORIGINS.some((o) => dashboardRedirect.startsWith(o))) {
+    try {
       const redirectUrl = new URL(dashboardRedirect);
-      redirectUrl.searchParams.set("token", plaintext);
-      return c.redirect(redirectUrl.toString());
+      const cbAllowedOrigins = getAllowedOrigins(c.env);
+      if (cbAllowedOrigins.includes(redirectUrl.origin)) {
+        redirectUrl.searchParams.set("token", plaintext);
+        return c.redirect(redirectUrl.toString());
+      }
+    } catch {
+      // Invalid URL, fall through to HTML page
     }
   }
 
@@ -190,7 +217,7 @@ oauthRoutes.get("/github/callback", async (c) => {
   </style>
 </head>
 <body>
-  <h1>Authenticated as ${githubUser.login}</h1>
+  <h1>Authenticated as ${escapeHtml(githubUser.login)}</h1>
   <p>Copy this token and paste it into your terminal:</p>
   <div class="token-box" id="token" onclick="copyToken()">
     ${plaintext}

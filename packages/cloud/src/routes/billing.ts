@@ -181,7 +181,10 @@ stripeWebhookRoute.post("/", async (c) => {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  if (computedSig !== expectedSig) {
+  // Constant-time comparison to prevent timing attacks
+  const a = new TextEncoder().encode(computedSig);
+  const b = new TextEncoder().encode(expectedSig);
+  if (a.byteLength !== b.byteLength || !crypto.subtle.timingSafeEqual(a, b)) {
     return c.json({ error: "Invalid signature" }, 400);
   }
 

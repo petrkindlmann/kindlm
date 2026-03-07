@@ -17,7 +17,7 @@ export function setToken(token: string): void {
   if (typeof document === "undefined") return;
 
   const maxAge = MAX_AGE_DAYS * 24 * 60 * 60;
-  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
 }
 
 /** Remove the auth token cookie. */

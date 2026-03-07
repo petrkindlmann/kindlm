@@ -32,7 +32,12 @@ ssoRoutes.get("/metadata", (c) => {
 });
 
 // POST /callback — Receive SAML assertion (public, no auth)
+// DISABLED: Signature verification is not implemented. This endpoint is
+// vulnerable to forged assertions until a proper SAML library is integrated.
 ssoRoutes.post("/callback", async (c) => {
+  return c.json({ error: "SAML SSO is not yet available. Contact support@kindlm.com." }, 501);
+
+  // eslint-disable-next-line no-unreachable
   const formData = await c.req.parseBody();
   const samlResponse = formData["SAMLResponse"];
 
