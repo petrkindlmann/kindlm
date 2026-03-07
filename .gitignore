@@ -8,3 +8,5 @@ dist/
 .kindlm/
 settings.local.json
 .vercel
+.next/
+.open-next/
