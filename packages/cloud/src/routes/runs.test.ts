@@ -65,7 +65,7 @@ const sampleRun: Run = {
 function createApp() {
   const app = new Hono<AppEnv>();
   app.use("*", async (c, next) => {
-    c.set("auth", { org, token });
+    c.set("auth", { org, token, user: null });
     return next();
   });
   app.route("/v1/runs", runRoutes);

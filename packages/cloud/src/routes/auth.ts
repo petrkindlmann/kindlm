@@ -7,6 +7,28 @@ import { createTokenBody, validateBody } from "../validation.js";
 
 export const authRoutes = new Hono<AppEnv>();
 
+// GET /me — Return current user + org membership
+authRoutes.get("/me", async (c) => {
+  const auth = c.get("auth");
+  if (!auth.user) {
+    return c.json({ error: "Token is not associated with a user" }, 404);
+  }
+
+  const queries = getQueries(c.env.DB);
+  const membership = await queries.getOrgMember(auth.org.id, auth.user.id);
+
+  return c.json({
+    id: auth.user.id,
+    github_id: auth.user.githubId,
+    github_login: auth.user.githubLogin,
+    email: auth.user.email,
+    avatar_url: auth.user.avatarUrl,
+    org_id: auth.org.id,
+    role: membership?.role ?? "member",
+    created_at: auth.user.createdAt,
+  });
+});
+
 // POST /tokens — Create API token
 authRoutes.post("/tokens", async (c) => {
   const auth = c.get("auth");

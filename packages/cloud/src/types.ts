@@ -11,6 +11,7 @@ export interface Org {
 export interface Token {
   id: string;
   orgId: string;
+  userId: string | null;
   name: string;
   tokenHash: string;
   scope: "full" | "ci" | "readonly";
@@ -178,6 +179,7 @@ export interface Bindings {
 export interface AuthContext {
   org: Org;
   token: Token;
+  user: User | null;
 }
 
 export type AppEnv = {

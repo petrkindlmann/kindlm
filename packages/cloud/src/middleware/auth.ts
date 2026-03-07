@@ -51,7 +51,9 @@ export async function authMiddleware(
     return c.json({ error: "Organization not found" }, 401);
   }
 
-  c.set("auth", { org, token });
+  const user = token.userId ? await queries.getUser(token.userId) : null;
+
+  c.set("auth", { org, token, user });
 
   // Fire-and-forget last_used update
   c.executionCtx.waitUntil(queries.updateTokenLastUsed(token.id));

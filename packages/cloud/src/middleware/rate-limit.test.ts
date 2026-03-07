@@ -19,7 +19,7 @@ function createApp(db: unknown) {
   const token = mockToken();
 
   app.use("*", async (c, next) => {
-    c.set("auth", { org, token });
+    c.set("auth", { org, token, user: null });
     (c.env as unknown as Record<string, unknown>).DB = db;
     return next();
   });

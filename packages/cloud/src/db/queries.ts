@@ -35,6 +35,7 @@ function mapToken(row: Record<string, unknown>): Token {
   return {
     id: row.id as string,
     orgId: row.org_id as string,
+    userId: (row.user_id as string) ?? null,
     name: row.name as string,
     tokenHash: row.token_hash as string,
     scope: row.scope as Token["scope"],
@@ -274,18 +275,20 @@ export function getQueries(db: D1Database) {
     scope: Token["scope"] = "full",
     projectId?: string | null,
     expiresAt?: string | null,
+    userId?: string | null,
   ): Promise<Token> {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     await db
       .prepare(
-        "INSERT INTO tokens (id, org_id, name, token_hash, scope, project_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO tokens (id, org_id, user_id, name, token_hash, scope, project_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
-      .bind(id, orgId, name, tokenHash, scope, projectId ?? null, expiresAt ?? null, now)
+      .bind(id, orgId, userId ?? null, name, tokenHash, scope, projectId ?? null, expiresAt ?? null, now)
       .run();
     return {
       id,
       orgId,
+      userId: userId ?? null,
       name,
       tokenHash,
       scope,
@@ -879,6 +882,14 @@ export function getQueries(db: D1Database) {
 
   // ---- Users ----
 
+  async function getUser(id: string): Promise<User | null> {
+    const row = await db
+      .prepare("SELECT * FROM users WHERE id = ?")
+      .bind(id)
+      .first();
+    return row ? mapUser(row) : null;
+  }
+
   async function getUserByGithubId(githubId: number): Promise<User | null> {
     const row = await db
       .prepare("SELECT * FROM users WHERE github_id = ?")
@@ -1254,6 +1265,7 @@ export function getQueries(db: D1Database) {
     getBilling,
     upsertBilling,
     // Users
+    getUser,
     getUserByGithubId,
     createUser,
     updateUser,

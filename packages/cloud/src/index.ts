@@ -76,6 +76,20 @@ app.get("/health", async (c) => {
 app.use("/v1/*", authMiddleware);
 app.use("/v1/*", rateLimitMiddleware);
 
+// GET /v1/org — Return current organization
+app.get("/v1/org", (c) => {
+  const auth = c.get("auth");
+  const org = auth.org;
+  return c.json({
+    id: org.id,
+    name: org.name,
+    plan: org.plan,
+    github_org: null,
+    created_at: org.createdAt,
+    updated_at: org.updatedAt,
+  });
+});
+
 app.route("/v1/auth", authRoutes);
 app.route("/v1/projects", projectRoutes);
 app.route("/v1/suites", suiteRoutes);

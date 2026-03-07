@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Bindings, Org, Token } from "./types.js";
+import type { AuthContext, Bindings, Org, Token } from "./types.js";
 
 // Mock env and execution context for Hono app.request()
 export const testEnv: Bindings = {
@@ -32,6 +32,7 @@ export function mockToken(overrides: Partial<Token> = {}): Token {
   return {
     id: "tok-1",
     orgId: "org-1",
+    userId: null,
     name: "test-token",
     tokenHash: "abc123hash",
     scope: "full",
@@ -40,6 +41,16 @@ export function mockToken(overrides: Partial<Token> = {}): Token {
     lastUsed: null,
     createdAt: "2025-01-01T00:00:00.000Z",
     revokedAt: null,
+    ...overrides,
+  };
+}
+
+// Mock auth context for tests
+export function mockAuth(overrides: Partial<AuthContext> = {}): AuthContext {
+  return {
+    org: mockOrg(),
+    token: mockToken(),
+    user: null,
     ...overrides,
   };
 }

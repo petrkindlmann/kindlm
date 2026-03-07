@@ -9,7 +9,8 @@ function createMockApp(plan: Plan = "enterprise") {
   app.use("*", async (c, next) => {
     c.set("auth", {
       org: { id: "org-1", name: "Test Org", plan, createdAt: "", updatedAt: "" },
-      token: { id: "tok-1", orgId: "org-1", name: "test", tokenHash: "", scope: "full" as const, projectId: null, expiresAt: null, lastUsed: null, createdAt: "", revokedAt: null },
+      token: { id: "tok-1", orgId: "org-1", userId: null, name: "test", tokenHash: "", scope: "full" as const, projectId: null, expiresAt: null, lastUsed: null, createdAt: "", revokedAt: null },
+      user: null,
     });
     await next();
   });

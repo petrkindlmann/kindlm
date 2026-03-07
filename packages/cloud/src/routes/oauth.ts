@@ -154,6 +154,9 @@ oauthRoutes.get("/github/callback", async (c) => {
     `login-${new Date().toISOString().slice(0, 10)}`,
     tokenHash,
     "full",
+    null,
+    null,
+    user.id,
   );
 
   // If a dashboard redirect was encoded in state, redirect with token

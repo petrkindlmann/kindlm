@@ -24,7 +24,7 @@ function createApp() {
   const app = new Hono<AppEnv>();
   // Pre-set auth context (bypass auth middleware for route tests)
   app.use("*", async (c, next) => {
-    c.set("auth", { org, token });
+    c.set("auth", { org, token, user: null });
     return next();
   });
   app.route("/v1/auth", authRoutes);
