@@ -1,6 +1,6 @@
 {
   "name": "@kindlm/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "license": "MIT",
   "description": "Core engine for KindLM — behavioral regression testing for AI agents",
@@ -36,7 +36,8 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup",
