@@ -88,7 +88,15 @@ async function runTestsInner(
   const fileReader = createNodeFileReader();
   const parseResult = parseConfig(yamlContent, { configDir, fileReader });
   if (!parseResult.success) {
-    console.error(chalk.red(`Config validation failed: ${parseResult.error.message}`));
+    console.error(chalk.red("Config validation failed:"));
+    const details = parseResult.error.details;
+    if (details && Array.isArray(details["errors"])) {
+      for (const e of details["errors"] as string[]) {
+        console.error(chalk.red(`  - ${e}`));
+      }
+    } else {
+      console.error(chalk.red(`  ${parseResult.error.message}`));
+    }
     process.exit(1);
   }
 
@@ -96,9 +104,17 @@ async function runTestsInner(
 
   // 3. Apply CLI overrides
   if (options.runs !== undefined) {
+    if (!Number.isInteger(options.runs) || options.runs < 1) {
+      console.error(chalk.red(`Invalid --runs value: ${options.runs}. Must be a positive integer (>= 1).`));
+      process.exit(1);
+    }
     config.defaults.repeat = options.runs;
   }
   if (options.gate !== undefined) {
+    if (Number.isNaN(options.gate) || options.gate < 0 || options.gate > 100) {
+      console.error(chalk.red(`Invalid --gate value: ${options.gate}. Must be between 0 and 100.`));
+      process.exit(1);
+    }
     if (!config.gates) {
       config.gates = { passRateMin: options.gate / 100 } as KindLMConfig["gates"];
     } else {

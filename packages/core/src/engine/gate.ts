@@ -214,9 +214,11 @@ function countFailures(
 ): number {
   let count = 0;
   for (const r of results) {
-    for (const code of codes) {
-      if (r.failureCodes.includes(code)) {
-        count++;
+    for (const run of r.runs) {
+      for (const a of run.assertions) {
+        if (!a.passed && a.failureCode && codes.includes(a.failureCode)) {
+          count++;
+        }
       }
     }
   }

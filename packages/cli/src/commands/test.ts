@@ -123,6 +123,8 @@ const chalkColorize: Colorize = {
   redBold: (t) => chalk.red.bold(t),
 };
 
+const KNOWN_REPORTERS = ["pretty", "json", "junit"] as const;
+
 function selectReporter(type: string) {
   switch (type) {
     case "json":
@@ -130,8 +132,10 @@ function selectReporter(type: string) {
     case "junit":
       return createJunitReporter();
     case "pretty":
-    default:
       return createPrettyReporter(chalkColorize);
+    default:
+      console.error(chalk.red(`Unknown reporter: '${type}'. Available: ${KNOWN_REPORTERS.join(", ")}`));
+      process.exit(1);
   }
 }
 

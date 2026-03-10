@@ -153,14 +153,44 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
 
       const startTime = Date.now();
 
-      const response = await withRetry(
-        () =>
-          httpClient.fetch(`${baseUrl}/chat/completions`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(body),
-            timeoutMs,
-          }),
+      const json = await withRetry(
+        async () => {
+          const response = await httpClient.fetch(
+            `${baseUrl}/chat/completions`,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify(body),
+              timeoutMs,
+            },
+          );
+
+          if (!response.ok) {
+            let data: unknown;
+            try {
+              data = await response.json();
+            } catch {
+              throw new ProviderError(
+                "PROVIDER_ERROR",
+                "Malformed response body from OpenAI API",
+                response.status,
+                response.status >= 500,
+              );
+            }
+            throw mapError(response.status, data);
+          }
+
+          try {
+            return await response.json();
+          } catch {
+            throw new ProviderError(
+              "PROVIDER_ERROR",
+              "Malformed response body from OpenAI API",
+              response.status,
+              response.status >= 500,
+            );
+          }
+        },
         {
           maxRetries,
           shouldRetry: (error) =>
@@ -168,22 +198,7 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
         },
       );
 
-      let json: unknown;
-      try {
-        json = await response.json();
-      } catch {
-        throw new ProviderError(
-          "PROVIDER_ERROR",
-          "Malformed response body from OpenAI API",
-          response.status,
-          response.status >= 500,
-        );
-      }
       const latencyMs = Date.now() - startTime;
-
-      if (!response.ok) {
-        throw mapError(response.status, json);
-      }
 
       const parsed = json as {
         choices?: Array<{

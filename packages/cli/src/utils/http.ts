@@ -1,4 +1,5 @@
 import type { HttpClient, HttpRequestInit, HttpResponse } from "@kindlm/core";
+import { ProviderError } from "@kindlm/core";
 
 export function createHttpClient(): HttpClient {
   return {
@@ -21,6 +22,19 @@ export function createHttpClient(): HttpClient {
           status: response.status,
           json: () => response.json() as Promise<unknown>,
         };
+      } catch (error: unknown) {
+        if (
+          error instanceof DOMException && error.name === "AbortError" ||
+          (error instanceof Error && error.name === "AbortError")
+        ) {
+          throw new ProviderError(
+            "TIMEOUT",
+            "Request timed out",
+            408,
+            true,
+          );
+        }
+        throw error;
       } finally {
         if (timeoutId !== undefined) clearTimeout(timeoutId);
       }

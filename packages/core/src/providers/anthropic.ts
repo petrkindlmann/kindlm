@@ -159,9 +159,9 @@ export function createAnthropicAdapter(
 
       const startTime = Date.now();
 
-      const response = await withRetry(
-        () =>
-          httpClient.fetch(`${baseUrl}/v1/messages`, {
+      const json = await withRetry(
+        async () => {
+          const response = await httpClient.fetch(`${baseUrl}/v1/messages`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -170,7 +170,34 @@ export function createAnthropicAdapter(
             },
             body: JSON.stringify(body),
             timeoutMs,
-          }),
+          });
+
+          if (!response.ok) {
+            let data: unknown;
+            try {
+              data = await response.json();
+            } catch {
+              throw new ProviderError(
+                "PROVIDER_ERROR",
+                "Malformed response body from Anthropic API",
+                response.status,
+                response.status >= 500,
+              );
+            }
+            throw mapError(response.status, data);
+          }
+
+          try {
+            return await response.json();
+          } catch {
+            throw new ProviderError(
+              "PROVIDER_ERROR",
+              "Malformed response body from Anthropic API",
+              response.status,
+              response.status >= 500,
+            );
+          }
+        },
         {
           maxRetries,
           shouldRetry: (error) =>
@@ -178,22 +205,7 @@ export function createAnthropicAdapter(
         },
       );
 
-      let json: unknown;
-      try {
-        json = await response.json();
-      } catch {
-        throw new ProviderError(
-          "PROVIDER_ERROR",
-          "Malformed response body from Anthropic API",
-          response.status,
-          response.status >= 500,
-        );
-      }
       const latencyMs = Date.now() - startTime;
-
-      if (!response.ok) {
-        throw mapError(response.status, json);
-      }
 
       const parsed = json as {
         content?: Array<

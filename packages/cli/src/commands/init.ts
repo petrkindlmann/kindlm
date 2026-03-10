@@ -63,7 +63,17 @@ export function registerInitCommand(program: Command): void {
         process.exit(1);
       }
 
-      writeFileSync(filePath, TEMPLATE, "utf-8");
+      try {
+        writeFileSync(filePath, TEMPLATE, "utf-8");
+      } catch (e) {
+        const code = e instanceof Error && "code" in e ? (e as NodeJS.ErrnoException).code : undefined;
+        if (code === "EACCES" || code === "EROFS") {
+          console.error(chalk.red("Cannot create kindlm.yaml: permission denied"));
+        } else {
+          console.error(chalk.red(`Cannot create kindlm.yaml: ${e instanceof Error ? e.message : String(e)}`));
+        }
+        process.exit(1);
+      }
       console.log(chalk.green("Created kindlm.yaml"));
       console.log("");
       console.log("Next steps:");

@@ -11,7 +11,6 @@ import {
   mapSpansToResult,
   buildContextFromTrace,
   createAssertionsFromExpect,
-  evaluateGates,
 } from "@kindlm/core";
 import type {
   KindLMConfig,
@@ -209,16 +208,7 @@ export function registerTraceCommand(program: Command): void {
           `${chalk.bold("Total:")} ${passedAssertions} passed, ${failedAssertions} failed out of ${totalAssertions} assertions`,
         );
 
-        // 9. Evaluate gates
-        // Build minimal aggregated results for gate evaluation
-        const gateEval = evaluateGates(config.gates, []);
-        if (!gateEval.passed) {
-          for (const g of gateEval.gates.filter((g) => !g.passed)) {
-            console.log(chalk.red(`Gate failed: ${g.message}`));
-          }
-        }
-
-        // 10. Exit code
+        // 9. Exit code — trace uses assertion-level pass/fail, not gates
         process.exit(failedAssertions > 0 ? 1 : 0);
       } catch (e) {
         spinner.fail(`Trace command failed: ${e instanceof Error ? e.message : String(e)}`);

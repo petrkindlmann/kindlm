@@ -53,7 +53,23 @@ describe("evaluateGates", () => {
   it("fails when schema failures exceed limit", () => {
     const config = makeGatesConfig({ schemaFailuresMax: 0 });
     const results = [
-      makeResult({ failureCodes: ["SCHEMA_INVALID"] }),
+      makeResult({
+        failureCodes: ["SCHEMA_INVALID"],
+        runs: [
+          {
+            testCaseName: "test-1",
+            modelId: "openai:gpt-4o",
+            runIndex: 0,
+            outputText: "",
+            assertions: [
+              { assertionType: "schema", label: "schema", passed: false, score: 0, failureCode: "SCHEMA_INVALID" },
+            ],
+            latencyMs: 100,
+            tokenUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+            costEstimateUsd: 0.01,
+          },
+        ],
+      }),
     ];
     const evaluation = evaluateGates(config, results);
     const gate = evaluation.gates.find((g) => g.gateName === "schemaFailuresMax");
@@ -84,7 +100,24 @@ describe("evaluateGates", () => {
   it("evaluates pii and keyword failure gates", () => {
     const config = makeGatesConfig({ piiFailuresMax: 0, keywordFailuresMax: 1 });
     const results = [
-      makeResult({ failureCodes: ["PII_DETECTED", "KEYWORD_DENIED"] }),
+      makeResult({
+        failureCodes: ["PII_DETECTED", "KEYWORD_DENIED"],
+        runs: [
+          {
+            testCaseName: "test-1",
+            modelId: "openai:gpt-4o",
+            runIndex: 0,
+            outputText: "",
+            assertions: [
+              { assertionType: "pii", label: "pii", passed: false, score: 0, failureCode: "PII_DETECTED" },
+              { assertionType: "keywords", label: "keywords", passed: false, score: 0, failureCode: "KEYWORD_DENIED" },
+            ],
+            latencyMs: 100,
+            tokenUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+            costEstimateUsd: 0.01,
+          },
+        ],
+      }),
     ];
     const evaluation = evaluateGates(config, results);
     const piiGate = evaluation.gates.find((g) => g.gateName === "piiFailuresMax");
