@@ -236,7 +236,7 @@ describe("getQueries", () => {
     });
 
     it("deleteBaseline returns false when not found", async () => {
-      const deleted = await queries.deleteBaseline("nonexistent");
+      const deleted = await queries.deleteBaseline("nonexistent", "suite-1");
       expect(deleted).toBe(false);
     });
 

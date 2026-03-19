@@ -28,17 +28,23 @@ function makeRun(overrides: Partial<TestCaseRunResult> = {}): TestCaseRunResult 
 }
 
 describe("aggregateRuns", () => {
-  it("throws on empty array", () => {
-    expect(() => aggregateRuns([])).toThrow("at least one run");
+  it("returns error on empty array", () => {
+    const result = aggregateRuns([]);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("at least one run");
+    }
   });
 
   it("aggregates a single passing run", () => {
     const result = aggregateRuns([makeRun()]);
-    expect(result.runCount).toBe(1);
-    expect(result.passed).toBe(true);
-    expect(result.passRate).toBe(1);
-    expect(result.testCaseName).toBe("happy-path");
-    expect(result.modelId).toBe("openai:gpt-4o");
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.runCount).toBe(1);
+    expect(result.data.passed).toBe(true);
+    expect(result.data.passRate).toBe(1);
+    expect(result.data.testCaseName).toBe("happy-path");
+    expect(result.data.modelId).toBe("openai:gpt-4o");
   });
 
   it("computes pass rate across multiple runs", () => {
@@ -51,9 +57,11 @@ describe("aggregateRuns", () => {
       makeRun({ runIndex: 2 }),
     ];
     const result = aggregateRuns(runs);
-    expect(result.runCount).toBe(3);
-    expect(result.passRate).toBeCloseTo(2 / 3);
-    expect(result.passed).toBe(false);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.runCount).toBe(3);
+    expect(result.data.passRate).toBeCloseTo(2 / 3);
+    expect(result.data.passed).toBe(false);
   });
 
   it("computes assertion scores by type", () => {
@@ -74,12 +82,14 @@ describe("aggregateRuns", () => {
       }),
     ];
     const result = aggregateRuns(runs);
-    const judgeScores = result.assertionScores["judge"];
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const judgeScores = result.data.assertionScores["judge"];
     expect(judgeScores).toBeDefined();
     expect(judgeScores?.mean).toBeCloseTo(0.7);
     expect(judgeScores?.min).toBe(0.6);
     expect(judgeScores?.max).toBe(0.8);
-    const schemaScores = result.assertionScores["schema"];
+    const schemaScores = result.data.assertionScores["schema"];
     expect(schemaScores?.mean).toBe(1.0);
   });
 
@@ -98,9 +108,11 @@ describe("aggregateRuns", () => {
       }),
     ];
     const result = aggregateRuns(runs);
-    expect(result.failureCodes).toContain("PII_DETECTED");
-    expect(result.failureCodes).toContain("SCHEMA_INVALID");
-    expect(result.failureCodes).toHaveLength(2);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.failureCodes).toContain("PII_DETECTED");
+    expect(result.data.failureCodes).toContain("SCHEMA_INVALID");
+    expect(result.data.failureCodes).toHaveLength(2);
   });
 
   it("computes average latency", () => {
@@ -110,7 +122,9 @@ describe("aggregateRuns", () => {
       makeRun({ runIndex: 2, latencyMs: 300 }),
     ];
     const result = aggregateRuns(runs);
-    expect(result.latencyAvgMs).toBe(200);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.latencyAvgMs).toBe(200);
   });
 
   it("sums cost and tokens", () => {
@@ -127,8 +141,10 @@ describe("aggregateRuns", () => {
       }),
     ];
     const result = aggregateRuns(runs);
-    expect(result.totalCostUsd).toBeCloseTo(0.08);
-    expect(result.totalTokens).toBe(270);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.totalCostUsd).toBeCloseTo(0.08);
+    expect(result.data.totalTokens).toBe(270);
   });
 
   it("handles null cost estimates", () => {
@@ -137,13 +153,17 @@ describe("aggregateRuns", () => {
       makeRun({ runIndex: 1, costEstimateUsd: 0.02 }),
     ];
     const result = aggregateRuns(runs);
-    expect(result.totalCostUsd).toBeCloseTo(0.02);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.totalCostUsd).toBeCloseTo(0.02);
   });
 
   it("preserves original runs in result", () => {
     const runs = [makeRun({ runIndex: 0 }), makeRun({ runIndex: 1 })];
     const result = aggregateRuns(runs);
-    expect(result.runs).toHaveLength(2);
-    expect(result.runs).toBe(runs);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.runs).toHaveLength(2);
+    expect(result.data.runs).toBe(runs);
   });
 });

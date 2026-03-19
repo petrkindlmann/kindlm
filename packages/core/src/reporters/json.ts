@@ -5,7 +5,7 @@ import type { GateEvaluation } from "../engine/gate.js";
 export function createJsonReporter(): Reporter {
   return {
     name: "json",
-    generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput {
+    async generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput> {
       const report = {
         kindlm: {
           version: "1.0.0",

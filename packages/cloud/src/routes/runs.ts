@@ -18,6 +18,11 @@ runRoutes.post("/:projectId/runs", async (c) => {
     return c.json({ error: "Project not found" }, 404);
   }
 
+  // CI-scoped tokens can only create runs in their scoped project
+  if (auth.token.projectId && auth.token.projectId !== projectId) {
+    return c.json({ error: "Token not scoped to this project" }, 403);
+  }
+
   const raw = await c.req.json();
   const parsed = validateBody(createRunBody, raw);
   if (!parsed.success) {
@@ -92,6 +97,11 @@ runRoutes.patch("/:runId", async (c) => {
   const project = await queries.getProject(existing.projectId);
   if (!project || project.orgId !== auth.org.id) {
     return c.json({ error: "Run not found" }, 404);
+  }
+
+  // CI-scoped tokens can only update runs belonging to their scoped project
+  if (auth.token.projectId && auth.token.projectId !== existing.projectId) {
+    return c.json({ error: "Token not scoped to this project" }, 403);
   }
 
   const raw = await c.req.json();

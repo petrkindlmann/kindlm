@@ -36,11 +36,16 @@ export function registerTestCommand(program: Command): void {
     .option("--pdf <path>", "Export compliance report as PDF (requires --compliance)")
     .option("-c, --config <path>", "Path to config file", "kindlm.yaml")
     .action(async (options: TestOptions) => {
+      if (options.pdf && !options.compliance) {
+        console.error(chalk.red("--pdf requires --compliance"));
+        process.exit(1);
+      }
+
       try {
         const { runnerResult, config, yamlContent } = await runTests({
           configPath: options.config,
-          runs: options.runs ? parseInt(options.runs, 10) : undefined,
-          gate: options.gate ? parseFloat(options.gate) : undefined,
+          runs: options.runs !== undefined ? parseInt(options.runs, 10) : undefined,
+          gate: options.gate !== undefined ? parseFloat(options.gate) : undefined,
         });
 
         const { runResult: result, aggregated } = runnerResult;
@@ -50,13 +55,13 @@ export function registerTestCommand(program: Command): void {
 
         // Select + generate report
         const reporter = selectReporter(options.reporter);
-        const report = reporter.generate(result, gateEvaluation);
+        const report = await reporter.generate(result, gateEvaluation);
         console.log(report.content);
 
         // Compliance report
         if (options.compliance) {
           const complianceReporter = createComplianceReporter();
-          const complianceReport = complianceReporter.generate(result, gateEvaluation);
+          const complianceReport = await complianceReporter.generate(result, gateEvaluation);
           console.log("");
           console.log(complianceReport.content);
 

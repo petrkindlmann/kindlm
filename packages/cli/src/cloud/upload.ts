@@ -47,7 +47,7 @@ export async function uploadResults(
   const suiteId = await findOrCreateSuite(client, projectId, options.suiteName, options.configHash);
 
   // 3. Create run
-  const run = await client.post<CloudRun>(`/v1/runs/${e(projectId)}/runs`, {
+  const run = await client.post<CloudRun>(`/v1/projects/${e(projectId)}/runs`, {
     suiteId,
     commitSha: options.commitSha,
     branch: options.branch,
@@ -60,7 +60,7 @@ export async function uploadResults(
   const BATCH_SIZE = 50;
   for (let i = 0; i < results.length; i += BATCH_SIZE) {
     const batch = results.slice(i, i + BATCH_SIZE);
-    await client.post(`/v1/results/${e(run.id)}/results`, { results: batch });
+    await client.post(`/v1/runs/${e(run.id)}/results`, { results: batch });
   }
 
   // 5. Compute run-level metrics and finalize
@@ -115,12 +115,12 @@ async function findOrCreateSuite(
   configHash: string,
 ): Promise<string> {
   const { suites } = await client.get<{ suites: CloudSuite[] }>(
-    `/v1/suites/${e(projectId)}/suites`,
+    `/v1/projects/${e(projectId)}/suites`,
   );
   const existing = suites.find((s) => s.name === name);
   if (existing) return existing.id;
 
-  const created = await client.post<CloudSuite>(`/v1/suites/${e(projectId)}/suites`, {
+  const created = await client.post<CloudSuite>(`/v1/projects/${e(projectId)}/suites`, {
     name,
     configHash,
   });

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -30,7 +30,6 @@ export function saveToken(token: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const data: CredentialsFile = { token, savedAt: new Date().toISOString() };
   writeFileSync(filePath, JSON.stringify(data, null, 2), { mode: 0o600 });
-  chmodSync(filePath, 0o600);
 }
 
 export function clearToken(): void {

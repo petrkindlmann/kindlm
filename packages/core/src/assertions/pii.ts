@@ -45,6 +45,19 @@ export function createPiiAssertion(config: PiiAssertionConfig): Assertion {
   for (let i = 0; i < config.denyPatterns.length; i++) {
     const pattern = config.denyPatterns[i];
     if (pattern === undefined) continue;
+    if (hasNestedQuantifiers(pattern)) {
+      compilationError = [
+        {
+          assertionType: "pii",
+          label: "No PII detected",
+          passed: false,
+          score: 0,
+          failureCode: "INVALID_PATTERN",
+          failureMessage: `Deny pattern "pii-pattern-${i + 1}" contains nested quantifiers and may cause catastrophic backtracking`,
+        },
+      ];
+      break;
+    }
     compiledPatterns.push({
       name: `pii-pattern-${i + 1}`,
       regex: new RegExp(pattern, "gi"),

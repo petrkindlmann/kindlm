@@ -31,52 +31,35 @@ export async function rateLimitMiddleware(
       );
     }
 
-    const row = await db
+    // Atomic upsert: increment count if within the same window, otherwise reset.
+    // This prevents race conditions where concurrent requests could read the same
+    // count and both pass the limit check.
+    await db
       .prepare(
-        "SELECT count, window_start FROM rate_limits WHERE key = ?",
+        `INSERT INTO rate_limits (key, count, window_start)
+         VALUES (?, 1, ?)
+         ON CONFLICT(key) DO UPDATE SET
+           count = CASE
+             WHEN window_start = excluded.window_start THEN count + 1
+             ELSE 1
+           END,
+           window_start = excluded.window_start`,
       )
+      .bind(orgId, now)
+      .run();
+
+    // Read the current count after atomic increment
+    const row = await db
+      .prepare("SELECT count FROM rate_limits WHERE key = ?")
       .bind(orgId)
-      .first<{ count: number; window_start: string }>();
+      .first<{ count: number }>();
 
-    if (!row) {
-      // First request — insert new window
-      await db
-        .prepare(
-          "INSERT OR REPLACE INTO rate_limits (key, count, window_start) VALUES (?, 1, ?)",
-        )
-        .bind(orgId, now)
-        .run();
-      return next();
-    }
-
-    const windowStart = new Date(row.window_start).getTime();
-    const windowEnd = windowStart + WINDOW_SECONDS * 1000;
-    const currentTime = Date.now();
-
-    if (currentTime >= windowEnd) {
-      // Window expired — reset
-      await db
-        .prepare(
-          "UPDATE rate_limits SET count = 1, window_start = ? WHERE key = ?",
-        )
-        .bind(now, orgId)
-        .run();
-      return next();
-    }
-
-    // Within window — increment
-    const newCount = row.count + 1;
-    if (newCount > limit) {
+    if (row && row.count > limit) {
       return c.json(
         { error: "Rate limit exceeded. Try again later." },
         429,
       );
     }
-
-    await db
-      .prepare("UPDATE rate_limits SET count = ? WHERE key = ?")
-      .bind(newCount, orgId)
-      .run();
     return next();
   } catch {
     // Fail closed: if D1 is unreachable, reject rather than allow unbounded requests

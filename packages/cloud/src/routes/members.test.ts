@@ -11,7 +11,7 @@ vi.mock("../db/queries.js", () => ({
 import { getQueries } from "../db/queries.js";
 
 const org = mockOrg({ plan: "team" });
-const token = mockToken();
+const token = mockToken({ userId: "user-caller" });
 
 function createApp() {
   const app = new Hono<AppEnv>();
@@ -58,6 +58,9 @@ describe("member routes", () => {
 
   it("PATCH /:userId updates member role", async () => {
     vi.mocked(getQueries).mockReturnValue({
+      getOrgMember: vi.fn()
+        .mockResolvedValueOnce({ orgId: "org-1", userId: "user-caller", role: "owner", createdAt: "" })
+        .mockResolvedValueOnce({ orgId: "org-1", userId: "user-2", role: "member", createdAt: "" }),
       updateOrgMemberRole: vi.fn().mockResolvedValue(true),
     } as unknown as ReturnType<typeof getQueries>);
 
@@ -74,6 +77,12 @@ describe("member routes", () => {
   });
 
   it("PATCH /:userId returns 400 for invalid role", async () => {
+    vi.mocked(getQueries).mockReturnValue({
+      getOrgMember: vi.fn()
+        .mockResolvedValueOnce({ orgId: "org-1", userId: "user-caller", role: "owner", createdAt: "" })
+        .mockResolvedValueOnce(null),
+    } as unknown as ReturnType<typeof getQueries>);
+
     const app = createApp();
     const res = await testRequest(app, "/v1/org/members/user-2", {
       method: "PATCH",
@@ -86,6 +95,9 @@ describe("member routes", () => {
 
   it("DELETE /:userId removes member", async () => {
     vi.mocked(getQueries).mockReturnValue({
+      getOrgMember: vi.fn()
+        .mockResolvedValueOnce({ orgId: "org-1", userId: "user-caller", role: "owner", createdAt: "" })
+        .mockResolvedValueOnce({ orgId: "org-1", userId: "user-2", role: "member", createdAt: "" }),
       removeOrgMember: vi.fn().mockResolvedValue(true),
     } as unknown as ReturnType<typeof getQueries>);
 
@@ -99,6 +111,9 @@ describe("member routes", () => {
 
   it("DELETE /:userId returns 404 for non-existent member", async () => {
     vi.mocked(getQueries).mockReturnValue({
+      getOrgMember: vi.fn()
+        .mockResolvedValueOnce({ orgId: "org-1", userId: "user-caller", role: "owner", createdAt: "" })
+        .mockResolvedValueOnce(null),
       removeOrgMember: vi.fn().mockResolvedValue(false),
     } as unknown as ReturnType<typeof getQueries>);
 

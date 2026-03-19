@@ -59,21 +59,21 @@ function makeGateEval(): GateEvaluation {
 describe("createJunitReporter", () => {
   const reporter = createJunitReporter();
 
-  it("generates valid XML structure", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("generates valid XML structure", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.format).toBe("xml");
     expect(output.content).toContain('<?xml version="1.0"');
     expect(output.content).toContain("<testsuites");
     expect(output.content).toContain("</testsuites>");
   });
 
-  it("includes failure elements for failed tests", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes failure elements for failed tests", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("<failure");
     expect(output.content).toContain("SSN found in output");
   });
 
-  it("escapes XML special characters", () => {
+  it("escapes XML special characters", async () => {
     const runResult: RunResult = {
       totalTests: 1,
       passed: 0,
@@ -107,20 +107,20 @@ describe("createJunitReporter", () => {
         },
       ],
     };
-    const output = reporter.generate(runResult, { passed: true, gates: [] });
+    const output = await reporter.generate(runResult, { passed: true, gates: [] });
     expect(output.content).toContain("&lt;special&gt;");
     expect(output.content).toContain("&quot;chars&quot;");
     expect(output.content).toContain("&amp;");
     expect(output.content).not.toContain('name="test with <special>');
   });
 
-  it("includes quality gates as a separate test suite", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes quality gates as a separate test suite", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain('name="Quality Gates"');
     expect(output.content).toContain('name="passRateMin"');
   });
 
-  it("handles skipped tests", () => {
+  it("handles skipped tests", async () => {
     const runResult: RunResult = {
       totalTests: 1,
       passed: 0,
@@ -138,7 +138,7 @@ describe("createJunitReporter", () => {
         },
       ],
     };
-    const output = reporter.generate(runResult, { passed: true, gates: [] });
+    const output = await reporter.generate(runResult, { passed: true, gates: [] });
     expect(output.content).toContain("<skipped/>");
   });
 });

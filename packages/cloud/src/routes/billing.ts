@@ -4,6 +4,19 @@ import { getQueries } from "../db/queries.js";
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
+const ALLOWED_REDIRECT_ORIGINS = ["https://cloud.kindlm.com"];
+
+function isAllowedRedirectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return ALLOWED_REDIRECT_ORIGINS.some(
+      (origin) => `${parsed.protocol}//${parsed.host}` === origin,
+    );
+  } catch {
+    return false;
+  }
+}
+
 const PLAN_PRICES: Record<string, { plan: Plan; name: string }> = {
   team: { plan: "team", name: "KindLM Team" },
   enterprise: { plan: "enterprise", name: "KindLM Enterprise" },
@@ -93,8 +106,14 @@ billingRoutes.post("/checkout", async (c) => {
     "line_items[0][price_data][unit_amount]": planKey === "team" ? "4900" : "29900",
     "line_items[0][price_data][recurring][interval]": "month",
     "line_items[0][quantity]": "1",
-    success_url: body.successUrl ?? "https://cloud.kindlm.com/billing?success=true",
-    cancel_url: body.cancelUrl ?? "https://cloud.kindlm.com/billing?canceled=true",
+    success_url:
+      body.successUrl && isAllowedRedirectUrl(body.successUrl)
+        ? body.successUrl
+        : "https://cloud.kindlm.com/billing?success=true",
+    cancel_url:
+      body.cancelUrl && isAllowedRedirectUrl(body.cancelUrl)
+        ? body.cancelUrl
+        : "https://cloud.kindlm.com/billing?canceled=true",
     "metadata[org_id]": auth.org.id,
     "metadata[plan]": planKey,
   })) as { url: string };
@@ -130,7 +149,10 @@ billingRoutes.post("/portal", async (c) => {
     stripeKey,
     {
       customer: billing.stripeCustomerId,
-      return_url: body.returnUrl ?? "https://cloud.kindlm.com/billing",
+      return_url:
+        body.returnUrl && isAllowedRedirectUrl(body.returnUrl)
+          ? body.returnUrl
+          : "https://cloud.kindlm.com/billing",
     },
   )) as { url: string };
 
@@ -186,6 +208,12 @@ stripeWebhookRoute.post("/", async (c) => {
   const b = new TextEncoder().encode(expectedSig);
   if (a.byteLength !== b.byteLength || !crypto.subtle.timingSafeEqual(a, b)) {
     return c.json({ error: "Invalid signature" }, 400);
+  }
+
+  // Reject replayed webhooks: timestamp must be within 5 minutes of current time
+  const timestampMs = parseInt(timestamp, 10) * 1000;
+  if (Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
+    return c.json({ error: "Webhook timestamp too old" }, 400);
   }
 
   const event = JSON.parse(rawBody) as {

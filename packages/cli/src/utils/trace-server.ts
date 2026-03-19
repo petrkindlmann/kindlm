@@ -39,9 +39,23 @@ export function createTraceServer(port: number): TraceServer {
       return;
     }
 
+    const MAX_BODY_BYTES = 10 * 1024 * 1024;
     const chunks: Buffer[] = [];
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    let totalBytes = 0;
+    let aborted = false;
+    req.on("data", (chunk: Buffer) => {
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_BODY_BYTES) {
+        aborted = true;
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Payload too large" }));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => {
+      if (aborted) return;
       try {
         const body = Buffer.concat(chunks).toString("utf-8");
         const parsed = JSON.parse(body) as unknown;

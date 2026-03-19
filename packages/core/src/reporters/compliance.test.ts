@@ -40,13 +40,13 @@ function makeGateEval(): GateEvaluation {
 describe("createComplianceReporter", () => {
   const reporter = createComplianceReporter();
 
-  it("generates markdown format", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("generates markdown format", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.format).toBe("markdown");
   });
 
-  it("includes all article sections", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes all article sections", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("Article 9");
     expect(output.content).toContain("Article 10");
     expect(output.content).toContain("Article 12");
@@ -54,23 +54,23 @@ describe("createComplianceReporter", () => {
     expect(output.content).toContain("Article 15");
   });
 
-  it("includes SHA-256 tamper evidence hash", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes SHA-256 tamper evidence hash", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("Tamper Evidence Hash (SHA-256)");
     // SHA-256 hex is 64 characters
     const hashMatch = output.content.match(/`([a-f0-9]{64})`/);
     expect(hashMatch).not.toBeNull();
   });
 
-  it("maps gate results to relevant articles", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("maps gate results to relevant articles", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     // PII gate should appear under Article 10
     const article10Section = output.content.split("## Article 10")[1]?.split("## Article 12")[0] ?? "";
     expect(article10Section).toContain("PII failures");
   });
 
-  it("includes test execution log", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes test execution log", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("Total Tests | 3");
     expect(output.content).toContain("Passed | 2");
     expect(output.content).toContain("Failed | 1");

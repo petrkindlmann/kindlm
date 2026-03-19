@@ -37,13 +37,17 @@ function ctx(
 }
 
 describe("createDriftAssertion", () => {
-  it("passes when no baseline available", async () => {
+  it("fails when no baseline available", async () => {
     const assertion = createDriftAssertion({
       maxScore: 0.15,
       method: "judge",
     });
     const results = await assertion.evaluate(ctx("New output"));
-    expect(results[0]).toMatchObject({ passed: true });
+    expect(results[0]).toMatchObject({
+      passed: false,
+      failureCode: "DRIFT_EXCEEDED",
+    });
+    expect(results[0]?.failureMessage).toContain("No baseline available");
     expect((results[0]?.metadata as Record<string, unknown>)?.reason).toBe(
       "No baseline available",
     );

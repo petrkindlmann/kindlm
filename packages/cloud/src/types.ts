@@ -152,7 +152,10 @@ export interface AuditEntry {
 export interface SigningKey {
   orgId: string;
   publicKey: string;
-  privateKeyEnc: string;
+  // TODO: Production should encrypt this value with a KMS-derived key before storage.
+  // Currently stored as raw base64 — renamed from privateKeyEnc to avoid misleading
+  // developers into thinking encryption is applied.
+  privateKeyB64: string;
   algorithm: string;
   createdAt: string;
 }

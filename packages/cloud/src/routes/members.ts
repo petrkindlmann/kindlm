@@ -36,16 +36,13 @@ memberRoutes.post("/invite", async (c) => {
   const queries = getQueries(c.env.DB);
 
   // Check caller is owner or admin
-  const callerMember = await queries.getOrgMember(auth.org.id, auth.token.orgId);
-  if (!callerMember) {
-    // Token-based auth — check if org matches
-    const members = await queries.listOrgMembers(auth.org.id);
-    const isAdmin = members.some(
-      (m) => (m.role === "owner" || m.role === "admin"),
-    );
-    if (!isAdmin) {
-      return c.json({ error: "Only owners and admins can invite members" }, 403);
-    }
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can invite members" }, 403);
   }
 
   // Check member limit
@@ -113,6 +110,22 @@ memberRoutes.patch("/:userId", async (c) => {
   const userId = c.req.param("userId");
   const queries = getQueries(c.env.DB);
 
+  // Authorization: only owners and admins can change roles
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can change member roles" }, 403);
+  }
+
+  // Prevent admins from demoting owners
+  const targetMember = await queries.getOrgMember(auth.org.id, userId);
+  if (targetMember?.role === "owner" && callerMember.role !== "owner") {
+    return c.json({ error: "Only owners can change another owner's role" }, 403);
+  }
+
   const raw = await c.req.json();
   const parsed = validateBody(updateMemberRoleBody, raw);
   if (!parsed.success) {
@@ -134,6 +147,22 @@ memberRoutes.delete("/:userId", async (c) => {
   const auth = c.get("auth");
   const userId = c.req.param("userId");
   const queries = getQueries(c.env.DB);
+
+  // Authorization: only owners and admins can remove members
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can remove members" }, 403);
+  }
+
+  // Prevent admins from removing owners
+  const targetMember = await queries.getOrgMember(auth.org.id, userId);
+  if (targetMember?.role === "owner" && callerMember.role !== "owner") {
+    return c.json({ error: "Only owners can remove another owner" }, 403);
+  }
 
   const removed = await queries.removeOrgMember(auth.org.id, userId);
   if (!removed) {

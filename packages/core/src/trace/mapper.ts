@@ -1,12 +1,17 @@
 import type { AssertionContext } from "../assertions/interface.js";
 import type { ProviderToolCall, ProviderAdapter } from "../types/provider.js";
 import type { ParsedSpan, SpanMapping, SpanFilter, SpanMappingResult } from "./types.js";
+import { hasNestedQuantifiers } from "../assertions/pii.js";
 
 export function filterSpans(spans: ParsedSpan[], filter?: SpanFilter): ParsedSpan[] {
   if (!filter) return spans;
 
   return spans.filter((span) => {
     if (filter.namePattern) {
+      if (hasNestedQuantifiers(filter.namePattern)) {
+        // Unsafe pattern — skip name filtering to prevent ReDoS
+        return true;
+      }
       const re = new RegExp(filter.namePattern);
       if (!re.test(span.name)) return false;
     }

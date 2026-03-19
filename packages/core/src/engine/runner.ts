@@ -150,7 +150,14 @@ export function createRunner(
 
       const aggregated: AggregatedTestResult[] = [];
       for (const runs of groups.values()) {
-        aggregated.push(aggregateRuns(runs));
+        const aggResult = aggregateRuns(runs);
+        if (!aggResult.success) {
+          return err({
+            code: "UNKNOWN_ERROR",
+            message: aggResult.error,
+          });
+        }
+        aggregated.push(aggResult.data);
       }
 
       // 5. Build TestRunResults from aggregated
@@ -158,7 +165,7 @@ export function createRunner(
         name: agg.testCaseName,
         modelId: agg.modelId,
         status: agg.passed ? "passed" as const : "failed" as const,
-        assertions: agg.runs[0]?.assertions ?? [],
+        assertions: (agg.passed ? agg.runs[0] : agg.runs.find(r => !r.assertions.every(a => a.passed)) ?? agg.runs[0])?.assertions ?? [],
         latencyMs: agg.latencyAvgMs,
         costUsd: agg.totalCostUsd,
       }));
@@ -521,14 +528,17 @@ async function runWithConcurrency<T>(
   tasks: (() => Promise<T>)[],
   limit: number,
 ): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
+  const results: T[] = Array.from({ length: tasks.length }) as T[];
   let nextIndex = 0;
 
   async function worker(): Promise<void> {
     while (nextIndex < tasks.length) {
       const index = nextIndex++;
       const task = tasks[index];
-      if (task) results[index] = await task();
+      if (task === undefined) {
+        throw new Error(`Task at index ${index} is undefined`);
+      }
+      results[index] = await task();
     }
   }
 

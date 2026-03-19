@@ -50,6 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
 CREATE TABLE IF NOT EXISTS tokens (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   org_id      TEXT NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  user_id     TEXT REFERENCES users(id),
   name        TEXT NOT NULL,
   token_hash  TEXT NOT NULL UNIQUE,
   scope       TEXT NOT NULL DEFAULT 'full',

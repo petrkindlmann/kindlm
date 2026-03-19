@@ -7,13 +7,15 @@ import { registerLoginCommand } from "./commands/login.js";
 import { registerUploadCommand } from "./commands/upload.js";
 import { registerTraceCommand } from "./commands/trace.js";
 
+declare const KINDLM_VERSION: string;
+
 export function createProgram(): Command {
   const program = new Command();
 
   program
     .name("kindlm")
     .description("AI agent behavioral regression testing")
-    .version("0.4.0");
+    .version(KINDLM_VERSION);
 
   registerInitCommand(program);
   registerValidateCommand(program);

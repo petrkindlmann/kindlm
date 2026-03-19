@@ -7,7 +7,7 @@ import type { AssertionResult } from "../assertions/interface.js";
 export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
   return {
     name: "pretty",
-    generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput {
+    async generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput> {
       const lines: string[] = [];
       const c = colorize;
 

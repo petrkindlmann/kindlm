@@ -208,7 +208,9 @@ function mapSigningKey(row: Record<string, unknown>): SigningKey {
   return {
     orgId: row.org_id as string,
     publicKey: row.public_key as string,
-    privateKeyEnc: row.private_key_enc as string,
+    // TODO: Production should encrypt with a KMS-derived key. Column is still
+    // named private_key_enc in the DB but the value is only base64-encoded.
+    privateKeyB64: row.private_key_enc as string,
     algorithm: row.algorithm as string,
     createdAt: row.created_at as string,
   };
@@ -733,10 +735,10 @@ export function getQueries(db: D1Database) {
     return (results[1]?.meta?.changes ?? 0) > 0;
   }
 
-  async function deleteBaseline(id: string): Promise<boolean> {
+  async function deleteBaseline(id: string, suiteId: string): Promise<boolean> {
     const result = await db
-      .prepare("DELETE FROM baselines WHERE id = ?")
-      .bind(id)
+      .prepare("DELETE FROM baselines WHERE id = ? AND suite_id = ?")
+      .bind(id, suiteId)
       .run();
     return (result.meta?.changes ?? 0) > 0;
   }
@@ -1122,19 +1124,20 @@ export function getQueries(db: D1Database) {
     return row ? mapSigningKey(row) : null;
   }
 
+  // TODO: Production should encrypt privateKeyB64 with a KMS-derived key before storage.
   async function createSigningKey(
     orgId: string,
     publicKey: string,
-    privateKeyEnc: string,
+    privateKeyB64: string,
   ): Promise<SigningKey> {
     const now = new Date().toISOString();
     await db
       .prepare(
         "INSERT INTO signing_keys (org_id, public_key, private_key_enc, created_at) VALUES (?, ?, ?, ?)",
       )
-      .bind(orgId, publicKey, privateKeyEnc, now)
+      .bind(orgId, publicKey, privateKeyB64, now)
       .run();
-    return { orgId, publicKey, privateKeyEnc, algorithm: "Ed25519", createdAt: now };
+    return { orgId, publicKey, privateKeyB64, algorithm: "Ed25519", createdAt: now };
   }
 
   // ---- SAML Config ----

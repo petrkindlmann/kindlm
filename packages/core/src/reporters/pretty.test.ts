@@ -56,13 +56,13 @@ function makeGateEval(overrides: Partial<GateEvaluation> = {}): GateEvaluation {
 describe("createPrettyReporter", () => {
   const reporter = createPrettyReporter();
 
-  it("generates text format output", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("generates text format output", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.format).toBe("text");
   });
 
-  it("contains key sections for passing run", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("contains key sections for passing run", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("KindLM Test Results");
     expect(output.content).toContain("refund-agent");
     expect(output.content).toContain("happy-path");
@@ -71,25 +71,25 @@ describe("createPrettyReporter", () => {
     expect(output.content).toContain("All tests passed");
   });
 
-  it("shows passing assertions", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("shows passing assertions", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain('✓ Tool "lookup_order" called');
     expect(output.content).toContain("✓ No PII detected");
   });
 
-  it("shows model and latency per test", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("shows model and latency per test", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("gpt-4o-mini");
     expect(output.content).toContain("500ms");
   });
 
-  it("shows total cost in summary", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("shows total cost in summary", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("Cost:");
     expect(output.content).toContain("$0.0020");
   });
 
-  it("shows failure details with assertion label", () => {
+  it("shows failure details with assertion label", async () => {
     const failRun = makeRunResult({
       passed: 1,
       failed: 1,
@@ -127,12 +127,12 @@ describe("createPrettyReporter", () => {
         },
       ],
     });
-    const output = reporter.generate(failRun, makeGateEval({ passed: false }));
+    const output = await reporter.generate(failRun, makeGateEval({ passed: false }));
     expect(output.content).toContain("✗ No PII detected: SSN detected in output");
     expect(output.content).toContain("Some tests failed");
   });
 
-  it("shows judge scores", () => {
+  it("shows judge scores", async () => {
     const judgeRun = makeRunResult({
       suites: [
         {
@@ -159,12 +159,12 @@ describe("createPrettyReporter", () => {
         },
       ],
     });
-    const output = reporter.generate(judgeRun, makeGateEval());
+    const output = await reporter.generate(judgeRun, makeGateEval());
     expect(output.content).toContain("0.92");
     expect(output.content).toContain("0.80");
   });
 
-  it("shows failing judge score below threshold", () => {
+  it("shows failing judge score below threshold", async () => {
     const failJudge = makeRunResult({
       passed: 0,
       failed: 1,
@@ -195,18 +195,18 @@ describe("createPrettyReporter", () => {
         },
       ],
     });
-    const output = reporter.generate(failJudge, makeGateEval({ passed: false }));
+    const output = await reporter.generate(failJudge, makeGateEval({ passed: false }));
     expect(output.content).toContain("0.50");
     expect(output.content).toContain("0.80");
   });
 
-  it("includes quality gates section", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes quality gates section", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.content).toContain("Quality Gates");
     expect(output.content).toContain("Pass rate 100.0% meets minimum 95.0%");
   });
 
-  it("omits cost line when all costs are zero", () => {
+  it("omits cost line when all costs are zero", async () => {
     const noCostRun = makeRunResult({
       suites: [
         {
@@ -225,7 +225,7 @@ describe("createPrettyReporter", () => {
         },
       ],
     });
-    const output = reporter.generate(noCostRun, makeGateEval());
+    const output = await reporter.generate(noCostRun, makeGateEval());
     expect(output.content).not.toContain("Cost:");
   });
 });

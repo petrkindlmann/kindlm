@@ -41,7 +41,7 @@ async function getOrCreateKeyPair(
     );
     const privateKey = await crypto.subtle.importKey(
       "pkcs8",
-      base64ToBuffer(existing.privateKeyEnc),
+      base64ToBuffer(existing.privateKeyB64),
       { name: "Ed25519" },
       false,
       ["sign"],

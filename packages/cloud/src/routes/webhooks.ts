@@ -47,7 +47,7 @@ webhookRoutes.get("/", requirePlan("team", "enterprise"), async (c) => {
 
 // DELETE /:id — Delete webhook
 webhookRoutes.delete("/:id", requirePlan("team", "enterprise"), async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id") ?? "";
   const auth = c.get("auth");
   const queries = getQueries(c.env.DB);
 

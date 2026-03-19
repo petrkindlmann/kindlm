@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "tsup";
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: string };
 
 export default defineConfig([
   {
@@ -9,6 +12,9 @@ export default defineConfig([
     clean: true,
     sourcemap: true,
     minify: true,
+    define: {
+      KINDLM_VERSION: JSON.stringify(pkg.version),
+    },
   },
   {
     entry: ["src/bin/kindlm.ts"],
@@ -17,5 +23,8 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     minify: true,
+    define: {
+      KINDLM_VERSION: JSON.stringify(pkg.version),
+    },
   },
 ]);

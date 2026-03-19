@@ -82,9 +82,8 @@ describe("baseline list command", () => {
       // process.exit throws
     }
 
-    // The first exit code is the one from the success path (process.exit(0))
-    // The catch block then calls process.exit(1), but we care about the first call.
-    expect(exitCodes[0]).toBe(0);
+    // Success paths should NOT call process.exit — they return normally.
+    expect(exitCodes.length).toBe(0);
     const allOutput = logs.join("\n");
     expect(allOutput).toContain("No baselines saved");
   });
@@ -128,7 +127,8 @@ describe("baseline list command", () => {
       // process.exit throws
     }
 
-    expect(exitCodes[0]).toBe(0);
+    // Success paths should NOT call process.exit — they return normally.
+    expect(exitCodes.length).toBe(0);
     const allOutput = logs.join("\n");
     expect(allOutput).toContain("my-suite");
     expect(allOutput).toContain("2 tests");
@@ -157,7 +157,8 @@ describe("baseline list command", () => {
       // process.exit throws
     }
 
-    expect(exitCodes[0]).toBe(0);
+    // Success paths should NOT call process.exit — they return normally.
+    expect(exitCodes.length).toBe(0);
     const allOutput = logs.join("\n");
     expect(allOutput).toContain("corrupt");
   });

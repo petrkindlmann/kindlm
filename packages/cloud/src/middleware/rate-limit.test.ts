@@ -35,8 +35,8 @@ describe("rateLimitMiddleware (D1-based)", () => {
 
   it("allows first request and inserts rate limit row", async () => {
     const mockD1 = createMockD1();
-    // First SELECT returns null (no existing entry)
-    mockD1._configureResponse("SELECT count", { first: null });
+    // After atomic upsert, SELECT returns count=1 (new entry)
+    mockD1._configureResponse("SELECT count FROM rate_limits", { first: { count: 1 } });
 
     const app = createApp(mockD1);
     const res = await testRequest(app, "/test");
@@ -45,10 +45,8 @@ describe("rateLimitMiddleware (D1-based)", () => {
 
   it("allows requests within rate limit", async () => {
     const mockD1 = createMockD1();
-    // Return existing entry with count under limit
-    mockD1._configureResponse("SELECT count", {
-      first: { count: 1, window_start: new Date().toISOString() },
-    });
+    // After atomic upsert, SELECT returns count under limit
+    mockD1._configureResponse("SELECT count FROM rate_limits", { first: { count: 2 } });
 
     const app = createApp(mockD1);
     const res = await testRequest(app, "/test");
@@ -57,10 +55,8 @@ describe("rateLimitMiddleware (D1-based)", () => {
 
   it("returns 429 when rate limit exceeded", async () => {
     const mockD1 = createMockD1();
-    // Return existing entry at limit
-    mockD1._configureResponse("SELECT count", {
-      first: { count: 3, window_start: new Date().toISOString() },
-    });
+    // After atomic upsert, SELECT returns count over limit (limit=3)
+    mockD1._configureResponse("SELECT count FROM rate_limits", { first: { count: 4 } });
 
     const app = createApp(mockD1);
     const res = await testRequest(app, "/test");
@@ -69,13 +65,10 @@ describe("rateLimitMiddleware (D1-based)", () => {
     expect(body.error).toContain("Rate limit");
   });
 
-  it("resets window when expired", async () => {
+  it("resets window when expired (atomic upsert handles it)", async () => {
     const mockD1 = createMockD1();
-    // Return entry with old window (2 minutes ago)
-    const oldTime = new Date(Date.now() - 120_000).toISOString();
-    mockD1._configureResponse("SELECT count", {
-      first: { count: 100, window_start: oldTime },
-    });
+    // Atomic upsert resets count when window changes, SELECT returns count=1
+    mockD1._configureResponse("SELECT count FROM rate_limits", { first: { count: 1 } });
 
     const app = createApp(mockD1);
     const res = await testRequest(app, "/test");

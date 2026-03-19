@@ -99,6 +99,9 @@ export function createToolOrderAssertion(
       const results: AssertionResult[] = [];
 
       for (const exp of expectations) {
+        // shouldNotCall entries are negative assertions — they verify a tool was NOT called.
+        // When mixed with order checks, skip them for ordering purposes; order values
+        // always refer to indices in the actual context.toolCalls array.
         if (exp.shouldNotCall) {
           const found = context.toolCalls.some((tc) => tc.name === exp.tool);
           results.push({
@@ -150,11 +153,14 @@ export function createToolOrderAssertion(
           });
         }
 
+        // order refers to the position in the actual context.toolCalls array.
+        // When a tool appears multiple times, validate the specific occurrence at that index.
         if (exp.order !== undefined) {
+          const toolAtPosition = context.toolCalls[exp.order];
+          const orderMatch = toolAtPosition?.name === exp.tool;
           const actualIndex = context.toolCalls.findIndex(
             (tc) => tc.name === exp.tool,
           );
-          const orderMatch = actualIndex === exp.order;
           results.push({
             assertionType: "tool_order",
             label: `Tool "${exp.tool}" at position ${exp.order}`,

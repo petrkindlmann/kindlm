@@ -79,8 +79,10 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
           {
             assertionType: "drift",
             label: "Drift check",
-            passed: true,
-            score: 1,
+            passed: false,
+            score: 0,
+            failureCode: "DRIFT_EXCEEDED",
+            failureMessage: "No baseline available — run `kindlm baseline set` first",
             metadata: { reason: "No baseline available" },
           },
         ];

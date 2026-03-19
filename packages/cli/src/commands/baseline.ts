@@ -49,7 +49,7 @@ export function registerBaselineCommand(program: Command): void {
         // Run tests
         const { config, runnerResult } = await runTests({
           configPath: options.config,
-          runs: options.runs ? parseInt(options.runs, 10) : undefined,
+          runs: options.runs !== undefined ? parseInt(options.runs, 10) : undefined,
         });
 
         const { aggregated } = runnerResult;
@@ -73,7 +73,6 @@ export function registerBaselineCommand(program: Command): void {
           chalk.green(`Baseline saved for suite "${config.suite.name}" (${testCount} test${testCount === 1 ? "" : "s"})`),
         );
         console.log(chalk.dim(`  Location: ${kindlmDir}/baselines/`));
-        process.exit(0);
       } catch (e) {
         console.error(chalk.red(`Error: ${e instanceof Error ? e.message : String(e)}`));
         process.exit(1);
@@ -131,7 +130,7 @@ export function registerBaselineCommand(program: Command): void {
         // Run tests with baseline injected for drift assertions
         const { runnerResult } = await runTests({
           configPath: options.config,
-          runs: options.runs ? parseInt(options.runs, 10) : undefined,
+          runs: options.runs !== undefined ? parseInt(options.runs, 10) : undefined,
           baselineData,
         });
 
@@ -224,7 +223,7 @@ export function registerBaselineCommand(program: Command): void {
 
         if (names.length === 0) {
           console.log(chalk.dim("No baselines saved yet. Run `kindlm baseline set` to create one."));
-          process.exit(0);
+          return;
         }
 
         console.log(chalk.bold("Saved baselines:"));
@@ -246,8 +245,6 @@ export function registerBaselineCommand(program: Command): void {
           const testCount = Object.keys(parsed.data.results).length;
           console.log(`  ${chalk.cyan(parsed.data.suiteName)} — ${testCount} test${testCount === 1 ? "" : "s"}, saved ${chalk.dim(parsed.data.createdAt)}`);
         }
-
-        process.exit(0);
       } catch (e) {
         console.error(chalk.red(`Error: ${e instanceof Error ? e.message : String(e)}`));
         process.exit(1);

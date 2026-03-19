@@ -116,7 +116,7 @@ baselineRoutes.delete("/:baselineId", async (c) => {
     return c.json({ error: "Baseline not found" }, 404);
   }
 
-  await queries.deleteBaseline(baselineId);
+  await queries.deleteBaseline(baselineId, baseline.suiteId);
   auditLog(c, "baseline.delete", "baseline", baselineId);
   return c.body(null, 204);
 });

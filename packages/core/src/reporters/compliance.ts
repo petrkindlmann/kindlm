@@ -1,12 +1,20 @@
-import { createHash } from "node:crypto";
 import type { Reporter, ReporterOutput } from "./interface.js";
 import type { RunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
 
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+  const hashArray = new Uint8Array(hashBuffer);
+  return Array.from(hashArray)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export function createComplianceReporter(): Reporter {
   return {
     name: "compliance",
-    generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput {
+    async generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput> {
       const timestamp = new Date().toISOString();
       const sections: string[] = [];
 
@@ -86,9 +94,7 @@ export function createComplianceReporter(): Reporter {
 
       // Hash — computed over everything above
       const contentAboveHash = sections.join("\n");
-      const hash = createHash("sha256")
-        .update(contentAboveHash)
-        .digest("hex");
+      const hash = await sha256Hex(contentAboveHash);
 
       sections.push("---");
       sections.push(`**Tamper Evidence Hash (SHA-256):** \`${hash}\``);

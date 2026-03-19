@@ -75,10 +75,13 @@ export function evaluateGates(
   }
 
   // 4. driftScoreMax (optional)
+  // Drift assertion scores are stored as (1 - driftScore), where 1 = no drift.
+  // Convert back to drift values before comparing against the threshold.
   if (config.driftScoreMax !== undefined) {
     const driftScores = collectScores(results, "drift");
+    const driftValues = driftScores.map((s) => 1 - s);
     const maxDrift =
-      driftScores.length > 0 ? Math.max(...driftScores) : 0;
+      driftValues.length > 0 ? Math.max(...driftValues) : 0;
     gates.push({
       gateName: "driftScoreMax",
       passed: maxDrift <= config.driftScoreMax,

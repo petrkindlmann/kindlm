@@ -20,7 +20,11 @@ interface GitHubUser {
 
 export const oauthRoutes = new Hono<AppEnv>();
 
-const AUTH_CODE_TTL_SECONDS = 60;
+// Security tradeoff: the plaintext token must exist briefly in auth_codes for the
+// code-exchange flow (the dashboard needs to receive the token after OAuth redirect).
+// We minimize the exposure window by using a short TTL and atomic single-use deletion
+// (see the /exchange endpoint). A KMS-encrypted-at-rest column would be the next step.
+const AUTH_CODE_TTL_SECONDS = 30;
 
 function escapeHtml(s: string): string {
   return s
@@ -107,22 +111,17 @@ oauthRoutes.post("/exchange", async (c) => {
 
   const db = c.env.DB;
 
-  // Look up and delete the code atomically
+  // Atomic delete-and-return: prevents TOCTOU race where concurrent requests
+  // could both read the same code before either deletes it.
   const row = await db
-    .prepare("SELECT token, expires_at FROM auth_codes WHERE code = ?")
+    .prepare(
+      "DELETE FROM auth_codes WHERE code = ? AND expires_at > datetime('now') RETURNING token",
+    )
     .bind(code)
-    .first<{ token: string; expires_at: string }>();
+    .first<{ token: string }>();
 
   if (!row) {
     return c.json({ error: "Invalid or expired code" }, 400);
-  }
-
-  // Delete immediately (single-use)
-  await db.prepare("DELETE FROM auth_codes WHERE code = ?").bind(code).run();
-
-  // Check expiry
-  if (new Date(row.expires_at).getTime() < Date.now()) {
-    return c.json({ error: "Code expired" }, 400);
   }
 
   return c.json({ token: row.token });

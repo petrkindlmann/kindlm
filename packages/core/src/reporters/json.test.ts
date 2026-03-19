@@ -46,14 +46,14 @@ function makeGateEval(): GateEvaluation {
 describe("createJsonReporter", () => {
   const reporter = createJsonReporter();
 
-  it("generates valid JSON", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("generates valid JSON", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     expect(output.format).toBe("json");
     expect(() => JSON.parse(output.content)).not.toThrow();
   });
 
-  it("includes all top-level sections", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes all top-level sections", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     const parsed = JSON.parse(output.content);
     expect(parsed).toHaveProperty("kindlm");
     expect(parsed).toHaveProperty("summary");
@@ -61,8 +61,8 @@ describe("createJsonReporter", () => {
     expect(parsed).toHaveProperty("suites");
   });
 
-  it("has correct summary numbers", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("has correct summary numbers", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     const parsed = JSON.parse(output.content);
     expect(parsed.summary.totalTests).toBe(3);
     expect(parsed.summary.passed).toBe(2);
@@ -70,8 +70,8 @@ describe("createJsonReporter", () => {
     expect(parsed.summary.durationMs).toBe(2000);
   });
 
-  it("includes gate results", () => {
-    const output = reporter.generate(makeRunResult(), makeGateEval());
+  it("includes gate results", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
     const parsed = JSON.parse(output.content);
     expect(parsed.gates.passed).toBe(false);
     expect(parsed.gates.results).toHaveLength(1);

@@ -5,7 +5,7 @@ import type { GateEvaluation } from "../engine/gate.js";
 export function createJunitReporter(): Reporter {
   return {
     name: "junit",
-    generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput {
+    async generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput> {
       const totalTime = runResult.durationMs / 1000;
       const lines: string[] = [];
 

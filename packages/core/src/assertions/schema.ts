@@ -1,20 +1,5 @@
 import type { Assertion, AssertionContext, AssertionResult } from "./interface.js";
 
-// AJV is CJS — dynamic import to avoid verbatimModuleSyntax issues
-let ajvInstance: AjvInstance | undefined;
-
-async function getAjvInstance(): Promise<AjvInstance> {
-  if (ajvInstance) return ajvInstance;
-  const ajvMod = await import("ajv");
-  const formatsMod = await import("ajv-formats");
-  const Ajv = (ajvMod as unknown as { default: { new (opts: object): AjvInstance } }).default;
-  const addFormats = (formatsMod as unknown as { default: (ajv: AjvInstance) => void }).default;
-  const instance = new Ajv({ allErrors: true, strict: false });
-  addFormats(instance);
-  ajvInstance = instance;
-  return instance;
-}
-
 interface AjvInstance {
   compile(schema: object): AjvValidateFunction;
   getSchema(key: string): AjvValidateFunction | undefined;
@@ -27,18 +12,6 @@ interface AjvValidateFunction {
   errors: unknown[] | null;
 }
 
-// Cache compiled validators keyed by JSON-serialized schema
-const validatorCache = new Map<string, AjvValidateFunction>();
-
-function getOrCompileValidator(ajv: AjvInstance, schema: Record<string, unknown>): AjvValidateFunction {
-  const key = JSON.stringify(schema);
-  const cached = validatorCache.get(key);
-  if (cached) return cached;
-  const validate = ajv.compile(schema);
-  validatorCache.set(key, validate);
-  return validate;
-}
-
 export interface SchemaAssertionConfig {
   format: "text" | "json";
   schemaFile?: string;
@@ -49,6 +22,32 @@ export interface SchemaAssertionConfig {
 }
 
 export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion {
+  // AJV instance and validator cache are local to each assertion handler,
+  // avoiding module-level mutable state and keeping core pure.
+  let ajvInstance: AjvInstance | undefined;
+
+  async function getAjvInstance(): Promise<AjvInstance> {
+    if (ajvInstance) return ajvInstance;
+    const ajvMod = await import("ajv");
+    const formatsMod = await import("ajv-formats");
+    const Ajv = (ajvMod as unknown as { default: { new (opts: object): AjvInstance } }).default;
+    const addFormats = (formatsMod as unknown as { default: (ajv: AjvInstance) => void }).default;
+    const instance = new Ajv({ allErrors: true, strict: false });
+    addFormats(instance);
+    ajvInstance = instance;
+    return instance;
+  }
+
+  const validatorCache = new Map<string, AjvValidateFunction>();
+
+  function getOrCompileValidator(ajv: AjvInstance, schema: Record<string, unknown>): AjvValidateFunction {
+    const key = JSON.stringify(schema);
+    const cached = validatorCache.get(key);
+    if (cached) return cached;
+    const validate = ajv.compile(schema);
+    validatorCache.set(key, validate);
+    return validate;
+  }
   return {
     type: "schema",
     async evaluate(context: AssertionContext): Promise<AssertionResult[]> {

@@ -1,4 +1,6 @@
 import type { AssertionResult } from "../assertions/interface.js";
+import type { Result } from "../types/result.js";
+import { ok, err } from "../types/result.js";
 
 export interface TestCaseRunResult {
   testCaseName: string;
@@ -25,10 +27,10 @@ export interface AggregatedTestResult {
   runs: TestCaseRunResult[];
 }
 
-export function aggregateRuns(runs: TestCaseRunResult[]): AggregatedTestResult {
+export function aggregateRuns(runs: TestCaseRunResult[]): Result<AggregatedTestResult, string> {
   const first = runs[0];
   if (!first) {
-    throw new Error("aggregateRuns requires at least one run");
+    return err("aggregateRuns requires at least one run");
   }
   const { testCaseName, modelId } = first;
 
@@ -83,7 +85,7 @@ export function aggregateRuns(runs: TestCaseRunResult[]): AggregatedTestResult {
     0,
   );
 
-  return {
+  return ok({
     testCaseName,
     modelId,
     runCount: runs.length,
@@ -95,5 +97,5 @@ export function aggregateRuns(runs: TestCaseRunResult[]): AggregatedTestResult {
     totalCostUsd,
     totalTokens,
     runs,
-  };
+  });
 }

@@ -8,7 +8,7 @@ export interface ReporterOutput {
 
 export interface Reporter {
   readonly name: string;
-  generate(runResult: RunResult, gateEvaluation: GateEvaluation): ReporterOutput;
+  generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput>;
 }
 
 export interface Colorize {
