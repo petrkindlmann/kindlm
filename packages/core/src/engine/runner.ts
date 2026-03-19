@@ -344,6 +344,9 @@ async function executeUnit(
       costUsd: costEstimate ?? undefined,
       judgeAdapter,
       judgeModel: judgeModelConfig?.model,
+      getEmbedding: adapter.embed
+        ? ((fn) => (text: string) => fn(text))(adapter.embed)
+        : undefined,
     };
 
     // Inject baseline text for drift assertions
@@ -465,6 +468,9 @@ async function executeCommandUnit(
       latencyMs,
       judgeAdapter,
       judgeModel: judgeModelConfig?.model,
+      getEmbedding: judgeAdapter?.embed
+        ? ((fn) => (text: string) => fn(text))(judgeAdapter.embed)
+        : undefined,
     };
 
     // Inject baseline text for drift assertions

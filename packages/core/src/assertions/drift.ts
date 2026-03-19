@@ -82,6 +82,23 @@ function fieldDiff(
   return { driftScore, mismatched };
 }
 
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    const ai = a[i] ?? 0;
+    const bi = b[i] ?? 0;
+    dotProduct += ai * bi;
+    normA += ai * ai;
+    normB += bi * bi;
+  }
+  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+  if (denominator === 0) return 0;
+  return dotProduct / denominator;
+}
+
 export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
   return {
     type: "drift",
@@ -101,14 +118,40 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
       }
 
       if (config.method === "embedding") {
+        if (!context.getEmbedding) {
+          return [
+            {
+              assertionType: "drift",
+              label: "Drift check (embedding)",
+              passed: false,
+              score: 0,
+              failureCode: "INTERNAL_ERROR",
+              failureMessage: "Drift embedding method requires getEmbedding in context",
+            },
+          ];
+        }
+
+        const [baselineVec, outputVec] = await Promise.all([
+          context.getEmbedding(context.baselineText),
+          context.getEmbedding(context.outputText),
+        ]);
+
+        const similarity = cosineSimilarity(baselineVec, outputVec);
+        const driftScore = 1 - similarity;
+        const score = similarity;
+        const passed = driftScore <= config.maxScore;
+
         return [
           {
             assertionType: "drift",
             label: "Drift check (embedding)",
-            passed: false,
-            score: 0,
-            failureCode: "DRIFT_METHOD_NOT_IMPLEMENTED",
-            failureMessage: 'Drift method "embedding" is configured but not yet implemented. Use "judge" or "field-diff" instead.',
+            passed,
+            score,
+            failureCode: passed ? undefined : "DRIFT_EXCEEDED",
+            failureMessage: passed
+              ? undefined
+              : `Drift score ${driftScore.toFixed(3)} exceeds max ${config.maxScore}`,
+            metadata: { driftScore, similarity, threshold: config.maxScore },
           },
         ];
       }

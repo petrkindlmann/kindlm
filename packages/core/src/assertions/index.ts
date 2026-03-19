@@ -14,7 +14,7 @@ export { createKeywordsPresentAssertion, createKeywordsAbsentAssertion } from ".
 export { createJudgeAssertion } from "./judge.js";
 export type { JudgeAssertionConfig } from "./judge.js";
 
-export { createDriftAssertion } from "./drift.js";
+export { createDriftAssertion, cosineSimilarity } from "./drift.js";
 export type { DriftAssertionConfig } from "./drift.js";
 
 export { createLatencyAssertion } from "./latency.js";

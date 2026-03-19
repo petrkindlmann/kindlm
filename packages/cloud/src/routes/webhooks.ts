@@ -3,7 +3,7 @@ import type { AppEnv } from "../types.js";
 import { getQueries } from "../db/queries.js";
 import { requirePlan } from "../middleware/plan-gate.js";
 import { auditLog } from "./audit-helper.js";
-import { createWebhookBody, validateBody } from "../validation.js";
+import { createWebhookBody, updateWebhookBody, validateBody } from "../validation.js";
 
 export const webhookRoutes = new Hono<AppEnv>();
 
@@ -43,6 +43,36 @@ webhookRoutes.get("/", requirePlan("team", "enterprise"), async (c) => {
   }));
 
   return c.json({ webhooks: masked });
+});
+
+// PATCH /:id — Update webhook URL/events/active
+webhookRoutes.patch("/:id", requirePlan("team", "enterprise"), async (c) => {
+  const id = c.req.param("id") ?? "";
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const raw = await c.req.json();
+  const parsed = validateBody(updateWebhookBody, raw);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error }, 400);
+  }
+  const body = parsed.data;
+
+  if (body.url === undefined && body.events === undefined && body.active === undefined) {
+    return c.json({ error: "At least one field (url, events, active) is required" }, 400);
+  }
+
+  const updated = await queries.updateWebhook(id, auth.org.id, body);
+  if (!updated) {
+    return c.json({ error: "Webhook not found" }, 404);
+  }
+
+  auditLog(c, "webhook.update", "webhook", id, {
+    url: body.url,
+    events: body.events,
+    active: body.active,
+  });
+  return c.json(updated);
 });
 
 // DELETE /:id — Delete webhook

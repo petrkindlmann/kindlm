@@ -62,6 +62,8 @@ export interface Run {
   testCount: number;
   modelCount: number;
   gatePassed: number | null;
+  complianceReport: string | null;
+  complianceHash: string | null;
   startedAt: string;
   finishedAt: string | null;
   createdAt: string;
@@ -152,11 +154,19 @@ export interface AuditEntry {
 export interface SigningKey {
   orgId: string;
   publicKey: string;
-  // TODO: Production should encrypt this value with a KMS-derived key before storage.
-  // Currently stored as raw base64 — renamed from privateKeyEnc to avoid misleading
-  // developers into thinking encryption is applied.
-  privateKeyB64: string;
+  // Stored encrypted with AES-256-GCM (envelope encryption via SIGNING_KEY_SECRET).
+  privateKeyEnc: string;
   algorithm: string;
+  createdAt: string;
+}
+
+export interface PendingInvite {
+  id: string;
+  orgId: string;
+  email: string;
+  role: OrgRole;
+  invitedBy: string;
+  expiresAt: string;
   createdAt: string;
 }
 
@@ -175,6 +185,7 @@ export interface Bindings {
   ENVIRONMENT: string;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
+  SIGNING_KEY_SECRET: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
 }

@@ -3,7 +3,7 @@ import type { AppEnv } from "../types.js";
 import { getQueries } from "../db/queries.js";
 import { getLimits } from "../middleware/plan-gate.js";
 import { auditLog } from "./audit-helper.js";
-import { createProjectBody, validateBody } from "../validation.js";
+import { createProjectBody, updateProjectBody, validateBody } from "../validation.js";
 
 export const projectRoutes = new Hono<AppEnv>();
 
@@ -64,6 +64,39 @@ projectRoutes.get("/:projectId", async (c) => {
   }
 
   return c.json(project);
+});
+
+// PATCH /:projectId — Update project name/description
+projectRoutes.patch("/:projectId", async (c) => {
+  const projectId = c.req.param("projectId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const raw = await c.req.json();
+  const parsed = validateBody(updateProjectBody, raw);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error }, 400);
+  }
+  const body = parsed.data;
+
+  if (body.name === undefined && body.description === undefined) {
+    return c.json({ error: "At least one field (name, description) is required" }, 400);
+  }
+
+  try {
+    const updated = await queries.updateProject(projectId, auth.org.id, body);
+    if (!updated) {
+      return c.json({ error: "Project not found" }, 404);
+    }
+
+    auditLog(c, "project.update", "project", projectId, body);
+    return c.json(updated);
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("UNIQUE")) {
+      return c.json({ error: "A project with this name already exists" }, 409);
+    }
+    throw err;
+  }
 });
 
 // DELETE /:projectId — Delete project

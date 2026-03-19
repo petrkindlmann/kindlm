@@ -155,6 +155,33 @@ export interface Webhook {
   createdAt: string;
 }
 
+/** Matches shape returned by GET /v1/audit */
+export interface AuditLogEntry {
+  id: string;
+  orgId: string;
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  userId: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+/** Matches shape returned by GET /v1/sso/config */
+export interface SamlConfig {
+  entityId: string;
+  ssoUrl: string;
+  certificate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Matches shape returned by GET /v1/runs/:runId/compliance */
+export interface ComplianceReport {
+  report: string;
+  hash: string;
+}
+
 /** Matches shape returned by GET /v1/billing */
 export interface BillingInfo {
   plan: "free" | "team" | "enterprise";

@@ -219,4 +219,119 @@ describe("suite routes", () => {
       expect(res.status).toBe(404);
     });
   });
+
+  describe("DELETE /:suiteId", () => {
+    it("deletes suite with org ownership check", async () => {
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(sampleSuite),
+        getProject: vi.fn().mockResolvedValue(project),
+        deleteSuite: vi.fn().mockResolvedValue(true),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/suite-1", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(204);
+    });
+
+    it("returns 404 when suite does not exist", async () => {
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(null),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/nonexistent", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 404 for cross-org delete", async () => {
+      const otherProject = { ...project, orgId: "other-org" };
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(sampleSuite),
+        getProject: vi.fn().mockResolvedValue(otherProject),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/suite-1", {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("PATCH /:suiteId", () => {
+    it("updates suite name", async () => {
+      const updated = { ...sampleSuite, name: "Renamed Suite" };
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(sampleSuite),
+        getProject: vi.fn().mockResolvedValue(project),
+        updateSuite: vi.fn().mockResolvedValue(updated),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/suite-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Renamed Suite" }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body.name).toBe("Renamed Suite");
+    });
+
+    it("returns 404 when suite does not exist", async () => {
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(null),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/nonexistent", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "New Name" }),
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 400 when no name provided", async () => {
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(sampleSuite),
+        getProject: vi.fn().mockResolvedValue(project),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/suite-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 404 for cross-org update", async () => {
+      const otherProject = { ...project, orgId: "other-org" };
+      vi.mocked(getQueries).mockReturnValue({
+        getSuite: vi.fn().mockResolvedValue(sampleSuite),
+        getProject: vi.fn().mockResolvedValue(otherProject),
+      } as unknown as ReturnType<typeof getQueries>);
+
+      const app = createApp();
+      const res = await testRequest(app, "/v1/suites/suite-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "New Name" }),
+      });
+
+      expect(res.status).toBe(404);
+    });
+  });
 });

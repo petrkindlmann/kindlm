@@ -115,6 +115,8 @@ CREATE TABLE IF NOT EXISTS runs (
   test_count        INTEGER DEFAULT 0,
   model_count       INTEGER DEFAULT 0,
   gate_passed       INTEGER,
+  compliance_report TEXT,
+  compliance_hash   TEXT,
   started_at    TEXT NOT NULL DEFAULT (datetime('now')),
   finished_at   TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -302,3 +304,21 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 
 CREATE INDEX IF NOT EXISTS idx_runs_project_created ON runs(project_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_members_org ON org_members(org_id);
+
+-- ============================================================
+-- Pending Invites (0007_pending_invites.sql)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS pending_invites (
+  id TEXT PRIMARY KEY,
+  org_id TEXT NOT NULL REFERENCES orgs(id),
+  email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'member',
+  invited_by TEXT NOT NULL REFERENCES users(id),
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(org_id, email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_invites_org ON pending_invites(org_id);
+CREATE INDEX IF NOT EXISTS idx_pending_invites_email ON pending_invites(email);

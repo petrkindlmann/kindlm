@@ -109,4 +109,66 @@ describe("project routes", () => {
 
     expect(res.status).toBe(204);
   });
+
+  it("PATCH /:projectId updates project name", async () => {
+    const updated = { ...sampleProject, name: "Renamed Project" };
+    vi.mocked(getQueries).mockReturnValue({
+      updateProject: vi.fn().mockResolvedValue(updated),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/projects/proj-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Renamed Project" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.name).toBe("Renamed Project");
+  });
+
+  it("PATCH /:projectId updates project description", async () => {
+    const updated = { ...sampleProject, description: "New description" };
+    vi.mocked(getQueries).mockReturnValue({
+      updateProject: vi.fn().mockResolvedValue(updated),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/projects/proj-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: "New description" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.description).toBe("New description");
+  });
+
+  it("PATCH /:projectId returns 404 for non-existent project", async () => {
+    vi.mocked(getQueries).mockReturnValue({
+      updateProject: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/projects/nonexistent", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "New Name" }),
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("PATCH /:projectId returns 400 when no fields provided", async () => {
+    const app = createApp();
+    const res = await testRequest(app, "/v1/projects/proj-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    expect(res.status).toBe(400);
+  });
 });

@@ -1,4 +1,5 @@
 import type { Webhook, Run } from "../types.js";
+import { isSlackUrl, formatSlackPayload } from "./slack-format.js";
 
 interface WebhookPayload {
   event: string;
@@ -98,9 +99,14 @@ export async function dispatchWebhooks(
     },
   };
 
-  const body = JSON.stringify(payload);
+  const rawBody = JSON.stringify(payload);
 
   await Promise.allSettled(
-    webhooks.map((webhook) => deliverWebhook(webhook, event, body)),
+    webhooks.map((webhook) => {
+      const body = isSlackUrl(webhook.url)
+        ? JSON.stringify(formatSlackPayload(event, payload.data as unknown as Record<string, unknown>))
+        : rawBody;
+      return deliverWebhook(webhook, event, body);
+    }),
   );
 }

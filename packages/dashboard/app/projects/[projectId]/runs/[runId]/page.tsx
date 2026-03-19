@@ -87,12 +87,20 @@ export default function RunDetailPage() {
           )}
         </div>
 
-        <Link
-          href={`/projects/${projectId}/runs/${runId}/compare`}
-          className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-        >
-          Compare to baseline
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href={`/projects/${projectId}/runs/${runId}/compliance`}
+            className="inline-flex items-center rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+          >
+            Compliance report
+          </Link>
+          <Link
+            href={`/projects/${projectId}/runs/${runId}/compare`}
+            className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          >
+            Compare to baseline
+          </Link>
+        </div>
       </div>
 
       {/* Metric cards */}

@@ -76,12 +76,34 @@ memberRoutes.post("/invite", async (c) => {
 
   const userRow = results[0];
   if (!userRow) {
-    return c.json(
-      {
-        error: `User "${body.githubLogin}" not found. They must sign in to KindLM Cloud first.`,
-      },
-      404,
+    // User hasn't signed in yet — create a pending invite if email provided
+    const email = body.email;
+    if (!email) {
+      return c.json(
+        {
+          error: `User "${body.githubLogin}" not found. They must sign in to KindLM Cloud first, or provide an email to create a pending invite.`,
+        },
+        404,
+      );
+    }
+
+    // Check for existing pending invite
+    const existingInvite = await queries.getPendingInviteByEmail(auth.org.id, email);
+    if (existingInvite) {
+      return c.json({ error: "A pending invite already exists for this email" }, 409);
+    }
+
+    // Invite expires in 7 days
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const invite = await queries.createPendingInvite(
+      auth.org.id,
+      email,
+      role,
+      callerId,
+      expiresAt,
     );
+    auditLog(c, "member.invite_pending", "pending_invite", invite.id, { role, email });
+    return c.json({ status: "pending", email, id: invite.id, expiresAt }, 201);
   }
 
   const userId = userRow.id as string;
@@ -170,5 +192,47 @@ memberRoutes.delete("/:userId", async (c) => {
   }
 
   auditLog(c, "member.remove", "member", userId);
+  return c.body(null, 204);
+});
+
+// GET /invites — List pending invites for org
+memberRoutes.get("/invites", async (c) => {
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can view pending invites" }, 403);
+  }
+
+  const invites = await queries.getPendingInvitesByOrg(auth.org.id);
+  return c.json({ invites });
+});
+
+// DELETE /invites/:id — Cancel a pending invite
+memberRoutes.delete("/invites/:id", async (c) => {
+  const inviteId = c.req.param("id");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can cancel invites" }, 403);
+  }
+
+  const deleted = await queries.deletePendingInvite(inviteId, auth.org.id);
+  if (!deleted) {
+    return c.json({ error: "Invite not found" }, 404);
+  }
+
+  auditLog(c, "member.invite_cancel", "pending_invite", inviteId);
   return c.body(null, 204);
 });

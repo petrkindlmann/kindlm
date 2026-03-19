@@ -284,5 +284,76 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
     supportsTools(model: string): boolean {
       return !model.startsWith("o1-");
     },
+
+    async embed(text: string, model?: string): Promise<number[]> {
+      const embeddingModel = model ?? "text-embedding-3-small";
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      };
+      if (organization) {
+        headers["OpenAI-Organization"] = organization;
+      }
+
+      const json = await withRetry(
+        async () => {
+          const response = await httpClient.fetch(`${baseUrl}/embeddings`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              model: embeddingModel,
+              input: text,
+            }),
+            timeoutMs,
+          });
+
+          if (!response.ok) {
+            let data: unknown;
+            try {
+              data = await response.json();
+            } catch {
+              throw new ProviderError(
+                "PROVIDER_ERROR",
+                "Malformed response body from OpenAI Embeddings API",
+                response.status,
+                response.status >= 500,
+              );
+            }
+            throw mapError(response.status, data);
+          }
+
+          try {
+            return await response.json();
+          } catch {
+            throw new ProviderError(
+              "PROVIDER_ERROR",
+              "Malformed response body from OpenAI Embeddings API",
+              response.status,
+              response.status >= 500,
+            );
+          }
+        },
+        {
+          maxRetries,
+          shouldRetry: (error) =>
+            error instanceof ProviderError && error.retryable,
+        },
+      );
+
+      const parsed = json as {
+        data?: Array<{ embedding?: number[] }>;
+      };
+
+      const embedding = parsed.data?.[0]?.embedding;
+      if (!embedding || !Array.isArray(embedding)) {
+        throw new ProviderError(
+          "PROVIDER_ERROR",
+          "No embedding returned from OpenAI Embeddings API",
+        );
+      }
+
+      return embedding;
+    },
   };
 }

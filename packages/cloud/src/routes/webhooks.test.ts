@@ -131,4 +131,97 @@ describe("webhook routes", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("PATCH /:id updates webhook URL", async () => {
+    const updated = { ...sampleWebhook, url: "https://new.example.com/hook" };
+    vi.mocked(getQueries).mockReturnValue({
+      updateWebhook: vi.fn().mockResolvedValue(updated),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/webhooks/wh-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://new.example.com/hook" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.url).toBe("https://new.example.com/hook");
+  });
+
+  it("PATCH /:id updates webhook events", async () => {
+    const updated = { ...sampleWebhook, events: ["run.completed", "run.failed"] };
+    vi.mocked(getQueries).mockReturnValue({
+      updateWebhook: vi.fn().mockResolvedValue(updated),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/webhooks/wh-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events: ["run.completed", "run.failed"] }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { events: string[] };
+    expect(body.events).toEqual(["run.completed", "run.failed"]);
+  });
+
+  it("PATCH /:id updates webhook active status", async () => {
+    const updated = { ...sampleWebhook, active: false };
+    vi.mocked(getQueries).mockReturnValue({
+      updateWebhook: vi.fn().mockResolvedValue(updated),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/webhooks/wh-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: false }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.active).toBe(false);
+  });
+
+  it("PATCH /:id rejects non-HTTPS url", async () => {
+    const app = createApp();
+    const res = await testRequest(app, "/v1/webhooks/wh-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "http://example.com/hook" }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.error).toMatch(/HTTPS/);
+  });
+
+  it("PATCH /:id returns 404 for non-existent webhook", async () => {
+    vi.mocked(getQueries).mockReturnValue({
+      updateWebhook: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/webhooks/wh-999", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://new.example.com/hook" }),
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("PATCH /:id returns 400 when no fields provided", async () => {
+    const app = createApp();
+    const res = await testRequest(app, "/v1/webhooks/wh-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    expect(res.status).toBe(400);
+  });
 });

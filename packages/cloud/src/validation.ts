@@ -20,6 +20,11 @@ export const createProjectBody = z.object({
   description: z.string().max(500).optional(),
 });
 
+export const updateProjectBody = z.object({
+  name: nameField.optional(),
+  description: z.string().max(500).optional(),
+});
+
 // --- Suite ---
 
 export const createSuiteBody = z.object({
@@ -27,6 +32,10 @@ export const createSuiteBody = z.object({
   configHash: z.string().min(1, "configHash is required").max(128),
   description: z.string().max(500).optional(),
   tags: z.string().max(500).optional(),
+});
+
+export const updateSuiteBody = z.object({
+  name: nameField.optional(),
 });
 
 // --- Run ---
@@ -52,6 +61,8 @@ export const updateRunBody = z.object({
   testCount: z.number().int().min(0).optional(),
   modelCount: z.number().int().min(0).optional(),
   gatePassed: z.number().int().min(0).max(1).optional(),
+  complianceReport: z.string().max(500_000).optional(),
+  complianceHash: z.string().max(128).optional(),
   finishedAt: z.string().optional(),
 });
 
@@ -88,6 +99,15 @@ export const createWebhookBody = z.object({
   secret: z.string().max(256).optional(),
 });
 
+export const updateWebhookBody = z.object({
+  url: z.string().url("url must be a valid URL").refine(
+    (u) => u.startsWith("https://"),
+    "url must use HTTPS",
+  ).optional(),
+  events: z.array(z.enum(validEvents)).min(1, "At least one event is required").optional(),
+  active: z.boolean().optional(),
+});
+
 // --- Token ---
 
 export const createTokenBody = z.object({
@@ -102,6 +122,7 @@ export const createTokenBody = z.object({
 
 export const inviteMemberBody = z.object({
   githubLogin: z.string().min(1, "githubLogin is required").max(100),
+  email: z.string().email("Must be a valid email").max(256).optional(),
   role: z.enum(["owner", "admin", "member"]).optional(),
 });
 

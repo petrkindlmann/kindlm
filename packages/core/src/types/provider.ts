@@ -101,6 +101,7 @@ export interface ProviderAdapter {
   complete(request: ProviderRequest): Promise<ProviderResponse>;
   estimateCost(model: string, usage: ProviderResponse["usage"]): number | null;
   supportsTools(model: string): boolean;
+  embed?(text: string, model?: string): Promise<number[]>;
 }
 
 export interface ProviderAdapterConfig {

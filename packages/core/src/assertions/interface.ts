@@ -18,7 +18,6 @@ export type FailureCode =
   | "TOOL_CALL_ARGS_SCHEMA_INVALID"
   | "DRIFT_EXCEEDED"
   | "DRIFT_PARSE_ERROR"
-  | "DRIFT_METHOD_NOT_IMPLEMENTED"
   | "PROVIDER_TIMEOUT"
   | "PROVIDER_AUTH_FAILED"
   | "PROVIDER_ERROR"
@@ -51,6 +50,7 @@ export interface AssertionContext {
     schema: Record<string, unknown>,
     data: unknown,
   ) => { valid: true } | { valid: false; errors: string[] };
+  getEmbedding?: (text: string) => Promise<number[]>;
 }
 
 export interface Assertion {

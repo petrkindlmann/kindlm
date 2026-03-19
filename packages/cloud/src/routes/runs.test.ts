@@ -57,6 +57,8 @@ const sampleRun: Run = {
   testCount: 0,
   modelCount: 0,
   gatePassed: null,
+  complianceReport: null,
+  complianceHash: null,
   startedAt: "2025-01-01T00:00:00.000Z",
   finishedAt: null,
   createdAt: "2025-01-01T00:00:00.000Z",
@@ -142,6 +144,76 @@ describe("run routes", () => {
 
     const app = createApp();
     const res = await testRequest(app, "/v1/runs/run-1");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("PATCH /:runId stores compliance report", async () => {
+    const reportContent = "# Compliance Report\nAll tests passed.";
+    const reportHash = "sha256-abc123";
+    const updated = { ...sampleRun, complianceReport: reportContent, complianceHash: reportHash };
+    vi.mocked(getQueries).mockReturnValue({
+      getRun: vi.fn().mockResolvedValue(sampleRun),
+      getProject: vi.fn().mockResolvedValue(project),
+      updateRun: vi.fn().mockResolvedValue(updated),
+      listWebhooksByEvent: vi.fn().mockResolvedValue([]),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/runs/run-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ complianceReport: reportContent, complianceHash: reportHash }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.complianceReport).toBe(reportContent);
+    expect(body.complianceHash).toBe(reportHash);
+  });
+
+  it("GET /:runId/compliance returns stored compliance report", async () => {
+    const runWithReport = {
+      ...sampleRun,
+      complianceReport: "# Report",
+      complianceHash: "sha256-abc",
+    };
+    vi.mocked(getQueries).mockReturnValue({
+      getRun: vi.fn().mockResolvedValue(runWithReport),
+      getProject: vi.fn().mockResolvedValue(project),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/runs/run-1/compliance");
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.runId).toBe("run-1");
+    expect(body.complianceReport).toBe("# Report");
+    expect(body.complianceHash).toBe("sha256-abc");
+  });
+
+  it("GET /:runId/compliance returns 404 when no report stored", async () => {
+    vi.mocked(getQueries).mockReturnValue({
+      getRun: vi.fn().mockResolvedValue(sampleRun),
+      getProject: vi.fn().mockResolvedValue(project),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/runs/run-1/compliance");
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.error).toMatch(/No compliance report/);
+  });
+
+  it("GET /:runId/compliance returns 404 for non-existent run", async () => {
+    vi.mocked(getQueries).mockReturnValue({
+      getRun: vi.fn().mockResolvedValue(null),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const app = createApp();
+    const res = await testRequest(app, "/v1/runs/nonexistent/compliance");
 
     expect(res.status).toBe(404);
   });

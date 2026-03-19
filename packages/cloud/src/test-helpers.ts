@@ -7,6 +7,7 @@ export const testEnv: Bindings = {
   ENVIRONMENT: "test",
   GITHUB_CLIENT_ID: "test-client-id",
   GITHUB_CLIENT_SECRET: "test-client-secret",
+  SIGNING_KEY_SECRET: "test-signing-key-secret",
 };
 
 export const testExecutionCtx = {

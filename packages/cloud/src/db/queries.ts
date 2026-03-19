@@ -15,6 +15,7 @@ import type {
   AuditEntry,
   SigningKey,
   SamlConfig,
+  PendingInvite,
 } from "../types.js";
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,8 @@ function mapRun(row: Record<string, unknown>): Run {
     testCount: (row.test_count as number) ?? 0,
     modelCount: (row.model_count as number) ?? 0,
     gatePassed: (row.gate_passed as number) ?? null,
+    complianceReport: (row.compliance_report as string) ?? null,
+    complianceHash: (row.compliance_hash as string) ?? null,
     startedAt: row.started_at as string,
     finishedAt: (row.finished_at as string) ?? null,
     createdAt: row.created_at as string,
@@ -208,9 +211,7 @@ function mapSigningKey(row: Record<string, unknown>): SigningKey {
   return {
     orgId: row.org_id as string,
     publicKey: row.public_key as string,
-    // TODO: Production should encrypt with a KMS-derived key. Column is still
-    // named private_key_enc in the DB but the value is only base64-encoded.
-    privateKeyB64: row.private_key_enc as string,
+    privateKeyEnc: row.private_key_enc as string,
     algorithm: row.algorithm as string,
     createdAt: row.created_at as string,
   };
@@ -224,6 +225,18 @@ function mapSamlConfig(row: Record<string, unknown>): SamlConfig {
     idpCertificate: row.idp_certificate as string,
     spEntityId: row.sp_entity_id as string,
     enabled: (row.enabled as number) === 1,
+    createdAt: row.created_at as string,
+  };
+}
+
+function mapPendingInvite(row: Record<string, unknown>): PendingInvite {
+  return {
+    id: row.id as string,
+    orgId: row.org_id as string,
+    email: row.email as string,
+    role: row.role as OrgRole,
+    invitedBy: row.invited_by as string,
+    expiresAt: row.expires_at as string,
     createdAt: row.created_at as string,
   };
 }
@@ -388,6 +401,35 @@ export function getQueries(db: D1Database) {
     return row?.count ?? 0;
   }
 
+  async function updateProject(
+    id: string,
+    orgId: string,
+    fields: Partial<Pick<Project, "name" | "description">>,
+  ): Promise<Project | null> {
+    const sets: string[] = ["updated_at = ?"];
+    const values: unknown[] = [new Date().toISOString()];
+
+    if (fields.name !== undefined) {
+      sets.push("name = ?");
+      values.push(fields.name);
+    }
+    if (fields.description !== undefined) {
+      sets.push("description = ?");
+      values.push(fields.description);
+    }
+
+    if (sets.length === 1) return getProject(id);
+
+    values.push(id, orgId);
+    const result = await db
+      .prepare(`UPDATE projects SET ${sets.join(", ")} WHERE id = ? AND org_id = ?`)
+      .bind(...values)
+      .run();
+
+    if ((result.meta?.changes ?? 0) === 0) return null;
+    return getProject(id);
+  }
+
   // ---- Suites ----
 
   async function getSuite(id: string): Promise<Suite | null> {
@@ -450,6 +492,38 @@ export function getQueries(db: D1Database) {
     return createSuite(projectId, name, configHash);
   }
 
+  async function deleteSuite(id: string): Promise<boolean> {
+    const result = await db
+      .prepare("DELETE FROM suites WHERE id = ?")
+      .bind(id)
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
+
+  async function updateSuite(
+    id: string,
+    fields: Partial<Pick<Suite, "name">>,
+  ): Promise<Suite | null> {
+    const sets: string[] = ["updated_at = ?"];
+    const values: unknown[] = [new Date().toISOString()];
+
+    if (fields.name !== undefined) {
+      sets.push("name = ?");
+      values.push(fields.name);
+    }
+
+    if (sets.length === 1) return getSuite(id);
+
+    values.push(id);
+    const result = await db
+      .prepare(`UPDATE suites SET ${sets.join(", ")} WHERE id = ?`)
+      .bind(...values)
+      .run();
+
+    if ((result.meta?.changes ?? 0) === 0) return null;
+    return getSuite(id);
+  }
+
   // ---- Runs ----
 
   async function getRun(id: string): Promise<Run | null> {
@@ -508,6 +582,8 @@ export function getQueries(db: D1Database) {
       testCount: 0,
       modelCount: 0,
       gatePassed: null,
+      complianceReport: null,
+      complianceHash: null,
       startedAt: now,
       finishedAt: null,
       createdAt: now,
@@ -531,6 +607,8 @@ export function getQueries(db: D1Database) {
         | "testCount"
         | "modelCount"
         | "gatePassed"
+        | "complianceReport"
+        | "complianceHash"
         | "finishedAt"
       >
     >,
@@ -551,6 +629,8 @@ export function getQueries(db: D1Database) {
       testCount: "test_count",
       modelCount: "model_count",
       gatePassed: "gate_passed",
+      complianceReport: "compliance_report",
+      complianceHash: "compliance_hash",
       finishedAt: "finished_at",
     };
 
@@ -811,6 +891,47 @@ export function getQueries(db: D1Database) {
       .bind(orgId, event)
       .all();
     return results.map(mapWebhook);
+  }
+
+  async function getWebhook(id: string): Promise<Webhook | null> {
+    const row = await db
+      .prepare("SELECT * FROM webhooks WHERE id = ?")
+      .bind(id)
+      .first();
+    return row ? mapWebhook(row) : null;
+  }
+
+  async function updateWebhook(
+    id: string,
+    orgId: string,
+    fields: Partial<Pick<Webhook, "url" | "events" | "active">>,
+  ): Promise<Webhook | null> {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+
+    if (fields.url !== undefined) {
+      sets.push("url = ?");
+      values.push(fields.url);
+    }
+    if (fields.events !== undefined) {
+      sets.push("events = ?");
+      values.push(JSON.stringify(fields.events));
+    }
+    if (fields.active !== undefined) {
+      sets.push("active = ?");
+      values.push(fields.active ? 1 : 0);
+    }
+
+    if (sets.length === 0) return getWebhook(id);
+
+    values.push(id, orgId);
+    const result = await db
+      .prepare(`UPDATE webhooks SET ${sets.join(", ")} WHERE id = ? AND org_id = ?`)
+      .bind(...values)
+      .run();
+
+    if ((result.meta?.changes ?? 0) === 0) return null;
+    return getWebhook(id);
   }
 
   // ---- Billing ----
@@ -1124,20 +1245,19 @@ export function getQueries(db: D1Database) {
     return row ? mapSigningKey(row) : null;
   }
 
-  // TODO: Production should encrypt privateKeyB64 with a KMS-derived key before storage.
   async function createSigningKey(
     orgId: string,
     publicKey: string,
-    privateKeyB64: string,
+    privateKeyEnc: string,
   ): Promise<SigningKey> {
     const now = new Date().toISOString();
     await db
       .prepare(
         "INSERT INTO signing_keys (org_id, public_key, private_key_enc, created_at) VALUES (?, ?, ?, ?)",
       )
-      .bind(orgId, publicKey, privateKeyB64, now)
+      .bind(orgId, publicKey, privateKeyEnc, now)
       .run();
-    return { orgId, publicKey, privateKeyB64, algorithm: "Ed25519", createdAt: now };
+    return { orgId, publicKey, privateKeyEnc, algorithm: "Ed25519", createdAt: now };
   }
 
   // ---- SAML Config ----
@@ -1199,6 +1319,54 @@ export function getQueries(db: D1Database) {
     return result;
   }
 
+  // ---- Pending Invites ----
+
+  async function createPendingInvite(
+    orgId: string,
+    email: string,
+    role: OrgRole,
+    invitedBy: string,
+    expiresAt: string,
+  ): Promise<PendingInvite> {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await db
+      .prepare(
+        "INSERT INTO pending_invites (id, org_id, email, role, invited_by, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .bind(id, orgId, email, role, invitedBy, expiresAt, now)
+      .run();
+    return { id, orgId, email, role, invitedBy, expiresAt, createdAt: now };
+  }
+
+  async function getPendingInvitesByOrg(orgId: string): Promise<PendingInvite[]> {
+    const { results } = await db
+      .prepare(
+        "SELECT * FROM pending_invites WHERE org_id = ? AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 100",
+      )
+      .bind(orgId)
+      .all();
+    return results.map(mapPendingInvite);
+  }
+
+  async function getPendingInviteByEmail(orgId: string, email: string): Promise<PendingInvite | null> {
+    const row = await db
+      .prepare(
+        "SELECT * FROM pending_invites WHERE org_id = ? AND email = ? AND expires_at > datetime('now')",
+      )
+      .bind(orgId, email)
+      .first();
+    return row ? mapPendingInvite(row) : null;
+  }
+
+  async function deletePendingInvite(id: string, orgId: string): Promise<boolean> {
+    const result = await db
+      .prepare("DELETE FROM pending_invites WHERE id = ? AND org_id = ?")
+      .bind(id, orgId)
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
+
   // ---- Data Retention ----
 
   async function deleteOldRuns(plan: string, retentionDays: number): Promise<number> {
@@ -1239,11 +1407,14 @@ export function getQueries(db: D1Database) {
     listProjects,
     deleteProject,
     countProjects,
+    updateProject,
     // Suites
     getSuite,
     createSuite,
     listSuites,
     getOrCreateSuite,
+    deleteSuite,
+    updateSuite,
     // Runs
     getRun,
     createRun,
@@ -1264,6 +1435,8 @@ export function getQueries(db: D1Database) {
     listWebhooks,
     deleteWebhook,
     listWebhooksByEvent,
+    getWebhook,
+    updateWebhook,
     // Billing
     getBilling,
     upsertBilling,
@@ -1289,6 +1462,11 @@ export function getQueries(db: D1Database) {
     // SAML
     getSamlConfig,
     upsertSamlConfig,
+    // Pending Invites
+    createPendingInvite,
+    getPendingInvitesByOrg,
+    getPendingInviteByEmail,
+    deletePendingInvite,
     // Data Retention
     deleteOldRuns,
     cleanupExpiredIdempotencyKeys,

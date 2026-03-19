@@ -3,6 +3,7 @@ import type { AppEnv } from "../types.js";
 import { getQueries } from "../db/queries.js";
 import { requirePlan } from "../middleware/plan-gate.js";
 import { auditLog } from "./audit-helper.js";
+import { encryptWithSecret, decryptWithSecret } from "../crypto/envelope.js";
 
 export const complianceRoutes = new Hono<AppEnv>();
 
@@ -28,6 +29,7 @@ function base64ToBuffer(base64: string): ArrayBuffer {
 async function getOrCreateKeyPair(
   orgId: string,
   queries: ReturnType<typeof getQueries>,
+  signingKeySecret: string,
 ): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey; publicKeyBase64: string }> {
   const existing = await queries.getSigningKey(orgId);
 
@@ -39,9 +41,11 @@ async function getOrCreateKeyPair(
       true,
       ["verify"],
     );
+    // Decrypt the private key before importing
+    const privateKeyB64 = await decryptWithSecret(existing.privateKeyEnc, signingKeySecret, orgId);
     const privateKey = await crypto.subtle.importKey(
       "pkcs8",
-      base64ToBuffer(existing.privateKeyB64),
+      base64ToBuffer(privateKeyB64),
       { name: "Ed25519" },
       false,
       ["sign"],
@@ -59,7 +63,9 @@ async function getOrCreateKeyPair(
   const publicKeyBase64 = await exportKeyBase64(keyPair.publicKey, "spki");
   const privateKeyBase64 = await exportKeyBase64(keyPair.privateKey, "pkcs8");
 
-  await queries.createSigningKey(orgId, publicKeyBase64, privateKeyBase64);
+  // Encrypt the private key before storing
+  const privateKeyEnc = await encryptWithSecret(privateKeyBase64, signingKeySecret, orgId);
+  await queries.createSigningKey(orgId, publicKeyBase64, privateKeyEnc);
 
   return {
     publicKey: keyPair.publicKey,
@@ -78,7 +84,7 @@ complianceRoutes.post("/sign", requirePlan("enterprise"), async (c) => {
     return c.json({ error: "content is required" }, 400);
   }
 
-  const { privateKey, publicKeyBase64 } = await getOrCreateKeyPair(auth.org.id, queries);
+  const { privateKey, publicKeyBase64 } = await getOrCreateKeyPair(auth.org.id, queries, c.env.SIGNING_KEY_SECRET);
 
   const encoder = new TextEncoder();
   const data = encoder.encode(body.content);

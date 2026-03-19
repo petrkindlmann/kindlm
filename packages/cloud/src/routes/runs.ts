@@ -131,3 +131,30 @@ runRoutes.patch("/:runId", async (c) => {
 
   return c.json(updated);
 });
+
+// GET /:runId/compliance — Get stored compliance report for a run
+runRoutes.get("/:runId/compliance", async (c) => {
+  const runId = c.req.param("runId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const run = await queries.getRun(runId);
+  if (!run) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  const project = await queries.getProject(run.projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  if (!run.complianceReport) {
+    return c.json({ error: "No compliance report stored for this run" }, 404);
+  }
+
+  return c.json({
+    runId: run.id,
+    complianceReport: run.complianceReport,
+    complianceHash: run.complianceHash,
+  });
+});
