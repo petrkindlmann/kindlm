@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
-import type { TestRun, Paginated } from "@/lib/api";
+import type { TestRun } from "@/lib/api";
 import { fetcher } from "@/lib/api";
 import RunTable from "@/components/RunTable";
 import EmptyState from "@/components/EmptyState";
@@ -15,13 +15,17 @@ export default function RunsPage() {
   const router = useRouter();
 
   const page = Number(searchParams.get("page") ?? "1");
+  const offset = (page - 1) * PER_PAGE;
 
-  const { data, isLoading, error } = useSWR<Paginated<TestRun>>(
-    `/v1/projects/${projectId}/runs?page=${page}&per_page=${PER_PAGE}`,
+  const { data, isLoading, error } = useSWR<{
+    runs: TestRun[];
+    total: number;
+  }>(
+    `/v1/projects/${projectId}/runs?limit=${PER_PAGE}&offset=${offset}`,
     fetcher,
   );
 
-  const runs = data?.data ?? [];
+  const runs = data?.runs ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PER_PAGE);
 

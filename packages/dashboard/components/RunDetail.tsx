@@ -11,20 +11,10 @@ interface RunDetailProps {
 }
 
 export default function RunDetail({ run, results }: RunDetailProps) {
-  const judgeScores = results
-    .flatMap((r) =>
-      r.assertions.filter((a) => a.type === "judge" && a.score != null),
-    )
-    .map((a) => a.score as number);
-  const avgJudge =
-    judgeScores.length > 0
-      ? judgeScores.reduce((a, b) => a + b, 0) / judgeScores.length
-      : null;
-
-  const totalCost = results.reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
+  const totalCost = results.reduce((sum, r) => sum + (r.costUsd ?? 0), 0);
   const avgLatency =
     results.length > 0
-      ? results.reduce((sum, r) => sum + (r.latency_ms ?? 0), 0) /
+      ? results.reduce((sum, r) => sum + (r.latencyAvgMs ?? 0), 0) /
         results.length
       : 0;
 
@@ -34,27 +24,31 @@ export default function RunDetail({ run, results }: RunDetailProps) {
       <div className="flex items-center gap-3">
         <Badge
           status={
-            run.failed === 0 ? "passed" : run.passed === 0 ? "failed" : "failed"
+            run.status === "running"
+              ? "running"
+              : run.passRate != null && run.passRate >= 1
+                ? "passed"
+                : "failed"
           }
         />
         <div className="flex items-center gap-4 text-sm text-stone-500">
-          {run.git_branch && (
+          {run.branch && (
             <span>
               Branch:{" "}
               <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-700">
-                {run.git_branch}
+                {run.branch}
               </code>
             </span>
           )}
-          {run.git_commit && (
+          {run.commitSha && (
             <span>
               Commit:{" "}
               <code className="text-xs text-stone-600">
-                {run.git_commit.slice(0, 7)}
+                {run.commitSha.slice(0, 7)}
               </code>
             </span>
           )}
-          <span>{new Date(run.created_at).toLocaleString()}</span>
+          <span>{new Date(run.createdAt).toLocaleString()}</span>
         </div>
       </div>
 
@@ -62,7 +56,11 @@ export default function RunDetail({ run, results }: RunDetailProps) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Pass Rate"
-          value={`${Math.round(run.pass_rate * 100)}%`}
+          value={
+            run.passRate != null
+              ? `${Math.round(run.passRate * 100)}%`
+              : "--"
+          }
         />
         <MetricCard
           label="Total Cost"
@@ -79,8 +77,10 @@ export default function RunDetail({ run, results }: RunDetailProps) {
           }
         />
         <MetricCard
-          label="Avg Judge Score"
-          value={avgJudge != null ? avgJudge.toFixed(2) : "--"}
+          label="Judge Avg Score"
+          value={
+            run.judgeAvgScore != null ? run.judgeAvgScore.toFixed(2) : "--"
+          }
         />
       </div>
 

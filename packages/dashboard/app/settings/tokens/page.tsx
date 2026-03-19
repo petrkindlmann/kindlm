@@ -9,7 +9,7 @@ import EmptyState from "@/components/EmptyState";
 export default function TokensPage() {
   const key = "/v1/auth/tokens";
   const { data, isLoading, error, mutate: refresh } = useSWR<{
-    data: ApiToken[];
+    tokens: ApiToken[];
   }>(key, fetcher);
 
   const [showCreate, setShowCreate] = useState(false);
@@ -17,7 +17,7 @@ export default function TokensPage() {
   const [newToken, setNewToken] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const tokens = data?.data ?? [];
+  const tokens = data?.tokens ?? [];
 
   async function createToken() {
     if (!tokenName.trim()) return;
@@ -151,7 +151,7 @@ export default function TokensPage() {
               <tr className="border-b border-stone-200 bg-stone-50">
                 <th className="px-4 py-3 font-medium text-stone-600">Name</th>
                 <th className="px-4 py-3 font-medium text-stone-600">
-                  Prefix
+                  Scope
                 </th>
                 <th className="px-4 py-3 font-medium text-stone-600">
                   Last Used
@@ -172,16 +172,16 @@ export default function TokensPage() {
                   </td>
                   <td className="px-4 py-3">
                     <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-600">
-                      {token.prefix}...
+                      {token.scope}
                     </code>
                   </td>
                   <td className="px-4 py-3 text-stone-500">
-                    {token.last_used_at
-                      ? new Date(token.last_used_at).toLocaleDateString()
+                    {token.lastUsed
+                      ? new Date(token.lastUsed).toLocaleDateString()
                       : "Never"}
                   </td>
                   <td className="px-4 py-3 text-stone-500">
-                    {new Date(token.created_at).toLocaleDateString()}
+                    {new Date(token.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

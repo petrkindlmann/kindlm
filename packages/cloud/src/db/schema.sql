@@ -241,3 +241,64 @@ CREATE TABLE IF NOT EXISTS billing (
   created_at              TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- ============================================================
+-- Audit Log (0002_audit_log.sql)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(12)))),
+  org_id TEXT NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  actor_id TEXT,
+  actor_type TEXT NOT NULL DEFAULT 'token',
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id TEXT,
+  metadata TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_org ON audit_log(org_id, created_at DESC);
+
+-- ============================================================
+-- Signing Keys (0003_signing_keys.sql)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS signing_keys (
+  org_id TEXT PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  public_key TEXT NOT NULL,
+  private_key_enc TEXT NOT NULL,
+  algorithm TEXT NOT NULL DEFAULT 'Ed25519',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================
+-- SAML SSO Configuration (0004_saml.sql)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS saml_configs (
+  org_id TEXT PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  idp_entity_id TEXT NOT NULL,
+  idp_sso_url TEXT NOT NULL,
+  idp_certificate TEXT NOT NULL,
+  sp_entity_id TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================
+-- Rate Limits (0005_hardening.sql)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 0,
+  window_start TEXT NOT NULL
+);
+
+-- ============================================================
+-- Additional Indexes (0005_hardening.sql)
+-- ============================================================
+
+CREATE INDEX IF NOT EXISTS idx_runs_project_created ON runs(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_members_org ON org_members(org_id);

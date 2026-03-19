@@ -18,12 +18,12 @@ export default function ProjectOverviewPage() {
   );
 
   const { data: runsData, isLoading: loadingRuns } = useSWR<{
-    data: TestRun[];
+    runs: TestRun[];
     total: number;
-  }>(`/v1/projects/${projectId}/runs?per_page=5`, fetcher);
+  }>(`/v1/projects/${projectId}/runs?limit=5`, fetcher);
 
   const isLoading = loadingProject || loadingRuns;
-  const runs = runsData?.data ?? [];
+  const runs = runsData?.runs ?? [];
   const latestRun = runs[0] ?? null;
 
   if (isLoading) {
@@ -60,22 +60,28 @@ export default function ProjectOverviewPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               label="Pass Rate"
-              value={`${Math.round(latestRun.pass_rate * 100)}%`}
-            />
-            <MetricCard
-              label="Tests Passed"
-              value={`${latestRun.passed} / ${latestRun.total_tests}`}
-            />
-            <MetricCard
-              label="Tests Failed"
-              value={String(latestRun.failed)}
-            />
-            <MetricCard
-              label="Duration"
               value={
-                latestRun.duration_ms < 1000
-                  ? `${latestRun.duration_ms}ms`
-                  : `${(latestRun.duration_ms / 1000).toFixed(1)}s`
+                latestRun.passRate != null
+                  ? `${Math.round(latestRun.passRate * 100)}%`
+                  : "--"
+              }
+            />
+            <MetricCard
+              label="Tests"
+              value={String(latestRun.testCount)}
+            />
+            <MetricCard
+              label="Status"
+              value={latestRun.status}
+            />
+            <MetricCard
+              label="Avg Latency"
+              value={
+                latestRun.latencyAvgMs != null
+                  ? latestRun.latencyAvgMs < 1000
+                    ? `${Math.round(latestRun.latencyAvgMs)}ms`
+                    : `${(latestRun.latencyAvgMs / 1000).toFixed(1)}s`
+                  : "--"
               }
             />
           </div>

@@ -7,7 +7,7 @@ import ProjectCard from "@/components/ProjectCard";
 import EmptyState from "@/components/EmptyState";
 
 export default function ProjectsPage() {
-  const { data, error, isLoading } = useSWR<{ data: Project[] }>(
+  const { data, error, isLoading } = useSWR<{ projects: Project[] }>(
     "/v1/projects",
     fetcher,
   );
@@ -39,7 +39,7 @@ export default function ProjectsPage() {
     );
   }
 
-  const projects = data?.data ?? [];
+  const projects = data?.projects ?? [];
 
   return (
     <div className="space-y-6">

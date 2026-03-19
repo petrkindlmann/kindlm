@@ -13,9 +13,9 @@ export default function WebhooksPage() {
     isLoading,
     error,
     mutate: refresh,
-  } = useSWR<{ data: Webhook[] }>(key, fetcher);
+  } = useSWR<{ webhooks: Webhook[] }>(key, fetcher);
 
-  const webhooks = data?.data ?? [];
+  const webhooks = data?.webhooks ?? [];
 
   return (
     <div className="space-y-6">

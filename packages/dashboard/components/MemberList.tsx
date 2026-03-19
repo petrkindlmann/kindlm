@@ -41,10 +41,10 @@ function roleBadge(role: Member["role"]) {
 export default function MemberList({ members, onUpdate }: MemberListProps) {
   const [changingRole, setChangingRole] = useState<string | null>(null);
 
-  async function changeRole(memberId: string, newRole: Member["role"]) {
-    setChangingRole(memberId);
+  async function changeRole(userId: string, newRole: Member["role"]) {
+    setChangingRole(userId);
     try {
-      await apiClient(`/v1/org/members/${memberId}`, {
+      await apiClient(`/v1/org/members/${userId}`, {
         method: "PATCH",
         body: JSON.stringify({ role: newRole }),
       });
@@ -54,10 +54,10 @@ export default function MemberList({ members, onUpdate }: MemberListProps) {
     }
   }
 
-  async function removeMember(memberId: string, login: string) {
+  async function removeMember(userId: string, login: string) {
     if (!confirm(`Remove ${login} from the organization?`)) return;
 
-    await apiClient(`/v1/org/members/${memberId}`, { method: "DELETE" });
+    await apiClient(`/v1/org/members/${userId}`, { method: "DELETE" });
     onUpdate();
   }
 
@@ -81,71 +81,77 @@ export default function MemberList({ members, onUpdate }: MemberListProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
-            {members.map((member) => (
-              <tr key={member.id} className="hover:bg-stone-50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    {member.avatar_url ? (
-                      <img
-                        src={member.avatar_url}
-                        alt={member.github_login}
-                        className="h-8 w-8 rounded-full ring-1 ring-stone-200"
-                      />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-700">
-                        {member.github_login.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="font-medium text-stone-900">
-                      {member.github_login}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-stone-500">
-                  {member.email ?? "--"}
-                </td>
-                <td className="px-4 py-3">{roleBadge(member.role)}</td>
-                <td className="px-4 py-3 text-stone-500">
-                  {new Date(member.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    {/* Role selector */}
-                    {member.role !== "owner" && (
-                      <>
-                        <select
-                          value={member.role}
-                          onChange={(e) =>
-                            changeRole(
-                              member.id,
-                              e.target.value as Member["role"],
-                            )
-                          }
-                          disabled={changingRole === member.id}
-                          className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
-                        >
-                          {ROLE_OPTIONS.filter((r) => r.value !== "owner").map(
-                            (opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ),
-                          )}
-                        </select>
-                        <button
-                          onClick={() =>
-                            removeMember(member.id, member.github_login)
-                          }
-                          className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
-                        >
-                          Remove
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {members.map((member) => {
+              const login = member.user?.githubLogin ?? "Unknown";
+              const avatarUrl = member.user?.avatarUrl ?? null;
+              const email = member.user?.email ?? null;
+
+              return (
+                <tr key={member.userId} className="hover:bg-stone-50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={login}
+                          className="h-8 w-8 rounded-full ring-1 ring-stone-200"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-700">
+                          {login.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="font-medium text-stone-900">
+                        {login}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-stone-500">
+                    {email ?? "--"}
+                  </td>
+                  <td className="px-4 py-3">{roleBadge(member.role)}</td>
+                  <td className="px-4 py-3 text-stone-500">
+                    {new Date(member.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {/* Role selector */}
+                      {member.role !== "owner" && (
+                        <>
+                          <select
+                            value={member.role}
+                            onChange={(e) =>
+                              changeRole(
+                                member.userId,
+                                e.target.value as Member["role"],
+                              )
+                            }
+                            disabled={changingRole === member.userId}
+                            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                          >
+                            {ROLE_OPTIONS.filter((r) => r.value !== "owner").map(
+                              (opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ),
+                            )}
+                          </select>
+                          <button
+                            onClick={() =>
+                              removeMember(member.userId, login)
+                            }
+                            className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -75,7 +75,7 @@ export default function BaselinesPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-stone-200 bg-stone-50">
-                <th className="px-4 py-3 font-medium text-stone-600">Name</th>
+                <th className="px-4 py-3 font-medium text-stone-600">Label</th>
                 <th className="px-4 py-3 font-medium text-stone-600">
                   Status
                 </th>
@@ -91,21 +91,21 @@ export default function BaselinesPage() {
               {baselines.map((baseline) => (
                 <tr key={baseline.id} className="hover:bg-stone-50">
                   <td className="px-4 py-3 font-medium text-stone-900">
-                    {baseline.name}
+                    {baseline.label}
                   </td>
                   <td className="px-4 py-3">
-                    {baseline.active ? (
+                    {baseline.isActive ? (
                       <Badge status="passed" label="Active" />
                     ) : (
                       <span className="text-stone-400">Inactive</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-stone-500">
-                    {new Date(baseline.created_at).toLocaleDateString()}
+                    {new Date(baseline.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {!baseline.active && (
+                      {!baseline.isActive && (
                         <button
                           onClick={() => activateBaseline(baseline.id)}
                           className="rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100"

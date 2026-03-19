@@ -4,18 +4,18 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://api.kindlm.com";
 
 // ---------------------------------------------------------------------------
-// Response types
+// Response types — matched to cloud API (packages/cloud/src/types.ts)
 // ---------------------------------------------------------------------------
 
 export interface Organization {
   id: string;
   name: string;
   plan: "free" | "team" | "enterprise";
-  github_org: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
+/** Shape returned by GET /v1/auth/me (snake_case — explicit mapping in auth route) */
 export interface User {
   id: string;
   github_id: number;
@@ -29,63 +29,68 @@ export interface User {
 
 export interface Project {
   id: string;
-  org_id: string;
+  orgId: string;
   name: string;
-  latest_run?: TestRun | null;
-  test_count?: number;
-  created_at: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
+/** Matches cloud Run type from packages/cloud/src/types.ts */
 export interface TestRun {
   id: string;
-  project_id: string;
-  git_commit: string | null;
-  git_branch: string | null;
-  ci_provider: string | null;
-  total_tests: number;
-  passed: number;
-  failed: number;
-  pass_rate: number;
-  duration_ms: number;
-  compliance_report: string | null;
-  compliance_hash: string | null;
-  created_at: string;
+  projectId: string;
+  suiteId: string;
+  status: "running" | "completed" | "failed";
+  commitSha: string | null;
+  branch: string | null;
+  environment: string | null;
+  triggeredBy: string | null;
+  passRate: number | null;
+  driftScore: number | null;
+  schemaFailCount: number;
+  piiFailCount: number;
+  keywordFailCount: number;
+  judgeAvgScore: number | null;
+  costEstimateUsd: number | null;
+  latencyAvgMs: number | null;
+  testCount: number;
+  modelCount: number;
+  gatePassed: number | null;
+  startedAt: string;
+  finishedAt: string | null;
+  createdAt: string;
 }
 
+/** Matches cloud TestResult type from packages/cloud/src/types.ts */
 export interface TestResult {
   id: string;
-  run_id: string;
-  suite_name: string;
-  test_name: string;
-  pass: boolean;
-  assertions: AssertionResultData[];
-  response_text: string | null;
-  tool_calls: ToolCallData[];
-  latency_ms: number | null;
-  cost_usd: number | null;
-  created_at: string;
+  runId: string;
+  testCaseName: string;
+  modelId: string;
+  passed: number;
+  passRate: number;
+  runCount: number;
+  judgeAvg: number | null;
+  driftScore: number | null;
+  latencyAvgMs: number | null;
+  costUsd: number | null;
+  totalTokens: number | null;
+  failureCodes: string | null;
+  failureMessages: string | null;
+  assertionScores: string | null;
+  createdAt: string;
 }
 
-export interface AssertionResultData {
-  type: string;
-  pass: boolean;
-  score?: number;
-  message: string;
-  details?: unknown;
-}
-
-export interface ToolCallData {
-  name: string;
-  arguments: Record<string, unknown>;
-}
-
+/** Matches cloud Baseline type from packages/cloud/src/types.ts */
 export interface Baseline {
   id: string;
-  suite_id: string;
-  name: string;
-  active: boolean;
-  snapshot_json: string;
-  created_at: string;
+  suiteId: string;
+  runId: string;
+  label: string;
+  isActive: number;
+  createdAt: string;
+  activatedAt: string | null;
 }
 
 export interface ComparisonData {
@@ -97,57 +102,67 @@ export interface ComparisonData {
 }
 
 export interface ComparisonDelta {
-  test_name: string;
-  suite_name: string;
+  testCaseName: string;
   field: string;
-  baseline_value: number;
-  current_value: number;
+  baselineValue: number;
+  currentValue: number;
   delta: number;
 }
 
+/** Matches shape returned by GET /v1/auth/tokens (auth route maps each token) */
 export interface ApiToken {
   id: string;
   name: string;
-  prefix: string;
-  last_used_at: string | null;
-  created_at: string;
+  scope: "full" | "ci" | "readonly";
+  projectId: string | null;
+  expiresAt: string | null;
+  lastUsed: string | null;
+  createdAt: string;
 }
 
+/** Matches shape returned by POST /v1/auth/tokens */
 export interface ApiTokenCreateResponse {
+  token: string;
   id: string;
   name: string;
-  token: string;
+  scope: "full" | "ci" | "readonly";
+  projectId: string | null;
+  expiresAt: string | null;
+  createdAt: string;
 }
 
+/** Matches shape returned by GET /v1/org/members (member route maps each member) */
 export interface Member {
-  id: string;
-  github_login: string;
-  email: string | null;
+  userId: string;
   role: "owner" | "admin" | "member";
-  avatar_url: string | null;
-  created_at: string;
+  createdAt: string;
+  user: {
+    id: string;
+    githubLogin: string;
+    email: string | null;
+    avatarUrl: string | null;
+  } | null;
 }
 
+/** Matches cloud Webhook type (with masked secret from list route) */
 export interface Webhook {
   id: string;
+  orgId: string;
   url: string;
   events: string[];
+  secret: string;
   active: boolean;
-  created_at: string;
+  createdAt: string;
 }
 
+/** Matches shape returned by GET /v1/billing */
 export interface BillingInfo {
   plan: "free" | "team" | "enterprise";
-  stripe_customer_id: string | null;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
-}
-
-export interface Paginated<T> {
-  data: T[];
-  total: number;
-  page: number;
-  per_page: number;
+  billing: {
+    plan: "free" | "team" | "enterprise";
+    periodEnd: string | null;
+    hasPaymentMethod: boolean;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------

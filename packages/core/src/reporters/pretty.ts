@@ -141,13 +141,6 @@ function extractThreshold(a: AssertionResult): number | null {
     const t = a.metadata.threshold;
     if (typeof t === "number") return t;
   }
-  // Try to extract from label like "Judge: criteria" or failure message
-  if (a.failureMessage) {
-    const match = a.failureMessage.match(/threshold (\d+\.?\d*)/i);
-    if (match?.[1]) return parseFloat(match[1]);
-    const belowMatch = a.failureMessage.match(/below (\d+\.?\d*)/i);
-    if (belowMatch?.[1]) return parseFloat(belowMatch[1]);
-  }
   return null;
 }
 

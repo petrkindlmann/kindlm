@@ -245,6 +245,12 @@ const ToolCallExpectSchema = z.object({
     .describe(
       "Path to JSON Schema file to validate the tool call arguments",
     ),
+  argsSchemaResolved: z
+    .record(z.unknown())
+    .optional()
+    .describe(
+      "Resolved JSON Schema content from argsSchema file. Populated during config parsing — not user-supplied.",
+    ),
   order: z
     .number()
     .int()

@@ -167,6 +167,14 @@ export function parseConfig(
                 errors.push(
                   `Test "${test.name}": argsSchema "${tc.argsSchema}" for tool "${tc.tool}" not found at ${pathResult.data}`,
                 );
+              } else {
+                try {
+                  tc.argsSchemaResolved = JSON.parse(result.data) as Record<string, unknown>;
+                } catch {
+                  errors.push(
+                    `Test "${test.name}": argsSchema "${tc.argsSchema}" for tool "${tc.tool}" is not valid JSON`,
+                  );
+                }
               }
             }
           }

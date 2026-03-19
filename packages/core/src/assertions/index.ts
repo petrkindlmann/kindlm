@@ -23,7 +23,7 @@ export type { LatencyAssertionConfig } from "./latency.js";
 export { createCostAssertion } from "./cost.js";
 export type { CostAssertionConfig } from "./cost.js";
 
-export { createAssertionRegistry, createAssertionsFromExpect } from "./registry.js";
+export { createAssertionsFromExpect } from "./registry.js";
 export type { AssertionFactory, AssertionOverrides } from "./registry.js";
 
 export { classifyAssertion, isDeterministic, isProbabilistic } from "./classification.js";

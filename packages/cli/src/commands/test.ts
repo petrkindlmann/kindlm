@@ -46,6 +46,7 @@ export function registerTestCommand(program: Command): void {
           configPath: options.config,
           runs: options.runs !== undefined ? parseInt(options.runs, 10) : undefined,
           gate: options.gate !== undefined ? parseFloat(options.gate) : undefined,
+          suite: options.suite,
         });
 
         const { runResult: result, aggregated } = runnerResult;

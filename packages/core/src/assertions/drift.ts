@@ -132,7 +132,7 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
             failureMessage: passed
               ? undefined
               : `Drift score ${driftScore.toFixed(2)} exceeds max ${config.maxScore}. Mismatched: [${mismatched.join(", ")}]`,
-            metadata: { driftScore, mismatched },
+            metadata: { driftScore, mismatched, threshold: config.maxScore },
           },
         ];
       }
@@ -190,7 +190,7 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
           failureMessage: passed
             ? undefined
             : `Drift score ${parsed.driftScore.toFixed(2)} exceeds max ${config.maxScore}: ${parsed.reasoning}`,
-          metadata: { driftScore: parsed.driftScore, reasoning: parsed.reasoning },
+          metadata: { driftScore: parsed.driftScore, reasoning: parsed.reasoning, threshold: config.maxScore },
         },
       ];
     },

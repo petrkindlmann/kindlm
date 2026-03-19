@@ -7,10 +7,10 @@ import MemberList from "@/components/MemberList";
 
 export default function MembersPage() {
   const { data, isLoading, error, mutate: refresh } = useSWR<{
-    data: Member[];
+    members: Member[];
   }>("/v1/org/members", fetcher);
 
-  const members = data?.data ?? [];
+  const members = data?.members ?? [];
 
   return (
     <div className="space-y-6">

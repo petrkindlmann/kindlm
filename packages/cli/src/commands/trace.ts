@@ -11,12 +11,20 @@ import {
   mapSpansToResult,
   buildContextFromTrace,
   createAssertionsFromExpect,
+  createPrettyReporter,
+  createJsonReporter,
+  createJunitReporter,
 } from "@kindlm/core";
 import type {
+  Colorize,
   KindLMConfig,
   ProviderAdapter,
   TraceConfig,
   AssertionResult,
+  RunResult,
+  SuiteRunResult,
+  TestRunResult,
+  GateEvaluation,
 } from "@kindlm/core";
 import { createTraceServer } from "../utils/trace-server.js";
 import { createSpinner } from "../utils/spinner.js";
@@ -180,37 +188,47 @@ export function registerTraceCommand(program: Command): void {
             testResults.push({ testName: test.name, assertions: allResults });
           }
 
-          // 8. Report results
-          const totalAssertions = testResults.reduce((s, t) => s + t.assertions.length, 0);
-          const passedAssertions = testResults.reduce(
-            (s, t) => s + t.assertions.filter((a) => a.passed).length,
-            0,
-          );
-          const failedAssertions = totalAssertions - passedAssertions;
-
-          console.log();
-          console.log(chalk.bold("Trace Test Results"));
-          console.log(chalk.dim("─".repeat(50)));
-
-          for (const { testName, assertions } of testResults) {
+          // 8. Build RunResult + GateEvaluation for reporters
+          const testRunResults: TestRunResult[] = testResults.map(({ testName, assertions }) => {
             const allPassed = assertions.every((a) => a.passed);
-            const icon = allPassed ? chalk.green("✓") : chalk.red("✗");
-            console.log(`${icon} ${testName}`);
+            return {
+              name: testName,
+              modelId: "trace",
+              status: allPassed ? "passed" : "failed",
+              assertions,
+              latencyMs: 0,
+              costUsd: 0,
+            } satisfies TestRunResult;
+          });
 
-            for (const a of assertions) {
-              const aIcon = a.passed ? chalk.green("  ✓") : chalk.red("  ✗");
-              const label = a.failureMessage ? `${a.label}: ${a.failureMessage}` : a.label;
-              console.log(`${aIcon} ${label}`);
-            }
-          }
+          const passedTests = testRunResults.filter((t) => t.status === "passed").length;
+          const failedTests = testRunResults.filter((t) => t.status === "failed").length;
 
-          console.log();
-          console.log(
-            `${chalk.bold("Total:")} ${passedAssertions} passed, ${failedAssertions} failed out of ${totalAssertions} assertions`,
-          );
+          const suiteResult: SuiteRunResult = {
+            name: config.suite.name,
+            status: failedTests > 0 ? "failed" : "passed",
+            tests: testRunResults,
+          };
 
-          // 9. Exit code — trace uses assertion-level pass/fail, not gates
-          process.exit(failedAssertions > 0 ? 1 : 0);
+          const runResult: RunResult = {
+            suites: [suiteResult],
+            totalTests: testRunResults.length,
+            passed: passedTests,
+            failed: failedTests,
+            errored: 0,
+            skipped: 0,
+            durationMs: 0,
+          };
+
+          const gateEvaluation: GateEvaluation = { passed: failedTests === 0, gates: [] };
+
+          // 9. Select + generate report
+          const reporter = selectTraceReporter(opts.reporter);
+          const report = await reporter.generate(runResult, gateEvaluation);
+          console.log(report.content);
+
+          // 10. Exit code — trace uses assertion-level pass/fail, not gates
+          process.exit(failedTests > 0 ? 1 : 0);
         } finally {
           child?.kill();
           await traceServer.stop();
@@ -220,4 +238,31 @@ export function registerTraceCommand(program: Command): void {
         process.exit(1);
       }
     });
+}
+
+const chalkColorize: Colorize = {
+  bold: (t) => chalk.bold(t),
+  red: (t) => chalk.red(t),
+  green: (t) => chalk.green(t),
+  yellow: (t) => chalk.yellow(t),
+  cyan: (t) => chalk.cyan(t),
+  dim: (t) => chalk.dim(t),
+  greenBold: (t) => chalk.green.bold(t),
+  redBold: (t) => chalk.red.bold(t),
+};
+
+const KNOWN_REPORTERS = ["pretty", "json", "junit"] as const;
+
+function selectTraceReporter(type: string) {
+  switch (type) {
+    case "json":
+      return createJsonReporter();
+    case "junit":
+      return createJunitReporter();
+    case "pretty":
+      return createPrettyReporter(chalkColorize);
+    default:
+      console.error(chalk.red(`Unknown reporter: '${type}'. Available: ${KNOWN_REPORTERS.join(", ")}`));
+      process.exit(1);
+  }
 }

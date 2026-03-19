@@ -13,9 +13,6 @@ import {
 } from "./keywords.js";
 import { createJudgeAssertion } from "./judge.js";
 import { createDriftAssertion } from "./drift.js";
-import { createLatencyAssertion } from "./latency.js";
-import { createCostAssertion } from "./cost.js";
-
 export type AssertionFactory = (config: Expect) => Assertion;
 
 export interface AssertionOverrides {
@@ -29,17 +26,26 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
     const hasOrder = expect.toolCalls.some((tc) => tc.order !== undefined);
 
     if (hasOrder) {
-      assertions.push(createToolOrderAssertion(expect.toolCalls));
+      const mapped = expect.toolCalls.map((tc) => ({
+        ...tc,
+        argsSchema: tc.argsSchemaResolved
+          ? JSON.stringify(tc.argsSchemaResolved)
+          : tc.argsSchema,
+      }));
+      assertions.push(createToolOrderAssertion(mapped));
     } else {
       for (const tc of expect.toolCalls) {
         if (tc.shouldNotCall) {
           assertions.push(createToolNotCalledAssertion(tc.tool));
         } else {
+          const resolvedSchema = tc.argsSchemaResolved
+            ? JSON.stringify(tc.argsSchemaResolved)
+            : tc.argsSchema ?? undefined;
           assertions.push(
             createToolCalledAssertion(
               tc.tool,
               tc.argsMatch ?? undefined,
-              tc.argsSchema ?? undefined,
+              resolvedSchema,
             ),
           );
         }
@@ -108,16 +114,4 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
   }
 
   return assertions;
-}
-
-export function createAssertionRegistry(): Map<string, AssertionFactory> {
-  return new Map<string, AssertionFactory>([
-    ["tool_called", (config) => createToolCalledAssertion(config.toolCalls?.[0]?.tool ?? "")],
-    ["schema", (config) => createSchemaAssertion(config.output ?? { format: "text" })],
-    ["pii", (config) => createPiiAssertion(config.guardrails?.pii ?? { denyPatterns: [] })],
-    ["judge", (config) => createJudgeAssertion(config.judge?.[0] ?? { criteria: "", minScore: 0.7 })],
-    ["drift", (config) => createDriftAssertion(config.baseline?.drift ?? { maxScore: 0.15, method: "judge" })],
-    ["latency", () => createLatencyAssertion({ maxMs: 60000 })],
-    ["cost", () => createCostAssertion({ maxUsd: 1.0 })],
-  ]);
 }

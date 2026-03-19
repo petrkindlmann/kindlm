@@ -14,21 +14,18 @@ function DeltaRow({ delta }: { delta: ComparisonDelta }) {
   return (
     <tr className="hover:bg-stone-50">
       <td className="px-4 py-3 text-sm font-medium text-stone-900">
-        {delta.suite_name}
-      </td>
-      <td className="px-4 py-3 text-sm text-stone-700">
-        {delta.test_name}
+        {delta.testCaseName}
       </td>
       <td className="px-4 py-3 text-sm text-stone-500">{delta.field}</td>
       <td className="px-4 py-3 text-sm text-stone-500">
-        {typeof delta.baseline_value === "number"
-          ? delta.baseline_value.toFixed(3)
-          : String(delta.baseline_value)}
+        {typeof delta.baselineValue === "number"
+          ? delta.baselineValue.toFixed(3)
+          : String(delta.baselineValue)}
       </td>
       <td className="px-4 py-3 text-sm text-stone-500">
-        {typeof delta.current_value === "number"
-          ? delta.current_value.toFixed(3)
-          : String(delta.current_value)}
+        {typeof delta.currentValue === "number"
+          ? delta.currentValue.toFixed(3)
+          : String(delta.currentValue)}
       </td>
       <td className="px-4 py-3">
         <span
@@ -65,10 +62,7 @@ function DeltaTable({
               <thead>
                 <tr className="border-b border-stone-200 bg-stone-50">
                   <th className="whitespace-nowrap px-4 py-2.5 font-medium text-stone-600">
-                    Suite
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-2.5 font-medium text-stone-600">
-                    Test
+                    Test Case
                   </th>
                   <th className="whitespace-nowrap px-4 py-2.5 font-medium text-stone-600">
                     Field
@@ -118,10 +112,10 @@ export default function ComparisonView({ data }: ComparisonViewProps) {
         <p className="text-sm text-stone-500">
           Comparing against baseline{" "}
           <span className="font-medium text-stone-700">
-            {data.baseline.name}
+            {data.baseline.label}
           </span>{" "}
           (created{" "}
-          {new Date(data.baseline.created_at).toLocaleDateString()})
+          {new Date(data.baseline.createdAt).toLocaleDateString()})
         </p>
       </div>
 

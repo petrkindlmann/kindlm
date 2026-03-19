@@ -12,8 +12,6 @@ interface WebhookListProps {
 const AVAILABLE_EVENTS = [
   "run.completed",
   "run.failed",
-  "baseline.created",
-  "baseline.activated",
 ];
 
 export default function WebhookList({ webhooks, onUpdate }: WebhookListProps) {
@@ -38,14 +36,6 @@ export default function WebhookList({ webhooks, onUpdate }: WebhookListProps) {
     } finally {
       setCreating(false);
     }
-  }
-
-  async function toggleActive(webhook: Webhook) {
-    await apiClient(`/v1/org/webhooks/${webhook.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ active: !webhook.active }),
-    });
-    onUpdate();
   }
 
   async function deleteWebhook(webhookId: string) {
@@ -177,23 +167,18 @@ export default function WebhookList({ webhooks, onUpdate }: WebhookListProps) {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => toggleActive(webhook)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                        webhook.active ? "bg-indigo-600" : "bg-stone-300"
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${
+                        webhook.active
+                          ? "bg-green-50 text-green-700 ring-green-200"
+                          : "bg-stone-100 text-stone-500 ring-stone-200"
                       }`}
-                      role="switch"
-                      aria-checked={webhook.active}
                     >
-                      <span
-                        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform ${
-                          webhook.active ? "translate-x-4" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
+                      {webhook.active ? "Active" : "Inactive"}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-stone-500">
-                    {new Date(webhook.created_at).toLocaleDateString()}
+                    {new Date(webhook.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

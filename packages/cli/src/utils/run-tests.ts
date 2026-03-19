@@ -23,6 +23,7 @@ export interface RunTestsOptions {
   configPath: string;
   runs?: number;
   gate?: number;
+  suite?: string;
   baselineData?: BaselineData;
 }
 
@@ -101,6 +102,14 @@ async function runTestsInner(
   }
 
   const config: KindLMConfig = parseResult.data;
+
+  // 2b. Filter by suite name if --suite is provided
+  if (options.suite !== undefined) {
+    if (config.suite.name !== options.suite) {
+      console.error(chalk.red(`Suite "${options.suite}" not found. Available suite: "${config.suite.name}"`));
+      process.exit(1);
+    }
+  }
 
   // 3. Apply CLI overrides
   if (options.runs !== undefined) {

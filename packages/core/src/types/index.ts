@@ -39,11 +39,3 @@ export type {
   SpanFilter,
 } from "./config.js";
 
-export type {
-  ComplianceReport,
-  ComplianceSection,
-  ComplianceEvidence,
-  JUnitReport,
-  JUnitTestSuite,
-  JUnitTestCase,
-} from "./report.js";

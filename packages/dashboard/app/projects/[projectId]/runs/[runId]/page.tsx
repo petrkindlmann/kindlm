@@ -21,25 +21,17 @@ export default function RunDetailPage() {
   );
 
   const { data: resultsData, isLoading: loadingResults } = useSWR<{
-    data: TestResult[];
+    results: TestResult[];
   }>(`/v1/runs/${runId}/results`, fetcher);
 
   const isLoading = loadingRun || loadingResults;
-  const results = resultsData?.data ?? [];
+  const results = resultsData?.results ?? [];
 
-  // Compute aggregate stats
-  const judgeScores = results
-    .flatMap((r) => r.assertions.filter((a) => a.type === "judge" && a.score != null))
-    .map((a) => a.score as number);
-  const avgJudge =
-    judgeScores.length > 0
-      ? judgeScores.reduce((a, b) => a + b, 0) / judgeScores.length
-      : null;
-
-  const totalCost = results.reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
+  // Compute aggregate stats from results
+  const totalCost = results.reduce((sum, r) => sum + (r.costUsd ?? 0), 0);
   const avgLatency =
     results.length > 0
-      ? results.reduce((sum, r) => sum + (r.latency_ms ?? 0), 0) /
+      ? results.reduce((sum, r) => sum + (r.latencyAvgMs ?? 0), 0) /
         results.length
       : 0;
 
@@ -72,10 +64,10 @@ export default function RunDetailPage() {
             {run && (
               <Badge
                 status={
-                  run.failed === 0
-                    ? "passed"
-                    : run.passed === 0
-                      ? "failed"
+                  run.status === "running"
+                    ? "running"
+                    : run.passRate != null && run.passRate >= 1
+                      ? "passed"
                       : "failed"
                 }
               />
@@ -83,13 +75,13 @@ export default function RunDetailPage() {
           </div>
           {run && (
             <div className="mt-1 flex items-center gap-4 text-sm text-stone-500">
-              {run.git_branch && <span>Branch: {run.git_branch}</span>}
-              {run.git_commit && (
-                <span>Commit: {run.git_commit.slice(0, 7)}</span>
+              {run.branch && <span>Branch: {run.branch}</span>}
+              {run.commitSha && (
+                <span>Commit: {run.commitSha.slice(0, 7)}</span>
               )}
-              {run.ci_provider && <span>CI: {run.ci_provider}</span>}
+              {run.environment && <span>Env: {run.environment}</span>}
               <span>
-                {new Date(run.created_at).toLocaleString()}
+                {new Date(run.createdAt).toLocaleString()}
               </span>
             </div>
           )}
@@ -108,7 +100,11 @@ export default function RunDetailPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             label="Pass Rate"
-            value={`${Math.round(run.pass_rate * 100)}%`}
+            value={
+              run.passRate != null
+                ? `${Math.round(run.passRate * 100)}%`
+                : "--"
+            }
           />
           <MetricCard
             label="Total Cost"
@@ -125,8 +121,12 @@ export default function RunDetailPage() {
             }
           />
           <MetricCard
-            label="Avg Judge Score"
-            value={avgJudge != null ? avgJudge.toFixed(2) : "--"}
+            label="Judge Avg Score"
+            value={
+              run.judgeAvgScore != null
+                ? run.judgeAvgScore.toFixed(2)
+                : "--"
+            }
           />
         </div>
       )}

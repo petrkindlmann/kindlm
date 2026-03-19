@@ -114,7 +114,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
           failureMessage: passed
             ? undefined
             : `Score ${parsed.score} below threshold ${config.minScore}: ${parsed.reasoning}`,
-          metadata: { reasoning: parsed.reasoning },
+          metadata: { reasoning: parsed.reasoning, threshold: config.minScore },
         },
       ];
     },

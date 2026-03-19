@@ -34,9 +34,6 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
                 Commit
               </th>
               <th className="whitespace-nowrap px-4 py-3 font-medium text-stone-600">
-                Duration
-              </th>
-              <th className="whitespace-nowrap px-4 py-3 font-medium text-stone-600">
                 Date
               </th>
             </tr>
@@ -47,7 +44,13 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
                 <td className="whitespace-nowrap px-4 py-3">
                   <Link href={`/projects/${projectId}/runs/${run.id}`}>
                     <Badge
-                      status={run.failed === 0 ? "passed" : "failed"}
+                      status={
+                        run.status === "running"
+                          ? "running"
+                          : run.passRate != null && run.passRate >= 1
+                            ? "passed"
+                            : "failed"
+                      }
                     />
                   </Link>
                 </td>
@@ -56,39 +59,34 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
                     href={`/projects/${projectId}/runs/${run.id}`}
                     className="font-medium text-stone-900 hover:text-indigo-600"
                   >
-                    {Math.round(run.pass_rate * 100)}%
+                    {run.passRate != null
+                      ? `${Math.round(run.passRate * 100)}%`
+                      : "--"}
                   </Link>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-stone-600">
-                  <span className="text-green-700">{run.passed}</span>
-                  {" / "}
-                  <span className="text-stone-900">{run.total_tests}</span>
+                  {run.testCount}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
-                  {run.git_branch ? (
+                  {run.branch ? (
                     <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-700">
-                      {run.git_branch}
+                      {run.branch}
                     </code>
                   ) : (
                     <span className="text-stone-400">--</span>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
-                  {run.git_commit ? (
+                  {run.commitSha ? (
                     <code className="text-xs text-stone-500">
-                      {run.git_commit.slice(0, 7)}
+                      {run.commitSha.slice(0, 7)}
                     </code>
                   ) : (
                     <span className="text-stone-400">--</span>
                   )}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-stone-600">
-                  {run.duration_ms < 1000
-                    ? `${run.duration_ms}ms`
-                    : `${(run.duration_ms / 1000).toFixed(1)}s`}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-stone-500">
-                  {new Date(run.created_at).toLocaleDateString()}
+                  {new Date(run.createdAt).toLocaleDateString()}
                 </td>
               </tr>
             ))}

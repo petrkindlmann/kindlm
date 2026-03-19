@@ -129,6 +129,6 @@ describe("createJudgeAssertion", () => {
       minScore: 0.5,
     });
     const results = await assertion.evaluate(ctx("Output", adapter));
-    expect(results[0]?.metadata).toEqual({ reasoning: "Very clear" });
+    expect(results[0]?.metadata).toEqual({ reasoning: "Very clear", threshold: 0.5 });
   });
 });

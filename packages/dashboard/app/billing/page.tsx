@@ -13,18 +13,18 @@ export default function BillingPage() {
   );
 
   async function handleManageBilling() {
-    const result = await apiClient<{ url: string }>("/v1/billing/portal", {
+    const result = await apiClient<{ portalUrl: string }>("/v1/billing/portal", {
       method: "POST",
     });
-    window.location.href = result.url;
+    window.location.href = result.portalUrl;
   }
 
   async function handleUpgrade(plan: "team" | "enterprise") {
-    const result = await apiClient<{ url: string }>("/v1/billing/checkout", {
+    const result = await apiClient<{ checkoutUrl: string }>("/v1/billing/checkout", {
       method: "POST",
       body: JSON.stringify({ plan }),
     });
-    window.location.href = result.url;
+    window.location.href = result.checkoutUrl;
   }
 
   if (isLoading) {
@@ -52,6 +52,7 @@ export default function BillingPage() {
   }
 
   const currentPlan = data?.plan ?? "free";
+  const periodEnd = data?.billing?.periodEnd ?? null;
 
   return (
     <div className="space-y-8">
@@ -64,12 +65,11 @@ export default function BillingPage() {
         </p>
       </div>
 
-      {/* Current plan notice */}
-      {data?.cancel_at_period_end && data.current_period_end && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Your plan is set to cancel at the end of the current period (
-          {new Date(data.current_period_end).toLocaleDateString()}). You can
-          reactivate from the billing portal.
+      {/* Period end notice */}
+      {periodEnd && (
+        <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+          Current billing period ends{" "}
+          {new Date(periodEnd).toLocaleDateString()}.
         </div>
       )}
 
