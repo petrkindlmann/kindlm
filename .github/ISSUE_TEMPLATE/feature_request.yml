@@ -1,0 +1,41 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case. What are you trying to do that KindLM doesn't support?
+      placeholder: "I'm testing an agent that... and I need to assert..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would the solution look like?
+      description: How would you use this feature? Show example YAML config or CLI usage if possible.
+      render: yaml
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: How are you working around this today?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Assertions (new type or improvement)
+        - Providers (new provider or improvement)
+        - CLI (new command or flag)
+        - Config (schema change)
+        - Reporters (new format or improvement)
+        - CI integration
+        - Compliance
+        - Other
+    validations:
+      required: true

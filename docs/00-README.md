@@ -187,14 +187,19 @@ The CLI works fully offline with every feature. Cloud is optional and adds:
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Config Reference](docs/config-reference.md) | Complete YAML config schema |
-| [Assertions](docs/assertions.md) | All assertion types with examples |
-| [Providers](docs/providers.md) | Provider adapter setup |
-| [CI Integration](docs/ci-integration.md) | GitHub Actions, GitLab CI, Jenkins |
-| [Compliance](docs/compliance.md) | EU AI Act report generation |
-| [Cloud](docs/cloud.md) | Cloud API and dashboard |
+| Guide | Description |
+|-------|-------------|
+| [Adopt KindLM in 30 Minutes](/docs/adopt) | Install → first test → CI in one sitting |
+| [Tutorial: Refund Agent](/docs/tutorial) | Full walkthrough with tool calls, PII, and guards |
+| [CI: GitHub Actions in 5 Minutes](/docs/ci-guide) | Copy-paste CI workflow |
+| [Examples Gallery](/docs/examples) | 7 copy-paste configs for common scenarios |
+| [How to Model My System](/docs/modeling) | Decision tree for picking assertion types |
+| [Troubleshooting](/docs/troubleshooting) | Common errors and fixes |
+| [KindLM vs Promptfoo vs Scripts](/docs/comparison) | When to use which |
+| [Config Schema](/docs/config-schema) | Complete YAML config reference |
+| [Assertion Engine](/docs/assertions) | All assertion types with details |
+| [Provider Interface](/docs/providers) | Provider adapter setup |
+| [Compliance](/docs/compliance) | EU AI Act report generation |
 
 ## License
 

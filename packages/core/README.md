@@ -1,6 +1,6 @@
 # KindLM
 
-![CI](https://github.com/petr-kin/kindlm/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/petrkindlmann/kindlm/actions/workflows/ci.yml/badge.svg)
 
 Behavioral regression testing for AI agents. Test what your agents **do** — not just what they say.
 

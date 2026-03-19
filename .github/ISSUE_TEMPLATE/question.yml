@@ -1,0 +1,27 @@
+name: Question
+description: Ask a question about using KindLM
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, check the docs:
+        - [Adopt KindLM in 30 Minutes](https://kindlm.com/docs/adopt)
+        - [How to Model My System](https://kindlm.com/docs/modeling)
+        - [Troubleshooting](https://kindlm.com/docs/troubleshooting)
+        - [Examples Gallery](https://kindlm.com/docs/examples)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What do you need help with?
+      placeholder: "How do I test an agent that..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any relevant config, output, or details about your setup.

@@ -1,6 +1,6 @@
 # KindLM
 
-![CI](https://github.com/petr-kin/kindlm/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/petrkindlmann/kindlm/actions/workflows/ci.yml/badge.svg)
 
 Behavioral regression testing for AI agents. Test what your agents **do** — not just what they say.
 
@@ -41,25 +41,48 @@ kindlm init
 Edit the generated `kindlm.yaml`:
 
 ```yaml
-version: "1"
-defaults:
-  provider: openai:gpt-4o
-  temperature: 0
-  runs: 3
+kindlm: 1
+project: "my-agent"
 
-suites:
-  - name: refund-agent
-    system_prompt: "You are a refund support agent."
-    tests:
-      - name: looks-up-order
-        input: "I want to return order #12345"
-        assert:
-          - type: tool_called
-            value: lookup_order
-          - type: no_pii
-          - type: judge
-            criteria: "Response is empathetic and professional"
-            threshold: 0.8
+suite:
+  name: "support-agent"
+
+providers:
+  openai:
+    apiKeyEnv: "OPENAI_API_KEY"
+
+models:
+  - id: "gpt-4o"
+    provider: "openai"
+    model: "gpt-4o"
+    params:
+      temperature: 0
+
+prompts:
+  support:
+    system: "You are a support agent. Use lookup_order(order_id) to find orders."
+    user: "{{message}}"
+
+tests:
+  - name: "looks-up-order"
+    prompt: "support"
+    vars:
+      message: "Where is order #12345?"
+    tools:
+      - name: "lookup_order"
+        responses:
+          - when: { order_id: "12345" }
+            then: { order_id: "12345", status: "shipped" }
+    expect:
+      toolCalls:
+        - tool: "lookup_order"
+          argsMatch: { order_id: "12345" }
+      guardrails:
+        pii:
+          enabled: true
+      judge:
+        - criteria: "Response is helpful and mentions shipping status"
+          minScore: 0.8
 ```
 
 Run your tests:
@@ -68,25 +91,44 @@ Run your tests:
 kindlm test
 ```
 
-Output:
-
 ```
-refund-agent
-  ✓ looks-up-order (3/3 runs passed)
-    ✓ tool_called: lookup_order
-    ✓ no_pii
-    ✓ judge: 0.92 ≥ 0.8
+  support-agent / looks-up-order
 
-1 suite, 1 test, 3 assertions — all passed
+  gpt-4o
+    ✓ looks-up-order  (1.3s)
+      ✓ tool_called: lookup_order
+      ✓ pii: no PII detected
+      ✓ judge: 0.92 ≥ 0.80
+
+  1 passed, 0 failed
+  Gates: ✓ PASSED
 ```
 
 ## CI Integration
 
 ```yaml
-# .github/workflows/test.yml
+# .github/workflows/kindlm.yml
 - run: npm install -g @kindlm/cli
-- run: kindlm test --reporter junit --output results.xml
+- run: kindlm test --reporter junit > junit.xml
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
+
+Exit code 0 = all gates passed. Exit code 1 = something failed.
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Adopt KindLM in 30 Minutes](https://kindlm.com/docs/adopt) | Install → first test → CI in one sitting |
+| [Tutorial: Refund Agent](https://kindlm.com/docs/tutorial) | Full walkthrough with tool calls, PII, and guards |
+| [CI: GitHub Actions in 5 Minutes](https://kindlm.com/docs/ci-guide) | Copy-paste workflow for CI |
+| [KindLM vs Promptfoo vs Scripts](https://kindlm.com/docs/comparison) | When to use which |
+| [Examples Gallery](https://kindlm.com/docs/examples) | 7 copy-paste configs for common scenarios |
+| [How to Model My System](https://kindlm.com/docs/modeling) | Decision tree for picking assertion types |
+| [Troubleshooting](https://kindlm.com/docs/troubleshooting) | Common errors and fixes |
+
+Full docs: [kindlm.com/docs](https://kindlm.com/docs)
 
 ## Repository Layout
 
@@ -96,12 +138,8 @@ packages/
   cli/        @kindlm/cli   — CLI entry point
   cloud/      @kindlm/cloud — Cloudflare Workers API + D1 database
 docs/         Technical specs and documentation
-site/         Documentation website (Next.js)
+site/         Landing page + docs (Next.js)
 ```
-
-## Documentation
-
-Full docs: [kindlm.dev](https://kindlm.dev) | Source: [`docs/`](./docs/)
 
 ## License
 

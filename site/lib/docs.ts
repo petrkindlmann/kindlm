@@ -13,24 +13,31 @@ export interface DocMeta {
 // Map filenames to URL slugs and display titles
 const DOC_MAP: Record<string, { slug: string; title: string }> = {
   "00-README.md": { slug: "getting-started", title: "Getting Started" },
-  "01-PROJECT_STRUCTURE.md": { slug: "project-structure", title: "Project Structure" },
+  "23-ADOPT.md": { slug: "adopt", title: "Adopt KindLM in 30 Minutes" },
+  "25-TUTORIAL.md": { slug: "tutorial", title: "Tutorial: Refund Agent" },
+  "26-CI_GUIDE.md": { slug: "ci-guide", title: "CI: GitHub Actions in 5 Minutes" },
+  "08-CLI_REFERENCE.md": { slug: "cli", title: "CLI Reference" },
   "02-CONFIG_SCHEMA.md": { slug: "config-schema", title: "Config Schema" },
   "03-PROVIDER_INTERFACE.md": { slug: "providers", title: "Provider Interface" },
   "04-ASSERTION_ENGINE.md": { slug: "assertions", title: "Assertion Engine" },
-  "05-CLOUD_API.md": { slug: "cloud-api", title: "Cloud API" },
-  "06-COMPLIANCE_SPEC.md": { slug: "compliance", title: "Compliance (EU AI Act)" },
-  "07-CONTRIBUTING.md": { slug: "contributing", title: "Contributing" },
-  "08-CLI_REFERENCE.md": { slug: "cli", title: "CLI Reference" },
-  "11-PRICING.md": { slug: "pricing", title: "Pricing" },
-  "14-ADR.md": { slug: "adr", title: "Architecture Decisions" },
-  "15-OPENAPI.md": { slug: "openapi", title: "OpenAPI Spec" },
-  "16-TESTING_STRATEGY.md": { slug: "testing-strategy", title: "Testing Strategy" },
-  "17-ERROR_HANDLING.md": { slug: "error-handling", title: "Error Handling" },
-  "18-SECURITY.md": { slug: "security", title: "Security" },
-  "19-DEPLOYMENT.md": { slug: "deployment", title: "Deployment" },
-  "architecture.md": { slug: "architecture", title: "Architecture" },
   "10-COMMAND-TESTS.md": { slug: "command-tests", title: "Command Tests" },
   "21-OTEL-TRACE.md": { slug: "otel-trace", title: "OpenTelemetry Traces" },
+  "27-EXAMPLES.md": { slug: "examples", title: "Examples Gallery" },
+  "28-MODELING.md": { slug: "modeling", title: "How to Model My System" },
+  "29-TROUBLESHOOTING.md": { slug: "troubleshooting", title: "Troubleshooting" },
+  "24-COMPARISON.md": { slug: "comparison", title: "KindLM vs Promptfoo vs Scripts" },
+  "01-PROJECT_STRUCTURE.md": { slug: "project-structure", title: "Project Structure" },
+  "architecture.md": { slug: "architecture", title: "Architecture" },
+  "05-CLOUD_API.md": { slug: "cloud-api", title: "Cloud API" },
+  "15-OPENAPI.md": { slug: "openapi", title: "OpenAPI Spec" },
+  "19-DEPLOYMENT.md": { slug: "deployment", title: "Deployment" },
+  "18-SECURITY.md": { slug: "security", title: "Security" },
+  "14-ADR.md": { slug: "adr", title: "Architecture Decisions" },
+  "11-PRICING.md": { slug: "pricing", title: "Pricing" },
+  "06-COMPLIANCE_SPEC.md": { slug: "compliance", title: "Compliance (EU AI Act)" },
+  "07-CONTRIBUTING.md": { slug: "contributing", title: "Contributing" },
+  "16-TESTING_STRATEGY.md": { slug: "testing-strategy", title: "Testing Strategy" },
+  "17-ERROR_HANDLING.md": { slug: "error-handling", title: "Error Handling" },
 };
 
 export function getAllDocs(): DocMeta[] {
@@ -77,12 +84,20 @@ export function getNavGroups(): NavGroup[] {
   return [
     {
       label: "Getting Started",
-      items: docs.filter((d) => ["getting-started", "cli"].includes(d.slug)),
+      items: docs.filter((d) =>
+        ["getting-started", "adopt", "tutorial", "ci-guide", "cli"].includes(d.slug)
+      ),
     },
     {
       label: "Core Concepts",
       items: docs.filter((d) =>
         ["config-schema", "providers", "assertions", "command-tests", "otel-trace"].includes(d.slug)
+      ),
+    },
+    {
+      label: "Guides",
+      items: docs.filter((d) =>
+        ["examples", "modeling", "troubleshooting", "comparison"].includes(d.slug)
       ),
     },
     {

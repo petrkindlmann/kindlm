@@ -377,7 +377,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── CTA ── */}
-        <section className="max-w-[460px] mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-20 sm:pb-[100px] text-center">
+        <section className="max-w-[460px] mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-16 sm:pb-20 text-center">
           <Reveal>
             <h2 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.025em] mb-2.5">
               Three lines of YAML. One command.
@@ -396,13 +396,52 @@ export default function LandingPage() {
             </div>
           </Reveal>
         </section>
+
+        {/* ── CROSS-PROMOTION ── */}
+        <section className="max-w-[480px] mx-auto px-5 sm:px-6 pb-16 sm:pb-20">
+          <Reveal>
+            <p className="text-[13px] font-semibold text-stone-400 mb-3">
+              More tools by{" "}
+              <a
+                href="https://kindlmann.com"
+                target="_blank"
+                rel="noopener"
+                className="text-stone-400 underline underline-offset-2 hover:text-stone-600 transition-colors"
+              >
+                Petr Kindlmann
+              </a>
+            </p>
+            <div className="flex flex-col gap-1.5 text-[13px] text-stone-500 leading-relaxed">
+              <p>
+                <a href="https://breakit.dev" target="_blank" rel="noopener" className="text-stone-600 font-medium no-underline hover:text-stone-800 transition-colors">breakit</a>
+                {" "}&mdash; 25 AI personas test your website with real Playwright browsers
+              </p>
+              <p>
+                <a href="https://www.npmjs.com/package/complytest" target="_blank" rel="noopener" className="text-stone-600 font-medium no-underline hover:text-stone-800 transition-colors">ComplyTest</a>
+                {" "}&mdash; compliance scanner for GDPR, WCAG 2.2, and security
+              </p>
+              <p>
+                <a href="https://www.npmjs.com/package/pw-doctor" target="_blank" rel="noopener" className="text-stone-600 font-medium no-underline hover:text-stone-800 transition-colors">pw-doctor</a>
+                {" "}&mdash; AI-assisted Playwright selector maintenance
+              </p>
+            </div>
+          </Reveal>
+        </section>
       </main>
 
       {/* ── FOOTER ── */}
       <footer className="px-5 sm:px-6 py-4 border-t border-stone-200">
         <div className="max-w-[960px] mx-auto flex justify-between items-center flex-wrap gap-2">
           <span className="text-[13px] text-stone-500">
-            <strong className="text-stone-500 font-semibold">kindlm</strong> &middot; MIT
+            <strong className="text-stone-500 font-semibold">kindlm</strong> &middot; MIT &middot; Built by{" "}
+            <a
+              href="https://kindlmann.com"
+              target="_blank"
+              rel="noopener"
+              className="text-stone-500 no-underline hover:text-stone-700 transition-colors"
+            >
+              Petr Kindlmann
+            </a>
           </span>
           <div className="flex gap-3.5">
             <a

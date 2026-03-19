@@ -195,6 +195,102 @@
 
 ---
 
+## 30-Day Launch Plan (March 2026)
+
+Positioning: "We built a CLI for catching agent regressions that don't show up in final-output checks — wrong tool calls, wrong args, schema drift."
+
+### Days 1–7: Adoption path
+
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| "Adopt KindLM in 30 Minutes" guide | **Done** | `/docs/adopt` — strict install → test → CI funnel |
+| KindLM vs Promptfoo vs Custom Scripts | **Done** | `/docs/comparison` — honest positioning |
+| Refund agent tutorial | **Done** | `/docs/tutorial` — real-world tool-call testing |
+| CI guide: GitHub Actions in 5 minutes | **Done** | `/docs/ci-guide` — copy-paste workflow |
+| Sync README with new docs | Pending | Links to adopt guide, comparison, tutorial |
+
+**Goal:** Someone who finds KindLM can go from zero to CI in one sitting.
+
+### Days 8–14: Credibility
+
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| Examples gallery (7 polished configs) | **Done** | `/docs/examples` — support, RAG, codegen, multi-model, compliance, brand, Ollama |
+| "How to model my system" decision tree | **Done** | `/docs/modeling` — picks the right assertion combo by system type |
+| "Why did my test fail?" troubleshooting | **Done** | `/docs/troubleshooting` — every error code with fix |
+| README sync with new docs | **Done** | Links to all guides, real config format |
+| Changelog page | **Done** | `/docs/changelog` |
+| GitHub issue templates | **Done** | Bug report, feature request, question |
+| Prepare HN answer bank | Pending | Draft responses to expected questions |
+
+**Goal:** Docs answer every question before it's asked. No "how do I…" without a page for it.
+
+### Days 15–21: Signal
+
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| 10 targeted outreaches | Pending | DMs to agent builders using Promptfoo, LangSmith, custom scripts |
+| 2 community posts | Pending | r/MachineLearning, AI Discord, or relevant Slack |
+| Collect objections | Pending | Track what people push back on → convert to docs/FAQ |
+| Terminal GIF for README + landing page | Pending | 15-second demo of `kindlm test` |
+
+**Goal:** Get 10 people to try it. Learn what's confusing.
+
+### Days 22–30: Launch
+
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| Show HN post | Pending | "Show HN: KindLM — regression tests for AI agents" |
+| Answer every HN comment | Pending | Same day, thoughtful responses |
+| Convert questions to docs | Pending | Every repeated question becomes a doc section |
+| FAQ page | Pending | From real questions collected days 15–30 |
+| Migration guide (from custom scripts) | Pending | Step-by-step script → YAML conversion |
+
+**Goal:** Public launch. Lead with the bug, not the framework.
+
+### Traction signals — add when real
+
+- **50+ GitHub stars** → add star count to landing page and README
+- **100+ weekly npm downloads** → add download badge
+
+Do not add these before hitting the thresholds.
+
+---
+
+## Docs Roadmap
+
+### Tier 1 — done (days 1–7)
+
+1. [Adopt KindLM in 30 Minutes](/docs/adopt)
+2. [KindLM vs Promptfoo vs Custom Scripts](/docs/comparison)
+3. [Tutorial: Refund Agent](/docs/tutorial)
+4. [CI: GitHub Actions in 5 Minutes](/docs/ci-guide)
+
+### Tier 2 — done (days 8–14)
+
+5. [Examples Gallery](/docs/examples) — 7 configs: support, RAG, codegen, multi-model, compliance, brand safety, Ollama
+6. [How to Model My System](/docs/modeling) — decision tree by system type + assertion layering guide
+7. [Troubleshooting](/docs/troubleshooting) — every error code, cause, and fix
+
+### Tier 3 — days 15+
+
+8. Terminal GIF for README and landing page
+9. FAQ (from real questions)
+10. Migration guide (custom scripts → YAML)
+
+---
+
+## Positioning vs Promptfoo
+
+```
+Promptfoo helps evaluate prompts.
+KindLM helps catch behavior regressions before deploy.
+```
+
+Many teams use both: Promptfoo for broader eval + security, KindLM for stable regression checks in agent workflows. This is the framing for comparison page, HN, and all outreach.
+
+---
+
 ## Key Milestones Summary
 
 | Week | Milestone | Success Metric | Status |
@@ -209,6 +305,7 @@
 | 16 | **First revenue** | Stripe billing active | Done (API ready) |
 | 18 | Enterprise GA | SSO, audit log, signed reports | Pending |
 | 22 | **Month 6 target** | $7,890 MRR | Pending |
+| 30d | **Show HN launch** | Adoption funnel live, docs complete | Pending |
 
 ---
 
