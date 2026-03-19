@@ -575,6 +575,11 @@ export class ToolCallAssertion implements Assertion {
 }
 ```
 
+**Additional tool call assertion fields:**
+
+- **`argsSchema`** — Path to a JSON Schema file to validate tool call arguments. Fails with `TOOL_CALL_ARGS_SCHEMA_INVALID` if the arguments don't match.
+- **`responseContains`** — Assert that the simulated tool response contains a specific substring. Useful for verifying the agent received the expected data from a tool.
+
 ### 6. Baseline Drift
 
 ```typescript
@@ -642,16 +647,16 @@ export class DriftAssertion implements Assertion {
   }
 
   private evaluateFieldDiff(ctx: AssertionContext): Promise<AssertionResult[]> {
-    // Compare specific JSON fields between baseline and current
-    // Returns per-field drift results
-    // Implementation uses deep equality + Levenshtein for string fields
-    // ...
+    // Compares specific JSON fields between baseline and current output.
+    // Uses deep equality for structured fields and Levenshtein distance for strings.
+    // Requires `fields` to be set in the drift config (e.g., ["response.action", "response.message"]).
+    // Implementation omitted for brevity — see source.
   }
 
   private evaluateEmbedding(ctx: AssertionContext): Promise<AssertionResult[]> {
-    // Cosine similarity between embeddings
-    // Falls back to judge if embedding provider not available
-    // ...
+    // Computes cosine similarity between text embeddings of baseline and current output.
+    // Falls back to judge method if no embedding provider is configured.
+    // Implementation omitted for brevity — see source.
   }
 }
 

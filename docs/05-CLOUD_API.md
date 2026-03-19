@@ -392,11 +392,11 @@ GET /v1/runs/:runId/compare?baselineRunId=<id>
 
 Per-org limits enforced via D1 counter table:
 
-| Plan | Requests/min | Runs/month | Artifacts storage |
-|------|-------------|------------|-------------------|
-| Free | 60 | 100 | None |
-| Pro | 300 | 5,000 | 1 GB |
-| Enterprise | Custom | Custom | Custom |
+| Plan | Requests/hour | Runs/month | Artifacts storage |
+|------|--------------|------------|-------------------|
+| Free | 100 | 100 | None |
+| Team | 1,000 | 5,000 | 1 GB |
+| Enterprise | 10,000 | Custom | Custom |
 
 Rate limit headers returned on every response:
 ```
@@ -692,7 +692,9 @@ const isValid = await crypto.subtle.verify(
 
 ### Webhook Dispatch
 
-Webhooks are dispatched asynchronously using `waitUntil()` after the PATCH `/v1/runs/:id` endpoint updates a run's status to `completed` or `failed`. Delivery is fire-and-forget — failed deliveries are not retried.
+Webhooks are dispatched asynchronously using `waitUntil()` after the PATCH `/v1/runs/:id` endpoint updates a run's status to `completed` or `failed`.
+
+**Important:** Delivery is fire-and-forget — failed deliveries are not retried. If your endpoint is down, you will miss the notification. Use the polling API (`GET /v1/projects/:projectId/runs`) as a fallback for critical workflows.
 
 ---
 

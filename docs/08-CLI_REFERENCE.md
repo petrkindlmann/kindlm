@@ -24,6 +24,11 @@ kindlm init --template basic     # simple prompt test template
 kindlm init --template compliance # EU AI Act compliance template
 ```
 
+**Templates:**
+- `basic` — minimal config with a single prompt test and judge assertion
+- `agent` — tool-calling agent with simulated tools, tool call assertions, and PII guardrails
+- `compliance` — includes the `compliance:` section with EU AI Act metadata fields pre-filled
+
 **Creates:**
 ```
 kindlm.yaml               # Config file
@@ -85,6 +90,9 @@ kindlm test \
 | `--runs` | int | from config | Override repeat run count |
 | `--gate` | number | from config | Fail if pass rate below threshold (percent) |
 | `--compliance` | boolean | false | Generate EU AI Act compliance report |
+| `--pdf <path>` | string | — | Export compliance report as PDF (requires `--compliance`) |
+
+**Note:** The config schema supports a `tags` field on test cases and the `--runs` CLI flag overrides the `defaults.repeat` config value. The flag is named `--runs` (not `--repeat`) for brevity.
 
 **Command tests:** Tests can use `command:` instead of `prompt:` to run shell commands and assert on their output. Command tests run once per repeat (not multiplied by models). See [10-COMMAND-TESTS.md](./10-COMMAND-TESTS.md) for details.
 

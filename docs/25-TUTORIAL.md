@@ -218,6 +218,8 @@ The agent must check the policy *before* processing. This catches a dangerous re
           order: 1
 ```
 
+This test is intentionally minimal — it only checks tool ordering. Not every test needs guardrails or judge criteria. Use the simplest assertions that catch the specific failure mode you're testing for.
+
 ## Step 6: Set gates
 
 Add pass/fail thresholds at the top level:

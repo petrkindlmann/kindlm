@@ -187,19 +187,16 @@ The CLI works fully offline with every feature. Cloud is optional and adds:
 
 ## Documentation
 
-| Guide | Description |
-|-------|-------------|
-| [Adopt KindLM in 30 Minutes](/docs/adopt) | Install → first test → CI in one sitting |
-| [Tutorial: Refund Agent](/docs/tutorial) | Full walkthrough with tool calls, PII, and guards |
-| [CI: GitHub Actions in 5 Minutes](/docs/ci-guide) | Copy-paste CI workflow |
-| [Examples Gallery](/docs/examples) | 7 copy-paste configs for common scenarios |
-| [How to Model My System](/docs/modeling) | Decision tree for picking assertion types |
-| [Troubleshooting](/docs/troubleshooting) | Common errors and fixes |
-| [KindLM vs Promptfoo vs Scripts](/docs/comparison) | When to use which |
-| [Config Schema](/docs/config-schema) | Complete YAML config reference |
-| [Assertion Engine](/docs/assertions) | All assertion types with details |
-| [Provider Interface](/docs/providers) | Provider adapter setup |
-| [Compliance](/docs/compliance) | EU AI Act report generation |
+Visit [kindlm.com/docs](https://kindlm.com/docs) for the full documentation, including:
+
+- [Adopt KindLM in 30 Minutes](/docs/adopt) — install, first test, CI
+- [Tutorial: Refund Agent](/docs/tutorial) — tool calls, PII, guards
+- [CI: GitHub Actions in 5 Minutes](/docs/ci-guide) — copy-paste workflow
+- [Examples Gallery](/docs/examples) — 7 configs for common scenarios
+- [Config Schema](/docs/config-schema) — complete YAML reference
+- [Assertion Engine](/docs/assertions) — all assertion types
+- [Provider Interface](/docs/providers) — OpenAI, Anthropic, Gemini, Mistral, Cohere, Ollama
+- [Troubleshooting](/docs/troubleshooting) — common errors and fixes
 
 ## License
 

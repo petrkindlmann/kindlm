@@ -27,8 +27,7 @@ const DOC_MAP: Record<string, { slug: string; title: string }> = {
   "29-TROUBLESHOOTING.md": { slug: "troubleshooting", title: "Troubleshooting" },
   "24-COMPARISON.md": { slug: "comparison", title: "KindLM vs Promptfoo vs Scripts" },
   "01-PROJECT_STRUCTURE.md": { slug: "project-structure", title: "Project Structure" },
-  "architecture.md": { slug: "architecture", title: "Architecture" },
-  "05-CLOUD_API.md": { slug: "cloud-api", title: "Cloud API" },
+"05-CLOUD_API.md": { slug: "cloud-api", title: "Cloud API" },
   "15-OPENAPI.md": { slug: "openapi", title: "OpenAPI Spec" },
   "19-DEPLOYMENT.md": { slug: "deployment", title: "Deployment" },
   "18-SECURITY.md": { slug: "security", title: "Security" },
@@ -103,7 +102,7 @@ export function getNavGroups(): NavGroup[] {
     {
       label: "Infrastructure",
       items: docs.filter((d) =>
-        ["project-structure", "architecture", "cloud-api", "openapi", "deployment", "security"].includes(d.slug)
+        ["project-structure", "cloud-api", "openapi", "deployment", "security"].includes(d.slug)
       ),
     },
     {

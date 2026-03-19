@@ -55,13 +55,11 @@ The `if: always()` ensures the report is uploaded even when tests fail — so yo
 
 ## Multiple reporters
 
-Generate both a human-readable summary and JUnit XML:
+To get both JUnit and JSON output without running tests twice, run once with JUnit output and save the JSON report separately:
 
 ```yaml
       - name: Run KindLM tests
-        run: |
-          kindlm test --reporter junit > junit.xml
-          kindlm test --reporter json > kindlm-report.json
+        run: kindlm test --reporter junit > junit.xml
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```

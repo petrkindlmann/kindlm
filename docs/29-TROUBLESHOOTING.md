@@ -246,4 +246,4 @@ Each test case becomes a JUnit `<testcase>`. Failed assertions become `<failure>
 
 1. Run with `--reporter json` to see full details including raw model output
 2. Check [GitHub Issues](https://github.com/kindlm/kindlm/issues) for known problems
-3. Open a new issue with your config (redact API keys) and the error output
+3. [Open a new issue](https://github.com/kindlm/kindlm/issues/new/choose) with your config (redact API keys) and the error output

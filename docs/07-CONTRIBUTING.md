@@ -172,7 +172,7 @@ chore: update dependencies
 3. Add it to `packages/core/src/assertions/registry.ts`
 4. Add the Zod schema for its config to `packages/core/src/config/schema.ts`
 5. Write tests in `your-assertion.test.ts`
-6. Add documentation to `docs/assertions.md`
+6. Add documentation to [Assertion Engine](/docs/assertions)
 7. Add an example to a template config in `templates/`
 
 ---
@@ -185,7 +185,7 @@ chore: update dependencies
 4. Add its config schema to the `ProvidersSchema` in `schema.ts`
 5. Add pricing data if available
 6. Write tests with mocked HTTP responses
-7. Add documentation to `docs/providers.md`
+7. Add documentation to [Provider Interface](/docs/providers)
 
 ---
 
