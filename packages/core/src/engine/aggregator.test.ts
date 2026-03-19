@@ -64,33 +64,63 @@ describe("aggregateRuns", () => {
     expect(result.data.passed).toBe(false);
   });
 
-  it("computes assertion scores by type", () => {
+  it("computes assertion scores by type:label composite key", () => {
     const runs = [
       makeRun({
         runIndex: 0,
         assertions: [
-          makeAssertion({ assertionType: "judge", score: 0.8 }),
-          makeAssertion({ assertionType: "schema", score: 1.0 }),
+          makeAssertion({ assertionType: "judge", label: "Is empathetic", score: 0.8 }),
+          makeAssertion({ assertionType: "schema", label: "output schema", score: 1.0 }),
         ],
       }),
       makeRun({
         runIndex: 1,
         assertions: [
-          makeAssertion({ assertionType: "judge", score: 0.6 }),
-          makeAssertion({ assertionType: "schema", score: 1.0 }),
+          makeAssertion({ assertionType: "judge", label: "Is empathetic", score: 0.6 }),
+          makeAssertion({ assertionType: "schema", label: "output schema", score: 1.0 }),
         ],
       }),
     ];
     const result = aggregateRuns(runs);
     expect(result.success).toBe(true);
     if (!result.success) return;
-    const judgeScores = result.data.assertionScores["judge"];
+    const judgeScores = result.data.assertionScores["judge:Is empathetic"];
     expect(judgeScores).toBeDefined();
     expect(judgeScores?.mean).toBeCloseTo(0.7);
     expect(judgeScores?.min).toBe(0.6);
     expect(judgeScores?.max).toBe(0.8);
-    const schemaScores = result.data.assertionScores["schema"];
+    const schemaScores = result.data.assertionScores["schema:output schema"];
     expect(schemaScores?.mean).toBe(1.0);
+  });
+
+  it("keeps distinct judge criteria in separate score buckets", () => {
+    const runs = [
+      makeRun({
+        runIndex: 0,
+        assertions: [
+          makeAssertion({ assertionType: "judge", label: "Is empathetic", score: 0.9 }),
+          makeAssertion({ assertionType: "judge", label: "Is accurate", score: 0.5 }),
+        ],
+      }),
+      makeRun({
+        runIndex: 1,
+        assertions: [
+          makeAssertion({ assertionType: "judge", label: "Is empathetic", score: 0.7 }),
+          makeAssertion({ assertionType: "judge", label: "Is accurate", score: 0.3 }),
+        ],
+      }),
+    ];
+    const result = aggregateRuns(runs);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const empathetic = result.data.assertionScores["judge:Is empathetic"];
+    const accurate = result.data.assertionScores["judge:Is accurate"];
+    expect(empathetic).toBeDefined();
+    expect(accurate).toBeDefined();
+    expect(empathetic?.mean).toBeCloseTo(0.8);
+    expect(accurate?.mean).toBeCloseTo(0.4);
+    // No blended "judge" key should exist
+    expect(result.data.assertionScores["judge"]).toBeUndefined();
   });
 
   it("collects unique failure codes", () => {

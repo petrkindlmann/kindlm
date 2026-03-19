@@ -80,7 +80,7 @@ describe("createJudgeAssertion", () => {
     const results = await assertion.evaluate(ctx("Output", adapter));
     expect(results[0]).toMatchObject({
       passed: false,
-      failureCode: "INTERNAL_ERROR",
+      failureCode: "JUDGE_PARSE_ERROR",
     });
   });
 

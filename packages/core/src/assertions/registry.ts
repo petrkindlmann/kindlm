@@ -36,7 +36,11 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
           assertions.push(createToolNotCalledAssertion(tc.tool));
         } else {
           assertions.push(
-            createToolCalledAssertion(tc.tool, tc.argsMatch ?? undefined),
+            createToolCalledAssertion(
+              tc.tool,
+              tc.argsMatch ?? undefined,
+              tc.argsSchema ?? undefined,
+            ),
           );
         }
       }

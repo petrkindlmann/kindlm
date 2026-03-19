@@ -234,9 +234,11 @@ function collectScores(
 ): number[] {
   const scores: number[] = [];
   for (const r of results) {
-    const entry = r.assertionScores[assertionType];
-    if (entry) {
-      scores.push(entry.mean);
+    for (const [key, entry] of Object.entries(r.assertionScores)) {
+      // Match both "judge" and "judge:Is empathetic", "judge:Is accurate" etc.
+      if (key === assertionType || key.startsWith(`${assertionType}:`)) {
+        scores.push(entry.mean);
+      }
     }
   }
   return scores;

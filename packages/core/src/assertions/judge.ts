@@ -1,4 +1,5 @@
 import type { Assertion, AssertionContext, AssertionResult } from "./interface.js";
+import { validateUnitIntervalScore } from "./shared-score.js";
 
 export interface JudgeAssertionConfig {
   criteria: string;
@@ -29,18 +30,29 @@ function buildUserPrompt(
   return prompt;
 }
 
-function parseJudgeResponse(text: string): { score: number; reasoning: string } | null {
+type JudgeParseResult =
+  | { ok: true; score: number; reasoning: string }
+  | { ok: false; reason: string };
+
+function parseJudgeResponse(text: string): JudgeParseResult {
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/);
-  if (!jsonMatch?.[1]) return null;
-  try {
-    const parsed = JSON.parse(jsonMatch[1]) as Record<string, unknown>;
-    if (typeof parsed.score === "number" && typeof parsed.reasoning === "string") {
-      return { score: parsed.score, reasoning: parsed.reasoning };
-    }
-    return null;
-  } catch {
-    return null;
+  if (!jsonMatch?.[1]) {
+    return { ok: false, reason: "No JSON object found in judge response" };
   }
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonMatch[1]) as Record<string, unknown>;
+  } catch {
+    return { ok: false, reason: "Invalid JSON in judge response" };
+  }
+  const scoreResult = validateUnitIntervalScore(parsed.score, "score");
+  if (!scoreResult.ok) {
+    return { ok: false, reason: scoreResult.reason };
+  }
+  if (typeof parsed.reasoning !== "string") {
+    return { ok: false, reason: "reasoning must be a string" };
+  }
+  return { ok: true, score: scoreResult.score, reasoning: parsed.reasoning };
 }
 
 export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
@@ -78,15 +90,15 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
       });
 
       const parsed = parseJudgeResponse(response.text);
-      if (!parsed) {
+      if (!parsed.ok) {
         return [
           {
             assertionType: "judge",
             label: `Judge: ${config.criteria}`,
             passed: false,
             score: 0,
-            failureCode: "INTERNAL_ERROR",
-            failureMessage: `Failed to parse judge response: ${response.text.slice(0, 200)}`,
+            failureCode: "JUDGE_PARSE_ERROR",
+            failureMessage: `Failed to parse judge response: ${parsed.reason}`,
           },
         ];
       }

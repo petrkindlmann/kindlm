@@ -7,9 +7,11 @@ import type {
   ProviderToolCall,
 } from "./interface.js";
 import { ProviderError } from "./interface.js";
+import type { ModelPricing } from "./pricing.js";
+import { lookupModelPricing } from "./pricing.js";
 import { withRetry } from "./retry.js";
 
-const GEMINI_PRICING: Record<string, { input: number; output: number }> = {
+const GEMINI_PRICING: Record<string, ModelPricing> = {
   "gemini-2.0-flash": { input: 0.1, output: 0.4 },
   "gemini-2.0-flash-lite": { input: 0.075, output: 0.3 },
   "gemini-1.5-pro": { input: 1.25, output: 5.0 },
@@ -275,11 +277,11 @@ export function createGeminiAdapter(httpClient: HttpClient): ProviderAdapter {
       model: string,
       usage: ProviderResponse["usage"],
     ): number | null {
-      const pricing = GEMINI_PRICING[model];
-      if (!pricing) return null;
+      const match = lookupModelPricing(model, GEMINI_PRICING);
+      if (!match.ok) return null;
       return (
-        (usage.inputTokens / 1_000_000) * pricing.input +
-        (usage.outputTokens / 1_000_000) * pricing.output
+        (usage.inputTokens / 1_000_000) * match.price.input +
+        (usage.outputTokens / 1_000_000) * match.price.output
       );
     },
 

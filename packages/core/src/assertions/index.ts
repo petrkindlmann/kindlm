@@ -28,3 +28,6 @@ export type { AssertionFactory, AssertionOverrides } from "./registry.js";
 
 export { classifyAssertion, isDeterministic, isProbabilistic } from "./classification.js";
 export type { AssertionCategory } from "./classification.js";
+
+export { validateUnitIntervalScore } from "./shared-score.js";
+export type { NormalizedScore } from "./shared-score.js";

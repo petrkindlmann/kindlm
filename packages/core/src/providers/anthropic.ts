@@ -7,9 +7,11 @@ import type {
   ProviderToolCall,
 } from "./interface.js";
 import { ProviderError } from "./interface.js";
+import type { ModelPricing } from "./pricing.js";
+import { lookupModelPricing } from "./pricing.js";
 import { withRetry } from "./retry.js";
 
-const ANTHROPIC_PRICING: Record<string, { input: number; output: number }> = {
+const ANTHROPIC_PRICING: Record<string, ModelPricing> = {
   "claude-opus-4-5-20250929": { input: 15.0, output: 75.0 },
   "claude-sonnet-4-5-20250929": { input: 3.0, output: 15.0 },
   "claude-haiku-4-5-20251001": { input: 0.8, output: 4.0 },
@@ -202,6 +204,17 @@ export function createAnthropicAdapter(
           maxRetries,
           shouldRetry: (error) =>
             error instanceof ProviderError && error.retryable,
+          getRetryAfterMs: (error) => {
+            if (!(error instanceof ProviderError) || !error.raw) return undefined;
+            const raw = error.raw as Record<string, unknown>;
+            const headers = raw["headers"] as Record<string, unknown> | undefined;
+            const retryAfter = headers?.["retry-after"];
+            if (typeof retryAfter === "string") {
+              const seconds = Number(retryAfter);
+              if (!Number.isNaN(seconds) && seconds > 0) return seconds * 1000;
+            }
+            return undefined;
+          },
         },
       );
 
@@ -254,13 +267,11 @@ export function createAnthropicAdapter(
       model: string,
       usage: ProviderResponse["usage"],
     ): number | null {
-      const entry = Object.entries(ANTHROPIC_PRICING).find(
-        ([key]) => model.includes(key) || key.includes(model),
-      );
-      if (!entry) return null;
+      const match = lookupModelPricing(model, ANTHROPIC_PRICING);
+      if (!match.ok) return null;
       return (
-        (usage.inputTokens / 1_000_000) * entry[1].input +
-        (usage.outputTokens / 1_000_000) * entry[1].output
+        (usage.inputTokens / 1_000_000) * match.price.input +
+        (usage.outputTokens / 1_000_000) * match.price.output
       );
     },
 

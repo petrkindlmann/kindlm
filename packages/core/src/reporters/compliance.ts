@@ -2,6 +2,22 @@ import type { Reporter, ReporterOutput } from "./interface.js";
 import type { RunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
 
+// ============================================================
+// Types
+// ============================================================
+
+export interface ComplianceRunMetadata {
+  runId: string;
+  kindlmVersion: string;
+  gitCommitSha?: string;
+  modelIds: string[];
+  configHash?: string;
+}
+
+// ============================================================
+// Hashing helpers
+// ============================================================
+
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
   const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
@@ -11,18 +27,38 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-export function createComplianceReporter(): Reporter {
+function sortDeep(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortDeep);
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => [k, sortDeep(v)]);
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
+function canonicalize(value: unknown): string {
+  return JSON.stringify(sortDeep(value));
+}
+
+// ============================================================
+// Reporter
+// ============================================================
+
+export function createComplianceReporter(metadata?: ComplianceRunMetadata): Reporter {
   return {
     name: "compliance",
     async generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput> {
       const timestamp = new Date().toISOString();
+      const versionLabel = metadata?.kindlmVersion ?? "unknown";
       const sections: string[] = [];
 
       sections.push("# EU AI Act — Annex IV Compliance Report");
       sections.push("");
       sections.push(`**Generated:** ${timestamp}`);
       sections.push(`**Framework:** EU AI Act (Regulation 2024/1689)`);
-      sections.push(`**Tool:** KindLM v1.0.0`);
+      sections.push(`**Tool:** KindLM v${versionLabel}`);
       sections.push("");
 
       // Article 9 — Risk Management
@@ -92,12 +128,22 @@ export function createComplianceReporter(): Reporter {
       sections.push(`**Overall Verdict:** ${verdict}`);
       sections.push("");
 
-      // Hash — computed over everything above
+      // Content hash — same results always produce the same hash (reproducibility)
       const contentAboveHash = sections.join("\n");
-      const hash = await sha256Hex(contentAboveHash);
+      const contentHash = await sha256Hex(contentAboveHash);
+
+      // Run hash — unique per execution, includes metadata (traceability)
+      const runHash = metadata
+        ? await sha256Hex(canonicalize({ content: contentAboveHash, metadata }))
+        : contentHash;
 
       sections.push("---");
-      sections.push(`**Tamper Evidence Hash (SHA-256):** \`${hash}\``);
+      sections.push(`**Tamper Evidence Hash (SHA-256):** \`${contentHash}\``);
+      sections.push(`**Run Identity Hash (SHA-256):** \`${runHash}\``);
+      sections.push(`**Run ID:** ${metadata?.runId ?? "N/A"}`);
+      sections.push(`**KindLM Version:** ${metadata?.kindlmVersion ?? "N/A"}`);
+      sections.push(`**Git Commit:** ${metadata?.gitCommitSha ?? "N/A"}`);
+      sections.push(`**Models:** ${metadata?.modelIds?.join(", ") ?? "N/A"}`);
       sections.push("");
 
       return { content: sections.join("\n"), format: "markdown" };

@@ -6,6 +6,7 @@ import {
   readBaseline,
   writeBaseline,
   listBaselines,
+  migrateBaseline,
   BASELINE_VERSION,
 } from "./store.js";
 import type { Result } from "../types/result.js";
@@ -139,6 +140,77 @@ describe("listBaselines", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data).toEqual(["suite-a", "suite-b"]);
+    }
+  });
+});
+
+describe("migrateBaseline", () => {
+  it("returns ok with migrated=false for current version", () => {
+    const data = makeBaselineData();
+    const result = migrateBaseline(data);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.migrated).toBe(false);
+      expect(result.baseline).toEqual(data);
+    }
+  });
+
+  it("returns error for unknown version", () => {
+    const data = makeBaselineData({ version: "99" });
+    const result = migrateBaseline(data);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("Unsupported baseline version");
+      expect(result.error).toContain('"99"');
+    }
+  });
+
+  it("returns error for non-object input", () => {
+    const result = migrateBaseline("not an object");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("not an object");
+    }
+  });
+
+  it("returns error for null input", () => {
+    const result = migrateBaseline(null);
+    expect(result.ok).toBe(false);
+  });
+
+  it("returns error for missing version field", () => {
+    const result = migrateBaseline({ suiteName: "test" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("version");
+    }
+  });
+
+  it("returns error when current version has missing required fields", () => {
+    const result = migrateBaseline({ version: BASELINE_VERSION });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("suiteName");
+    }
+  });
+
+  it("deserializeBaseline succeeds for current version via migration", () => {
+    const data = makeBaselineData();
+    const serialized = serializeBaseline(data);
+    const result = deserializeBaseline(serialized);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.version).toBe(BASELINE_VERSION);
+    }
+  });
+
+  it("deserializeBaseline fails with BASELINE_VERSION_MISMATCH for unknown version", () => {
+    const data = makeBaselineData({ version: "99" });
+    const serialized = serializeBaseline(data);
+    const result = deserializeBaseline(serialized);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("BASELINE_VERSION_MISMATCH");
     }
   });
 });

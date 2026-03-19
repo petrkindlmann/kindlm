@@ -25,3 +25,5 @@ export { createProvider } from "./registry.js";
 export { runConversation } from "./conversation.js";
 export { withRetry } from "./retry.js";
 export type { RetryOptions } from "./retry.js";
+export { lookupModelPricing } from "./pricing.js";
+export type { ModelPricing, PricingMatch } from "./pricing.js";

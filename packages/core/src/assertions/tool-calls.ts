@@ -8,21 +8,98 @@ export interface ToolCallExpectation {
   order?: number;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function partialDeepMatch(actual: unknown, expected: unknown): boolean {
+  // Exact primitive match
+  if (Object.is(actual, expected)) return true;
+
+  // Array: exact deep equality (order matters)
+  if (Array.isArray(expected)) {
+    if (!Array.isArray(actual)) return false;
+    if (actual.length !== expected.length) return false;
+    for (let i = 0; i < actual.length; i++) {
+      if (!partialDeepMatch(actual[i], expected[i])) return false;
+    }
+    return true;
+  }
+
+  // Object: partial match (every expected key must match, extra actual keys allowed)
+  if (isPlainObject(expected)) {
+    if (!isPlainObject(actual)) return false;
+    for (const [key, expectedValue] of Object.entries(expected)) {
+      if (!(key in actual)) return false;
+      if (!partialDeepMatch(actual[key], expectedValue)) return false;
+    }
+    return true;
+  }
+
+  return false;
+}
+
 function matchArgs(
   actual: Record<string, unknown>,
   expected: Record<string, unknown>,
 ): boolean {
-  for (const [key, value] of Object.entries(expected)) {
-    if (JSON.stringify(actual[key]) !== JSON.stringify(value)) {
-      return false;
-    }
+  for (const [key, expectedValue] of Object.entries(expected)) {
+    if (!(key in actual)) return false;
+    if (!partialDeepMatch(actual[key], expectedValue)) return false;
   }
   return true;
+}
+
+function evaluateArgsSchema(
+  tool: string,
+  assertionType: string,
+  argsSchema: string | undefined,
+  matching: { arguments: Record<string, unknown> }[],
+  context: AssertionContext,
+  results: AssertionResult[],
+): void {
+  if (!argsSchema) return;
+
+  if (!context.validateJsonSchema) {
+    results.push({
+      assertionType,
+      label: `Tool "${tool}" args schema valid`,
+      passed: false,
+      score: 0,
+      failureCode: "INTERNAL_ERROR",
+      failureMessage:
+        "argsSchema provided but no JSON Schema validator was injected",
+    });
+    return;
+  }
+
+  const schemaObj =
+    typeof argsSchema === "string" ? JSON.parse(argsSchema) : argsSchema;
+  const anySchemaMatch = matching.some((tc) => {
+    const validator = context.validateJsonSchema;
+    if (!validator) return false;
+    const result = validator(
+      schemaObj as Record<string, unknown>,
+      tc.arguments,
+    );
+    return result.valid;
+  });
+  results.push({
+    assertionType,
+    label: `Tool "${tool}" args schema valid`,
+    passed: anySchemaMatch,
+    score: anySchemaMatch ? 1 : 0,
+    failureCode: anySchemaMatch ? undefined : "TOOL_CALL_ARGS_SCHEMA_INVALID",
+    failureMessage: anySchemaMatch
+      ? undefined
+      : `Tool "${tool}" arguments did not match argsSchema`,
+  });
 }
 
 export function createToolCalledAssertion(
   tool: string,
   argsMatch?: Record<string, unknown>,
+  argsSchema?: string,
 ): Assertion {
   return {
     type: "tool_called",
@@ -51,7 +128,9 @@ export function createToolCalledAssertion(
       });
 
       if (argsMatch) {
-        const anyMatch = matching.some((tc) => matchArgs(tc.arguments, argsMatch));
+        const anyMatch = matching.some((tc) =>
+          matchArgs(tc.arguments, argsMatch),
+        );
         results.push({
           assertionType: "tool_called",
           label: `Tool "${tool}" args match`,
@@ -63,6 +142,15 @@ export function createToolCalledAssertion(
             : `Expected args ${JSON.stringify(argsMatch)}, got ${JSON.stringify(matching[0]?.arguments)}`,
         });
       }
+
+      evaluateArgsSchema(
+        tool,
+        "tool_called",
+        argsSchema,
+        matching,
+        context,
+        results,
+      );
 
       return Promise.resolve(results);
     },
@@ -117,7 +205,9 @@ export function createToolOrderAssertion(
           continue;
         }
 
-        const matching = context.toolCalls.filter((tc) => tc.name === exp.tool);
+        const matching = context.toolCalls.filter(
+          (tc) => tc.name === exp.tool,
+        );
         if (matching.length === 0) {
           results.push({
             assertionType: "tool_order",
@@ -152,6 +242,15 @@ export function createToolOrderAssertion(
               : `Expected args ${JSON.stringify(exp.argsMatch)}, got ${JSON.stringify(matching[0]?.arguments)}`,
           });
         }
+
+        evaluateArgsSchema(
+          exp.tool,
+          "tool_order",
+          exp.argsSchema,
+          matching,
+          context,
+          results,
+        );
 
         // order refers to the position in the actual context.toolCalls array.
         // When a tool appears multiple times, validate the specific occurrence at that index.

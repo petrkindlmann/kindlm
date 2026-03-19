@@ -129,9 +129,37 @@ export function createRunner(
         }
       }
 
-      // 3. Execute with concurrency pool
+      // 3. Execute with concurrency pool, tracking cumulative cost for mid-run budget enforcement.
+      // With concurrency, there may be bounded overshoot — tests already in-flight when
+      // the budget is exceeded will still complete. Since JS is single-threaded, the
+      // shared mutable state check is safe (no race condition).
+      let cumulativeCostUsd = 0;
+      let budgetExceeded = false;
+      const costBudget = config.gates?.costMaxUsd;
+
       const caseResults = await runWithConcurrency(
-        units.map((unit) => () => executeUnit(config, deps, unit, schemaCache)),
+        units.map((unit) => async () => {
+          if (budgetExceeded) {
+            return budgetExceededResult(
+              unit.test.name,
+              unit.modelConfig?.id ?? "command",
+              unit.runIndex,
+              cumulativeCostUsd,
+              costBudget ?? 0,
+            );
+          }
+
+          const result = await executeUnit(config, deps, unit, schemaCache);
+
+          if (result.costEstimateUsd !== null && result.costEstimateUsd !== undefined) {
+            cumulativeCostUsd += result.costEstimateUsd;
+            if (costBudget !== undefined && cumulativeCostUsd > costBudget) {
+              budgetExceeded = true;
+            }
+          }
+
+          return result;
+        }),
         config.defaults.concurrency,
       );
 
@@ -491,6 +519,34 @@ async function executeCommandUnit(
       e instanceof Error ? e.message : String(e),
     );
   }
+}
+
+function budgetExceededResult(
+  testCaseName: string,
+  modelId: string,
+  runIndex: number,
+  cumulativeCostUsd: number,
+  costBudget: number,
+): TestCaseRunResult {
+  return {
+    testCaseName,
+    modelId,
+    runIndex,
+    outputText: "",
+    assertions: [
+      {
+        assertionType: "cost",
+        label: "Budget exceeded",
+        passed: false,
+        score: 0,
+        failureCode: "BUDGET_EXCEEDED",
+        failureMessage: `Run budget exceeded: $${cumulativeCostUsd.toFixed(4)} > $${costBudget.toFixed(4)}`,
+      },
+    ],
+    latencyMs: 0,
+    tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    costEstimateUsd: 0,
+  };
 }
 
 function errorResult(

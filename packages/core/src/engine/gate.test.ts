@@ -76,25 +76,50 @@ describe("evaluateGates", () => {
     expect(gate?.passed).toBe(false);
   });
 
-  it("evaluates optional judgeAvgMin gate", () => {
+  it("evaluates optional judgeAvgMin gate with composite keys", () => {
     const config = makeGatesConfig({ judgeAvgMin: 0.8 });
     const results = [
-      makeResult({ assertionScores: { judge: { mean: 0.6, min: 0.5, max: 0.7 } } }),
+      makeResult({
+        assertionScores: {
+          "judge:Is empathetic": { mean: 0.6, min: 0.5, max: 0.7 },
+          "judge:Is accurate": { mean: 0.7, min: 0.6, max: 0.8 },
+        },
+      }),
     ];
     const evaluation = evaluateGates(config, results);
     const gate = evaluation.gates.find((g) => g.gateName === "judgeAvgMin");
     expect(gate).toBeDefined();
     expect(gate?.passed).toBe(false);
+    // Average of 0.6 and 0.7 = 0.65 < 0.8
+    expect(gate?.actual).toBeCloseTo(0.65);
   });
 
-  it("evaluates optional driftScoreMax gate", () => {
+  it("evaluates optional driftScoreMax gate with composite keys", () => {
     const config = makeGatesConfig({ driftScoreMax: 0.1 });
     const results = [
-      makeResult({ assertionScores: { drift: { mean: 0.15, min: 0.1, max: 0.2 } } }),
+      makeResult({ assertionScores: { "drift:baseline comparison": { mean: 0.15, min: 0.1, max: 0.2 } } }),
     ];
     const evaluation = evaluateGates(config, results);
     const gate = evaluation.gates.find((g) => g.gateName === "driftScoreMax");
     expect(gate?.passed).toBe(false);
+  });
+
+  it("collects scores from both exact and prefixed assertion keys", () => {
+    const config = makeGatesConfig({ judgeAvgMin: 0.7 });
+    const results = [
+      makeResult({
+        assertionScores: {
+          "judge": { mean: 0.8, min: 0.7, max: 0.9 },
+          "judge:Is empathetic": { mean: 0.6, min: 0.5, max: 0.7 },
+        },
+      }),
+    ];
+    const evaluation = evaluateGates(config, results);
+    const gate = evaluation.gates.find((g) => g.gateName === "judgeAvgMin");
+    expect(gate).toBeDefined();
+    // Average of 0.8 and 0.6 = 0.7
+    expect(gate?.actual).toBeCloseTo(0.7);
+    expect(gate?.passed).toBe(true);
   });
 
   it("evaluates pii and keyword failure gates", () => {

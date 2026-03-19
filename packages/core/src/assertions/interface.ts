@@ -10,17 +10,21 @@ export type FailureCode =
   | "NOT_CONTAINS_FAILED"
   | "MAX_LENGTH_EXCEEDED"
   | "JUDGE_BELOW_THRESHOLD"
+  | "JUDGE_PARSE_ERROR"
   | "TOOL_CALL_MISSING"
   | "TOOL_CALL_UNEXPECTED"
   | "TOOL_CALL_ARGS_MISMATCH"
   | "TOOL_CALL_ORDER_WRONG"
   | "TOOL_CALL_ARGS_SCHEMA_INVALID"
   | "DRIFT_EXCEEDED"
+  | "DRIFT_PARSE_ERROR"
+  | "DRIFT_METHOD_NOT_IMPLEMENTED"
   | "PROVIDER_TIMEOUT"
   | "PROVIDER_AUTH_FAILED"
   | "PROVIDER_ERROR"
   | "INVALID_PATTERN"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "BUDGET_EXCEEDED";
 
 export interface AssertionResult {
   assertionType: string;
@@ -43,6 +47,10 @@ export interface AssertionContext {
   configDir: string;
   latencyMs?: number;
   costUsd?: number;
+  validateJsonSchema?: (
+    schema: Record<string, unknown>,
+    data: unknown,
+  ) => { valid: true } | { valid: false; errors: string[] };
 }
 
 export interface Assertion {

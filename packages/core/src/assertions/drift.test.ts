@@ -117,7 +117,7 @@ describe("createDriftAssertion", () => {
   });
 
   describe("embedding method", () => {
-    it("returns pass with stub message", async () => {
+    it("fails with not-implemented error", async () => {
       const assertion = createDriftAssertion({
         maxScore: 0.15,
         method: "embedding",
@@ -125,10 +125,12 @@ describe("createDriftAssertion", () => {
       const results = await assertion.evaluate(
         ctx("New output", "Old output"),
       );
-      expect(results[0]).toMatchObject({ passed: true });
-      expect((results[0]?.metadata as Record<string, unknown>)?.reason).toBe(
-        "Embedding method not yet implemented",
-      );
+      expect(results[0]).toMatchObject({
+        passed: false,
+        score: 0,
+        failureCode: "DRIFT_METHOD_NOT_IMPLEMENTED",
+      });
+      expect(results[0]?.failureMessage).toContain("not yet implemented");
     });
   });
 });

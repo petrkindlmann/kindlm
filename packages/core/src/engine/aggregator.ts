@@ -39,14 +39,16 @@ export function aggregateRuns(runs: TestCaseRunResult[]): Result<AggregatedTestR
   ).length;
   const passRate = passedRuns / runs.length;
 
-  // Group assertion scores by type
+  // Group assertion scores by type:label composite key to avoid blending
+  // distinct criteria (e.g., two judge assertions with different labels)
   const scoresByType = new Map<string, number[]>();
   for (const run of runs) {
     for (const a of run.assertions) {
-      let arr = scoresByType.get(a.assertionType);
+      const scoreKey = a.label ? `${a.assertionType}:${a.label}` : a.assertionType;
+      let arr = scoresByType.get(scoreKey);
       if (!arr) {
         arr = [];
-        scoresByType.set(a.assertionType, arr);
+        scoresByType.set(scoreKey, arr);
       }
       arr.push(a.score);
     }

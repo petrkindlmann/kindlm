@@ -1,4 +1,5 @@
 import type { Assertion, AssertionContext, AssertionResult } from "./interface.js";
+import { validateUnitIntervalScore } from "./shared-score.js";
 
 export interface DriftAssertionConfig {
   maxScore: number;
@@ -18,18 +19,29 @@ Score from 0.0 to 1.0 where:
 Respond ONLY with a JSON object in this exact format:
 {"driftScore": <number between 0.0 and 1.0>, "reasoning": "<brief explanation>"}`;
 
-function parseDriftResponse(text: string): { driftScore: number; reasoning: string } | null {
+type DriftParseResult =
+  | { ok: true; driftScore: number; reasoning: string }
+  | { ok: false; reason: string };
+
+function parseDriftResponse(text: string): DriftParseResult {
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/);
-  if (!jsonMatch?.[1]) return null;
-  try {
-    const parsed = JSON.parse(jsonMatch[1]) as Record<string, unknown>;
-    if (typeof parsed.driftScore === "number" && typeof parsed.reasoning === "string") {
-      return { driftScore: parsed.driftScore, reasoning: parsed.reasoning };
-    }
-    return null;
-  } catch {
-    return null;
+  if (!jsonMatch?.[1]) {
+    return { ok: false, reason: "No JSON object found in drift judge response" };
   }
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonMatch[1]) as Record<string, unknown>;
+  } catch {
+    return { ok: false, reason: "Invalid JSON in drift judge response" };
+  }
+  const scoreResult = validateUnitIntervalScore(parsed.driftScore, "driftScore");
+  if (!scoreResult.ok) {
+    return { ok: false, reason: scoreResult.reason };
+  }
+  if (typeof parsed.reasoning !== "string") {
+    return { ok: false, reason: "reasoning must be a string" };
+  }
+  return { ok: true, driftScore: scoreResult.score, reasoning: parsed.reasoning };
 }
 
 function getNestedField(obj: unknown, path: string): unknown {
@@ -93,9 +105,10 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
           {
             assertionType: "drift",
             label: "Drift check (embedding)",
-            passed: true,
-            score: 1,
-            metadata: { reason: "Embedding method not yet implemented" },
+            passed: false,
+            score: 0,
+            failureCode: "DRIFT_METHOD_NOT_IMPLEMENTED",
+            failureMessage: 'Drift method "embedding" is configured but not yet implemented. Use "judge" or "field-diff" instead.',
           },
         ];
       }
@@ -152,15 +165,15 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
       });
 
       const parsed = parseDriftResponse(response.text);
-      if (!parsed) {
+      if (!parsed.ok) {
         return [
           {
             assertionType: "drift",
             label: "Drift check (judge)",
             passed: false,
             score: 0,
-            failureCode: "INTERNAL_ERROR",
-            failureMessage: `Failed to parse drift judge response: ${response.text.slice(0, 200)}`,
+            failureCode: "DRIFT_PARSE_ERROR",
+            failureMessage: `Failed to parse drift judge response: ${parsed.reason}`,
           },
         ];
       }

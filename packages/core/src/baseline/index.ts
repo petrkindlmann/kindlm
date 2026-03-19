@@ -4,9 +4,10 @@ export {
   listBaselines,
   serializeBaseline,
   deserializeBaseline,
+  migrateBaseline,
   BASELINE_VERSION,
 } from "./store.js";
-export type { BaselineIO, BaselineTestEntry, BaselineData } from "./store.js";
+export type { BaselineIO, BaselineTestEntry, BaselineData, MigrationResult } from "./store.js";
 
 export { buildBaselineData } from "./builder.js";
 
