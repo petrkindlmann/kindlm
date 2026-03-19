@@ -1021,6 +1021,14 @@ export function getQueries(db: D1Database) {
     return row ? mapUser(row) : null;
   }
 
+  async function getUserByEmail(email: string): Promise<User | null> {
+    const row = await db
+      .prepare("SELECT * FROM users WHERE email = ?")
+      .bind(email)
+      .first();
+    return row ? mapUser(row) : null;
+  }
+
   async function createUser(
     githubId: number,
     githubLogin: string,
@@ -1270,6 +1278,13 @@ export function getQueries(db: D1Database) {
     return row ? mapSamlConfig(row) : null;
   }
 
+  async function getEnabledSamlConfigs(): Promise<SamlConfig[]> {
+    const { results } = await db
+      .prepare("SELECT * FROM saml_configs WHERE enabled = 1")
+      .all();
+    return results.map(mapSamlConfig);
+  }
+
   async function upsertSamlConfig(
     orgId: string,
     config: {
@@ -1443,6 +1458,7 @@ export function getQueries(db: D1Database) {
     // Users
     getUser,
     getUserByGithubId,
+    getUserByEmail,
     createUser,
     updateUser,
     // Org Members
@@ -1461,6 +1477,7 @@ export function getQueries(db: D1Database) {
     createSigningKey,
     // SAML
     getSamlConfig,
+    getEnabledSamlConfigs,
     upsertSamlConfig,
     // Pending Invites
     createPendingInvite,
