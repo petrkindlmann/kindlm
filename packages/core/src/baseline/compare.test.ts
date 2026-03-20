@@ -121,4 +121,68 @@ describe("compareBaseline", () => {
     expect(result.regressions).toHaveLength(1);
     expect(result.regressions[0]?.newFailureCodes).toEqual(["TOOL_CALL_MISSING"]);
   });
+
+  it("treats difference within EPSILON as unchanged", () => {
+    // EPSILON is 0.001, so a diff of 0.0005 should be unchanged
+    const baseline = makeBaseline({
+      "test-a::gpt-4o": makeEntry({ passRate: 0.900 }),
+    });
+    const current: Record<string, BaselineTestEntry> = {
+      "test-a::gpt-4o": makeEntry({ passRate: 0.9005 }),
+    };
+
+    const result = compareBaseline(baseline, current);
+
+    expect(result.unchanged).toHaveLength(1);
+    expect(result.regressions).toHaveLength(0);
+    expect(result.improvements).toHaveLength(0);
+  });
+
+  it("treats difference at exactly EPSILON boundary as unchanged", () => {
+    // Use values where the diff is exactly representable as EPSILON (0.001)
+    // 0.75 + 0.001 = 0.751, but floating point means we need to be careful.
+    // The comparison is: diff > EPSILON → improvement, diff < -EPSILON → regression.
+    // With passRate 0 and 0.001, diff = 0.001, but 0.001 > 0.001 is false, so unchanged.
+    const baseline = makeBaseline({
+      "test-a::gpt-4o": makeEntry({ passRate: 0 }),
+    });
+    const current: Record<string, BaselineTestEntry> = {
+      "test-a::gpt-4o": makeEntry({ passRate: 0.001 }),
+    };
+
+    const result = compareBaseline(baseline, current);
+
+    expect(result.unchanged).toHaveLength(1);
+    expect(result.improvements).toHaveLength(0);
+    expect(result.regressions).toHaveLength(0);
+  });
+
+  it("detects improvement just beyond EPSILON", () => {
+    // diff = 0.002 which is > EPSILON
+    const baseline = makeBaseline({
+      "test-a::gpt-4o": makeEntry({ passRate: 0.5 }),
+    });
+    const current: Record<string, BaselineTestEntry> = {
+      "test-a::gpt-4o": makeEntry({ passRate: 0.502 }),
+    };
+
+    const result = compareBaseline(baseline, current);
+
+    expect(result.improvements).toHaveLength(1);
+    expect(result.unchanged).toHaveLength(0);
+  });
+
+  it("detects regression just beyond EPSILON", () => {
+    const baseline = makeBaseline({
+      "test-a::gpt-4o": makeEntry({ passRate: 0.5 }),
+    });
+    const current: Record<string, BaselineTestEntry> = {
+      "test-a::gpt-4o": makeEntry({ passRate: 0.498 }),
+    };
+
+    const result = compareBaseline(baseline, current);
+
+    expect(result.regressions).toHaveLength(1);
+    expect(result.unchanged).toHaveLength(0);
+  });
 });

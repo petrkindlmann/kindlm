@@ -129,4 +129,10 @@ describe("createPiiAssertion", () => {
     // Should be capped at 1000
     expect(metadata?.matches.length).toBeLessThanOrEqual(1000);
   });
+
+  it("passes for empty string input", async () => {
+    const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
+    const results = await assertion.evaluate(ctx(""));
+    expect(results[0]).toMatchObject({ passed: true });
+  });
 });

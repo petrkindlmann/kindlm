@@ -116,6 +116,19 @@ describe("createDriftAssertion", () => {
         failureCode: "DRIFT_EXCEEDED",
       });
     });
+
+    it("passes with empty fields array (zero drift)", async () => {
+      const assertion = createDriftAssertion({
+        maxScore: 0.5,
+        method: "field-diff",
+        fields: [],
+      });
+      const baseline = JSON.stringify({ action: "refund" });
+      const output = JSON.stringify({ action: "deny" });
+      const results = await assertion.evaluate(ctx(output, baseline));
+      // With 0 fields, driftScore = 0/0 handled as 0
+      expect(results[0]).toMatchObject({ passed: true, score: 1 });
+    });
   });
 
   describe("embedding method", () => {

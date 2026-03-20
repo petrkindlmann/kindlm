@@ -421,6 +421,42 @@ describe("createRunner", () => {
     expect(assertions[0]!.failureMessage).toContain("API rate limited");
   });
 
+  it("handles all tests skipped gracefully", async () => {
+    const config = makeConfig({
+      tests: [
+        {
+          name: "skipped-1",
+          prompt: "greeting",
+          vars: { name: "A" },
+          skip: true,
+          expect: { output: { format: "text", contains: ["Hello"] } },
+        },
+        {
+          name: "skipped-2",
+          prompt: "greeting",
+          vars: { name: "B" },
+          skip: true,
+          expect: { output: { format: "text", contains: ["Hello"] } },
+        },
+      ],
+    });
+    const adapter = makeAdapter();
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.runResult.skipped).toBe(2);
+    expect(result.data.runResult.passed).toBe(0);
+    expect(result.data.runResult.failed).toBe(0);
+    expect(result.data.runResult.errored).toBe(0);
+    expect(result.data.runResult.totalTests).toBe(2);
+    // No calls should have been made
+    expect(adapter.complete).not.toHaveBeenCalled();
+  });
+
   it("interpolates prompt variables correctly", async () => {
     const adapter = makeAdapter();
     const config = makeConfig({
