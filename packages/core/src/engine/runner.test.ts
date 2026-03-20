@@ -484,4 +484,44 @@ describe("createRunner", () => {
     expect(call.messages[0]!.content).toBe("You are a helper");
     expect(call.messages[1]!.content).toBe("Hi, I am Alice");
   });
+
+  it("does not crash when onProgress callback throws", async () => {
+    const config = makeConfig();
+    const deps = makeDeps({
+      onProgress: () => {
+        throw new Error("Progress callback exploded");
+      },
+    });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    // Runner should complete despite the throwing callback
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.runResult.totalTests).toBe(1);
+  });
+
+  it("populates error field on errored TestRunResult", async () => {
+    const adapter: ProviderAdapter = {
+      name: "openai",
+      initialize: vi.fn(),
+      complete: vi.fn().mockRejectedValue(new Error("Connection refused")),
+      estimateCost: vi.fn().mockReturnValue(null),
+      supportsTools: vi.fn().mockReturnValue(true),
+    };
+
+    const config = makeConfig();
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const testResult = result.data.runResult.suites[0]!.tests[0]!;
+    expect(testResult.status).toBe("errored");
+    expect(testResult.error).toBeDefined();
+    expect(testResult.error!.message).toContain("Connection refused");
+    expect(testResult.error!.code).toBe("UNKNOWN_ERROR");
+  });
 });

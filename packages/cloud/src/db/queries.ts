@@ -482,14 +482,22 @@ export function getQueries(db: D1Database) {
     name: string,
     configHash: string,
   ): Promise<Suite> {
-    const row = await db
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    // Atomic INSERT ... ON CONFLICT to avoid TOCTOU race
+    await db
       .prepare(
-        "SELECT * FROM suites WHERE project_id = ? AND name = ?",
+        "INSERT INTO suites (id, project_id, name, config_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(project_id, name) DO NOTHING",
       )
+      .bind(id, projectId, name, configHash, now, now)
+      .run();
+    // Fetch the existing or newly created row
+    const row = await db
+      .prepare("SELECT * FROM suites WHERE project_id = ? AND name = ?")
       .bind(projectId, name)
       .first();
-    if (row) return mapSuite(row);
-    return createSuite(projectId, name, configHash);
+    if (!row) throw new Error("Suite not found after upsert");
+    return mapSuite(row);
   }
 
   async function deleteSuite(id: string, projectId: string): Promise<boolean> {
@@ -502,6 +510,7 @@ export function getQueries(db: D1Database) {
 
   async function updateSuite(
     id: string,
+    orgId: string,
     fields: Partial<Pick<Suite, "name">>,
   ): Promise<Suite | null> {
     const sets: string[] = ["updated_at = ?"];
@@ -514,9 +523,11 @@ export function getQueries(db: D1Database) {
 
     if (sets.length === 1) return getSuite(id);
 
-    values.push(id);
+    values.push(id, orgId);
     const result = await db
-      .prepare(`UPDATE suites SET ${sets.join(", ")} WHERE id = ?`)
+      .prepare(
+        `UPDATE suites SET ${sets.join(", ")} WHERE id = ? AND project_id IN (SELECT id FROM projects WHERE org_id = ?)`,
+      )
       .bind(...values)
       .run();
 
@@ -940,6 +951,14 @@ export function getQueries(db: D1Database) {
     const row = await db
       .prepare("SELECT * FROM billing WHERE org_id = ?")
       .bind(orgId)
+      .first();
+    return row ? mapBilling(row) : null;
+  }
+
+  async function getBillingByCustomerId(stripeCustomerId: string): Promise<Billing | null> {
+    const row = await db
+      .prepare("SELECT * FROM billing WHERE stripe_customer_id = ?")
+      .bind(stripeCustomerId)
       .first();
     return row ? mapBilling(row) : null;
   }
@@ -1384,6 +1403,21 @@ export function getQueries(db: D1Database) {
 
   // ---- Data Retention ----
 
+  async function deleteBaselinesForOldRuns(plan: string, retentionDays: number): Promise<number> {
+    const result = await db
+      .prepare(
+        `DELETE FROM baselines WHERE run_id IN (
+          SELECT r.id FROM runs r
+          JOIN projects p ON r.project_id = p.id
+          JOIN orgs o ON p.org_id = o.id
+          WHERE o.plan = ? AND r.created_at < datetime('now', '-' || ? || ' days')
+        )`,
+      )
+      .bind(plan, retentionDays)
+      .run();
+    return result.meta?.changes ?? 0;
+  }
+
   async function deleteOldRuns(plan: string, retentionDays: number): Promise<number> {
     const result = await db
       .prepare(
@@ -1454,6 +1488,7 @@ export function getQueries(db: D1Database) {
     updateWebhook,
     // Billing
     getBilling,
+    getBillingByCustomerId,
     upsertBilling,
     // Users
     getUser,
@@ -1485,6 +1520,7 @@ export function getQueries(db: D1Database) {
     getPendingInviteByEmail,
     deletePendingInvite,
     // Data Retention
+    deleteBaselinesForOldRuns,
     deleteOldRuns,
     cleanupExpiredIdempotencyKeys,
   };

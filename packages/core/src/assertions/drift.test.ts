@@ -131,6 +131,30 @@ describe("createDriftAssertion", () => {
     });
   });
 
+  describe("judge method error handling", () => {
+    it("returns JUDGE_EVAL_ERROR when judge adapter throws", async () => {
+      const adapter: ProviderAdapter = {
+        name: "mock",
+        initialize: vi.fn().mockResolvedValue(undefined),
+        complete: vi.fn().mockRejectedValue(new Error("Connection timeout")),
+        estimateCost: vi.fn().mockReturnValue(null),
+        supportsTools: vi.fn().mockReturnValue(false),
+      };
+      const assertion = createDriftAssertion({
+        maxScore: 0.15,
+        method: "judge",
+      });
+      const results = await assertion.evaluate(
+        ctx("New output", "Old output", adapter),
+      );
+      expect(results[0]).toMatchObject({
+        passed: false,
+        failureCode: "JUDGE_EVAL_ERROR",
+      });
+      expect(results[0]?.failureMessage).toContain("Connection timeout");
+    });
+  });
+
   describe("embedding method", () => {
     it("fails with INTERNAL_ERROR when getEmbedding is not provided", async () => {
       const assertion = createDriftAssertion({
@@ -146,6 +170,24 @@ describe("createDriftAssertion", () => {
         failureCode: "INTERNAL_ERROR",
       });
       expect(results[0]?.failureMessage).toContain("getEmbedding");
+    });
+
+    it("returns JUDGE_EVAL_ERROR when getEmbedding throws", async () => {
+      const getEmbedding = vi.fn().mockRejectedValue(new Error("Embedding service down"));
+
+      const assertion = createDriftAssertion({
+        maxScore: 0.15,
+        method: "embedding",
+      });
+      const results = await assertion.evaluate(
+        ctx("New output", "Old output", undefined, getEmbedding),
+      );
+      expect(results[0]).toMatchObject({
+        passed: false,
+        score: 0,
+        failureCode: "JUDGE_EVAL_ERROR",
+      });
+      expect(results[0]?.failureMessage).toContain("Embedding service down");
     });
 
     it("passes when embeddings are similar (low drift)", async () => {

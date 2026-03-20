@@ -268,10 +268,11 @@ describe("suite routes", () => {
   describe("PATCH /:suiteId", () => {
     it("updates suite name", async () => {
       const updated = { ...sampleSuite, name: "Renamed Suite" };
+      const updateSuiteMock = vi.fn().mockResolvedValue(updated);
       vi.mocked(getQueries).mockReturnValue({
         getSuite: vi.fn().mockResolvedValue(sampleSuite),
         getProject: vi.fn().mockResolvedValue(project),
-        updateSuite: vi.fn().mockResolvedValue(updated),
+        updateSuite: updateSuiteMock,
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
@@ -284,6 +285,8 @@ describe("suite routes", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as Record<string, unknown>;
       expect(body.name).toBe("Renamed Suite");
+      // Verify orgId is passed for scoping
+      expect(updateSuiteMock).toHaveBeenCalledWith("suite-1", "org-1", { name: "Renamed Suite" });
     });
 
     it("returns 404 when suite does not exist", async () => {

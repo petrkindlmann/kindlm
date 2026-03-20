@@ -128,7 +128,7 @@ suiteRoutes.patch("/:suiteId", async (c) => {
   }
 
   try {
-    const updated = await queries.updateSuite(suiteId, body);
+    const updated = await queries.updateSuite(suiteId, auth.org.id, body);
     if (!updated) {
       return c.json({ error: "Suite not found" }, 404);
     }

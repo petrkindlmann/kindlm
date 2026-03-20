@@ -54,6 +54,8 @@ export default function SsoPage() {
     }
   }
 
+  if (!org) return <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />;
+
   if (org && !isEnterprise) {
     return (
       <div className="space-y-6">

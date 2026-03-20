@@ -87,9 +87,17 @@ describe("rateLimitMiddleware (D1-based)", () => {
     expect(res.status).toBe(503);
   });
 
-  it("passes through when no auth context", async () => {
+  it("rate-limits unauthenticated requests by IP", async () => {
+    const mockD1 = createMockD1();
+    // After atomic upsert, SELECT returns count=1 (under the 30/min unauthenticated limit)
+    mockD1._configureResponse("SELECT count FROM rate_limits", { first: { count: 1 } });
+
     const app = new Hono<AppEnv>();
-    // No auth middleware — auth is undefined
+    // No auth middleware — auth is undefined, but DB is available
+    app.use("*", async (c, next) => {
+      (c.env as unknown as Record<string, unknown>).DB = mockD1;
+      return next();
+    });
     app.use("*", rateLimitMiddleware);
     app.get("/test", (c) => c.json({ ok: true }));
 

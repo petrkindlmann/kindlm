@@ -89,6 +89,28 @@ describe("createSchemaAssertion", () => {
     });
   });
 
+  describe("schema compilation error", () => {
+    it("returns SCHEMA_INVALID when schema fails to compile", async () => {
+      const assertion = createSchemaAssertion({
+        format: "json",
+        schemaContent: {
+          type: "object",
+          properties: {
+            name: { type: "not-a-real-type" },
+          },
+        },
+      });
+      const results = await assertion.evaluate(ctx('{"name": "test"}'));
+      // First result is the JSON parse check (passes), second is schema validation
+      const schemaResult = results.find((r) => r.label === "Output matches JSON Schema");
+      expect(schemaResult).toBeDefined();
+      if (!schemaResult) return;
+      expect(schemaResult.passed).toBe(false);
+      expect(schemaResult.failureCode).toBe("SCHEMA_INVALID");
+      expect(schemaResult.failureMessage).toContain("compilation failed");
+    });
+  });
+
   describe("contains", () => {
     it("passes when substring found", async () => {
       const assertion = createSchemaAssertion({

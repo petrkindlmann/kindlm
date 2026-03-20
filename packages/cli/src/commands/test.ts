@@ -6,11 +6,14 @@ import {
   createComplianceReporter,
   ProviderError,
 } from "@kindlm/core";
-import type { KindlmError } from "@kindlm/core";
+import type { KindlmError, ComplianceRunMetadata } from "@kindlm/core";
 import { runTests } from "../utils/run-tests.js";
 import { saveLastRun, computeConfigHash } from "../utils/last-run.js";
 import { renderCompliancePdf } from "../utils/pdf-renderer.js";
 import { selectReporter } from "../utils/select-reporter.js";
+import { getGitInfo } from "../utils/git.js";
+
+declare const KINDLM_VERSION: string;
 
 interface TestOptions {
   suite?: string;
@@ -39,6 +42,9 @@ export function registerTestCommand(program: Command): void {
         process.exit(1);
       }
 
+      // P-02: Validate reporter before running tests to fail fast
+      const reporter = selectReporter(options.reporter);
+
       try {
         const { runnerResult, config, yamlContent } = await runTests({
           configPath: options.config,
@@ -52,8 +58,7 @@ export function registerTestCommand(program: Command): void {
         // Evaluate gates
         const gateEvaluation = evaluateGates(config.gates, aggregated);
 
-        // Select + generate report
-        const reporter = selectReporter(options.reporter);
+        // Generate report
         const report = await reporter.generate(result, gateEvaluation);
         console.log(report.content);
 
@@ -61,14 +66,29 @@ export function registerTestCommand(program: Command): void {
         let complianceContent: string | undefined;
         let complianceHash: string | undefined;
         if (options.compliance) {
-          const complianceReporter = createComplianceReporter();
+          const gitInfo = getGitInfo();
+          const metadata: ComplianceRunMetadata = {
+            runId: crypto.randomUUID(),
+            kindlmVersion: KINDLM_VERSION,
+            gitCommitSha: gitInfo.commitSha ?? undefined,
+            modelIds: config.models.map((m) => m.id),
+            ...(config.compliance?.metadata ?? {}),
+          };
+          const complianceReporter = createComplianceReporter(metadata);
           const complianceReport = await complianceReporter.generate(result, gateEvaluation);
           complianceContent = complianceReport.content;
           // Extract the tamper evidence hash embedded in the report
           const hashMatch = complianceContent.match(/Tamper Evidence Hash \(SHA-256\):\*\* `([a-f0-9]{64})`/);
           complianceHash = hashMatch?.[1];
-          console.log("");
-          console.log(complianceContent);
+
+          // P-01: Write compliance to stderr for machine-readable reporters
+          if (options.reporter === "pretty" || !options.reporter) {
+            console.log("");
+            console.log(complianceContent);
+          } else {
+            console.error("");
+            console.error(complianceContent);
+          }
 
           // PDF export
           if (options.pdf) {

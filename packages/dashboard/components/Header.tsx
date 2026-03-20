@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import type { User, Organization } from "@/lib/api";
 import { fetcher } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
+
+type CacheWithClear = ReturnType<typeof useSWRConfig>["cache"] & { clear?: () => void };
 
 export default function Header() {
   const router = useRouter();
@@ -12,8 +14,18 @@ export default function Header() {
   const { data: user } = useSWR<User>("/v1/auth/me", fetcher);
   const { data: org } = useSWR<Organization>("/v1/org", fetcher);
 
+  const { cache, mutate } = useSWRConfig();
+
   function handleLogout() {
     clearToken();
+    // Clear the SWR cache so stale data isn't shown if the user logs in as a different account
+    const typedCache = cache as CacheWithClear;
+    if (typeof typedCache.clear === "function") {
+      typedCache.clear();
+    } else {
+      // Fallback: revalidate all keys (marks them as stale)
+      mutate(() => true, undefined, { revalidate: false });
+    }
     router.push("/login");
   }
 

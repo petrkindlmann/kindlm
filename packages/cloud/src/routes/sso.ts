@@ -4,6 +4,7 @@ import { getQueries } from "../db/queries.js";
 import { hashToken } from "../middleware/auth.js";
 import { requirePlan } from "../middleware/plan-gate.js";
 import { auditLog } from "./audit-helper.js";
+import { encryptWithSecret } from "../crypto/envelope.js";
 
 export const ssoRoutes = new Hono<AppEnv>();
 
@@ -38,12 +39,17 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function hashCode(s: string): number {
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) {
-    hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
-  }
-  return hash;
+async function ssoGithubId(email: string): Promise<number> {
+  const data = new TextEncoder().encode(`sso:${email}`);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  const view = new DataView(hash);
+  // Use first 6 bytes as negative int (safe in JS, avoids collision with real GitHub IDs)
+  return -(view.getUint32(0) * 65536 + view.getUint16(4));
+}
+
+function extractAssertionId(xml: string): string | null {
+  const match = xml.match(/<(?:saml[2p]?:)?Assertion[^>]*\sID=["']([^"']+)["']/i);
+  return match?.[1] ?? null;
 }
 
 function escapeHtml(s: string): string {
@@ -273,9 +279,11 @@ export {
   extractNameID,
   extractAttribute,
   extractIssuer,
+  extractAssertionId,
   checkConditions,
   base64ToBytes,
   canonicalizeSignedInfo,
+  ssoGithubId,
 };
 
 // ---------------------------------------------------------------------------
@@ -365,6 +373,26 @@ ssoRoutes.post("/callback", async (c) => {
     return c.json({ error: conditions.error ?? "Assertion conditions not met" }, 400);
   }
 
+  // Assertion replay protection: reject if this assertion ID was already used
+  const assertionId = extractAssertionId(xml);
+  if (assertionId) {
+    const existing = await c.env.DB.prepare(
+      "SELECT assertion_id FROM saml_assertions WHERE assertion_id = ?",
+    )
+      .bind(assertionId)
+      .first();
+    if (existing) {
+      return c.json({ error: "SAML assertion already used (replay detected)" }, 400);
+    }
+    // Store the assertion ID with a 24h TTL for cleanup
+    const assertionExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    await c.env.DB.prepare(
+      "INSERT INTO saml_assertions (assertion_id, org_id, expires_at) VALUES (?, ?, ?)",
+    )
+      .bind(assertionId, samlConfig.orgId, assertionExpiresAt)
+      .run();
+  }
+
   // Extract user attributes
   const nameId = extractNameID(xml);
   const email =
@@ -394,10 +422,10 @@ ssoRoutes.post("/callback", async (c) => {
       await queries.updateUser(user.id, { githubLogin: displayName });
     }
   } else {
-    // Use a negative hash of the email as a unique pseudo-githubId for SSO-only users,
+    // Use a cryptographic hash of the email as a unique pseudo-githubId for SSO-only users,
     // since the users table has UNIQUE(github_id) and 0 would collide for all SSO users.
-    const ssoGithubId = -Math.abs(hashCode(email));
-    user = await queries.createUser(ssoGithubId, displayName ?? email, email, null);
+    const pseudoGithubId = await ssoGithubId(email);
+    user = await queries.createUser(pseudoGithubId, displayName ?? email, email, null);
     // Add user to the SSO org
     await queries.addOrgMember(samlConfig.orgId, user.id, "member");
   }
@@ -408,7 +436,7 @@ ssoRoutes.post("/callback", async (c) => {
     await queries.addOrgMember(samlConfig.orgId, user.id, "member");
   }
 
-  // Generate API token
+  // Generate API token with 24h expiry for SSO sessions
   const tokenBytes = new Uint8Array(16);
   crypto.getRandomValues(tokenBytes);
   const hex = Array.from(tokenBytes)
@@ -416,6 +444,7 @@ ssoRoutes.post("/callback", async (c) => {
     .join("");
   const plaintext = `klm_${hex}`;
   const tokenHash = await hashToken(plaintext);
+  const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   await queries.createToken(
     samlConfig.orgId,
@@ -423,7 +452,7 @@ ssoRoutes.post("/callback", async (c) => {
     tokenHash,
     "full",
     null,
-    null,
+    tokenExpiresAt,
     user.id,
   );
 
@@ -444,10 +473,12 @@ ssoRoutes.post("/callback", async (c) => {
           Date.now() + AUTH_CODE_TTL_SECONDS * 1000,
         ).toISOString();
 
+        // Encrypt the token before storage
+        const encryptedToken = await encryptWithSecret(plaintext, c.env.GITHUB_CLIENT_SECRET, "auth_codes");
         await c.env.DB.prepare(
           "INSERT INTO auth_codes (code, token, expires_at) VALUES (?, ?, ?)",
         )
-          .bind(authCode, plaintext, expiresAt)
+          .bind(authCode, encryptedToken, expiresAt)
           .run();
 
         const redirectUrl = new URL(relayState);

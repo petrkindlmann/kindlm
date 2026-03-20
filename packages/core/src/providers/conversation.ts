@@ -44,6 +44,7 @@ export async function runConversation(
         allToolCalls,
         totalUsage,
         totalLatencyMs,
+        truncated: false,
       };
     }
 
@@ -83,12 +84,16 @@ export async function runConversation(
     modelId: initialRequest.model,
     finishReason: "unknown" as const,
   };
+  const finalText = lastResponse.text
+    ? `${lastResponse.text}\n[Note: Conversation truncated after ${maxTurns} turns]`
+    : `[Note: Conversation truncated after ${maxTurns} turns]`;
   return {
     turns,
-    finalText: lastResponse.text,
+    finalText,
     allToolCalls,
     totalUsage,
     totalLatencyMs,
+    truncated: true,
   };
 }
 

@@ -1,0 +1,3 @@
+-- SQLite doesn't support ALTER CONSTRAINT, so we cannot add ON DELETE CASCADE
+-- to baselines.run_id retroactively. The app-level retention cleanup in index.ts
+-- must delete baselines referencing old runs BEFORE deleting the runs themselves.

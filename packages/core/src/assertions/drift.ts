@@ -131,10 +131,25 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
           ];
         }
 
-        const [baselineVec, outputVec] = await Promise.all([
-          context.getEmbedding(context.baselineText),
-          context.getEmbedding(context.outputText),
-        ]);
+        let baselineVec: number[];
+        let outputVec: number[];
+        try {
+          [baselineVec, outputVec] = await Promise.all([
+            context.getEmbedding(context.baselineText),
+            context.getEmbedding(context.outputText),
+          ]);
+        } catch (e) {
+          return [
+            {
+              assertionType: "drift",
+              label: "Drift check (embedding)",
+              passed: false,
+              score: 0,
+              failureCode: "JUDGE_EVAL_ERROR",
+              failureMessage: `Embedding error: ${e instanceof Error ? e.message : String(e)}`,
+            },
+          ];
+        }
 
         const similarity = cosineSimilarity(baselineVec, outputVec);
         const driftScore = 1 - similarity;
@@ -195,17 +210,31 @@ export function createDriftAssertion(config: DriftAssertionConfig): Assertion {
         ];
       }
 
-      const response = await context.judgeAdapter.complete({
-        model: context.judgeModel,
-        messages: [
-          { role: "system", content: DRIFT_JUDGE_SYSTEM },
+      let response;
+      try {
+        response = await context.judgeAdapter.complete({
+          model: context.judgeModel,
+          messages: [
+            { role: "system", content: DRIFT_JUDGE_SYSTEM },
+            {
+              role: "user",
+              content: `## Baseline Response\n${context.baselineText}\n\n## New Response\n${context.outputText}`,
+            },
+          ],
+          params: { temperature: 0, maxTokens: 512 },
+        });
+      } catch (e) {
+        return [
           {
-            role: "user",
-            content: `## Baseline Response\n${context.baselineText}\n\n## New Response\n${context.outputText}`,
+            assertionType: "drift",
+            label: "Drift check (judge)",
+            passed: false,
+            score: 0,
+            failureCode: "JUDGE_EVAL_ERROR",
+            failureMessage: `Drift judge adapter error: ${e instanceof Error ? e.message : String(e)}`,
           },
-        ],
-        params: { temperature: 0, maxTokens: 512 },
-      });
+        ];
+      }
 
       const parsed = parseDriftResponse(response.text);
       if (!parsed.ok) {

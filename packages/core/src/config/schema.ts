@@ -379,6 +379,7 @@ const TestCaseSchema = z.object({
     .number()
     .int()
     .min(1)
+    .max(100)
     .optional()
     .describe(
       "Override: number of repeat runs for this specific test case",
@@ -561,6 +562,7 @@ export const KindLMConfigSchema = z.object({
         .number()
         .int()
         .min(1)
+        .max(100)
         .default(1)
         .describe("Default repeat count per test case"),
       concurrency: z

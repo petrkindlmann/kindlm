@@ -254,4 +254,13 @@ export async function apiClient<T>(
 // SWR fetcher
 // ---------------------------------------------------------------------------
 
-export const fetcher = <T>(path: string): Promise<T> => apiClient<T>(path);
+export const fetcher = async <T>(path: string): Promise<T> => {
+  try {
+    return await apiClient<T>(path);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401 && typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    throw error;
+  }
+};

@@ -246,7 +246,10 @@ describe("baseline set command", () => {
 
     mockRunTests.mockResolvedValue({
       config: { suite: { name: "my-suite" } },
-      runnerResult: { aggregated: [] },
+      runnerResult: {
+        runResult: { totalTests: 1, passed: 1, failed: 0, errored: 0, skipped: 0, durationMs: 100, suites: [] },
+        aggregated: [],
+      },
       configDir: "/tmp",
       yamlContent: "version: 1",
     } as never);
@@ -287,7 +290,10 @@ describe("baseline set command", () => {
   it("exits 1 when writeBaseline fails", async () => {
     mockRunTests.mockResolvedValue({
       config: { suite: { name: "my-suite" } },
-      runnerResult: { aggregated: [] },
+      runnerResult: {
+        runResult: { totalTests: 1, passed: 1, failed: 0, errored: 0, skipped: 0, durationMs: 100, suites: [] },
+        aggregated: [],
+      },
       configDir: "/tmp",
       yamlContent: "version: 1",
     } as never);

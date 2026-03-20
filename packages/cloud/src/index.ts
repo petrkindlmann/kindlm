@@ -54,6 +54,9 @@ app.use("*", async (c, next) => {
   return middleware(c, next);
 });
 
+// Rate-limit on auth routes (public, no auth middleware but rate limited)
+app.use("/auth/*", rateLimitMiddleware);
+
 // Public routes (no auth required)
 app.route("/auth", oauthRoutes);
 app.route("/stripe/webhook", stripeWebhookRoute);
@@ -116,10 +119,13 @@ async function handleScheduled(
 
   const work = async () => {
     // Delete old runs per plan retention policy
+    // Delete baselines referencing old runs BEFORE deleting the runs themselves
+    // (baselines.run_id lacks ON DELETE CASCADE)
     const plans = ["free", "team"] as const;
     for (const plan of plans) {
       const limits = getLimits(plan);
       if (limits.retentionDays > 0) {
+        await queries.deleteBaselinesForOldRuns(plan, limits.retentionDays);
         await queries.deleteOldRuns(plan, limits.retentionDays);
       }
     }
@@ -127,6 +133,8 @@ async function handleScheduled(
     await queries.cleanupExpiredIdempotencyKeys();
     // Clean up expired auth codes
     await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at < datetime('now')").run();
+    // Clean up expired SAML assertion replay records
+    await env.DB.prepare("DELETE FROM saml_assertions WHERE expires_at < datetime('now')").run();
   };
 
   ctx.waitUntil(work());

@@ -205,6 +205,36 @@ describe("validateConfig", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects repeat above 100 in defaults", () => {
+    const result = validateConfig(
+      minimalConfig({ defaults: { repeat: 101 } }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts repeat at 100 in defaults", () => {
+    const result = validateConfig(
+      minimalConfig({ defaults: { repeat: 100 } }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects per-test repeat above 100", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "repeat-test",
+            prompt: "greeting",
+            repeat: 101,
+            expect: {},
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
   it("returns error details with field paths", () => {
     const result = validateConfig({ kindlm: "wrong" });
     expect(result.success).toBe(false);

@@ -122,6 +122,27 @@ describe("createJudgeAssertion", () => {
     expect(firstCall[0].messages[1]?.content).toContain("Must include greeting");
   });
 
+  it("returns JUDGE_EVAL_ERROR when adapter throws", async () => {
+    const adapter: ProviderAdapter = {
+      name: "mock",
+      initialize: vi.fn().mockResolvedValue(undefined),
+      complete: vi.fn().mockRejectedValue(new Error("API rate limited")),
+      estimateCost: vi.fn().mockReturnValue(null),
+      supportsTools: vi.fn().mockReturnValue(false),
+    };
+    const assertion = createJudgeAssertion({
+      criteria: "Is helpful",
+      minScore: 0.7,
+    });
+    const results = await assertion.evaluate(ctx("Output", adapter));
+    expect(results[0]).toMatchObject({
+      passed: false,
+      score: 0,
+      failureCode: "JUDGE_EVAL_ERROR",
+    });
+    expect(results[0]?.failureMessage).toContain("API rate limited");
+  });
+
   it("includes reasoning in metadata", async () => {
     const adapter = mockAdapter('{"score": 0.9, "reasoning": "Very clear"}');
     const assertion = createJudgeAssertion({

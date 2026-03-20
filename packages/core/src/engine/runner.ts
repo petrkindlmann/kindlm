@@ -208,11 +208,33 @@ export function createRunner(
           : agg.passed
             ? "passed"
             : "failed";
+        const representativeRun = agg.passed
+          ? agg.runs[0]
+          : agg.runs.find(r => !r.assertions.every(a => a.passed)) ?? agg.runs[0];
+
+        // Populate error from the first errored run when status is errored
+        let error: KindlmError | undefined;
+        if (status === "errored") {
+          const erroredRun = agg.runs.find(r => r.errored && r.error);
+          if (erroredRun?.error) {
+            error = { code: "UNKNOWN_ERROR", message: erroredRun.error.message };
+          } else {
+            // Fall back to the first failed assertion message
+            const failedAssertion = agg.runs
+              .flatMap(r => r.assertions)
+              .find(a => !a.passed && a.failureMessage);
+            if (failedAssertion?.failureMessage) {
+              error = { code: "UNKNOWN_ERROR", message: failedAssertion.failureMessage };
+            }
+          }
+        }
+
         return {
           name: agg.testCaseName,
           modelId: agg.modelId,
           status,
-          assertions: (agg.passed ? agg.runs[0] : agg.runs.find(r => !r.assertions.every(a => a.passed)) ?? agg.runs[0])?.assertions ?? [],
+          assertions: representativeRun?.assertions ?? [],
+          error,
           latencyMs: agg.latencyAvgMs,
           costUsd: agg.totalCostUsd,
         };
@@ -282,12 +304,14 @@ async function executeUnit(
     return errorResult(test.name, "unknown", runIndex, "No model config for prompt-based test");
   }
 
-  deps.onProgress?.({
-    type: "test_start",
-    test: test.name,
-    model: modelConfig.id,
-    run: runIndex,
-  });
+  try {
+    deps.onProgress?.({
+      type: "test_start",
+      test: test.name,
+      model: modelConfig.id,
+      run: runIndex,
+    });
+  } catch { /* progress callbacks are fire-and-forget */ }
 
   try {
     // Look up adapter
@@ -396,13 +420,15 @@ async function executeUnit(
 
     const allPassed = allResults.every((r) => r.passed);
 
-    deps.onProgress?.({
-      type: "test_complete",
-      test: test.name,
-      model: modelConfig.id,
-      run: runIndex,
-      passed: allPassed,
-    });
+    try {
+      deps.onProgress?.({
+        type: "test_complete",
+        test: test.name,
+        model: modelConfig.id,
+        run: runIndex,
+        passed: allPassed,
+      });
+    } catch { /* progress callbacks are fire-and-forget */ }
 
     return {
       testCaseName: test.name,
@@ -415,13 +441,15 @@ async function executeUnit(
       costEstimateUsd: costEstimate,
     };
   } catch (e) {
-    deps.onProgress?.({
-      type: "test_complete",
-      test: test.name,
-      model: modelConfig.id,
-      run: runIndex,
-      passed: false,
-    });
+    try {
+      deps.onProgress?.({
+        type: "test_complete",
+        test: test.name,
+        model: modelConfig.id,
+        run: runIndex,
+        passed: false,
+      });
+    } catch { /* progress callbacks are fire-and-forget */ }
 
     return errorResult(
       test.name,
@@ -441,12 +469,14 @@ async function executeCommandUnit(
 ): Promise<TestCaseRunResult> {
   const modelId = "command";
 
-  deps.onProgress?.({
-    type: "test_start",
-    test: test.name,
-    model: modelId,
-    run: runIndex,
-  });
+  try {
+    deps.onProgress?.({
+      type: "test_start",
+      test: test.name,
+      model: modelId,
+      run: runIndex,
+    });
+  } catch { /* progress callbacks are fire-and-forget */ }
 
   try {
     if (!deps.commandExecutor) {
@@ -520,13 +550,15 @@ async function executeCommandUnit(
 
     const allPassed = allResults.every((r) => r.passed);
 
-    deps.onProgress?.({
-      type: "test_complete",
-      test: test.name,
-      model: modelId,
-      run: runIndex,
-      passed: allPassed,
-    });
+    try {
+      deps.onProgress?.({
+        type: "test_complete",
+        test: test.name,
+        model: modelId,
+        run: runIndex,
+        passed: allPassed,
+      });
+    } catch { /* progress callbacks are fire-and-forget */ }
 
     return {
       testCaseName: test.name,
@@ -539,13 +571,15 @@ async function executeCommandUnit(
       costEstimateUsd: null,
     };
   } catch (e) {
-    deps.onProgress?.({
-      type: "test_complete",
-      test: test.name,
-      model: modelId,
-      run: runIndex,
-      passed: false,
-    });
+    try {
+      deps.onProgress?.({
+        type: "test_complete",
+        test: test.name,
+        model: modelId,
+        run: runIndex,
+        passed: false,
+      });
+    } catch { /* progress callbacks are fire-and-forget */ }
 
     return errorResult(
       test.name,
@@ -609,6 +643,7 @@ function errorResult(
     tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
     costEstimateUsd: null,
     errored: true,
+    error: { code: "UNKNOWN_ERROR", message },
   };
 }
 

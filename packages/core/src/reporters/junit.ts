@@ -87,6 +87,9 @@ export function createJunitReporter(): Reporter {
 }
 
 function esc(s: string): string {
+  // Strip XML-illegal control characters (U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+FFFE, U+FFFF)
+  // eslint-disable-next-line no-control-regex
+  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, "");
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

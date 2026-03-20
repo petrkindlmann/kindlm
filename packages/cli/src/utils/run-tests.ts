@@ -124,6 +124,9 @@ async function runTestsInner(
       console.error(chalk.red(`Invalid --gate value: ${options.gate}. Must be between 0 and 100.`));
       process.exit(1);
     }
+    if (options.gate > 0 && options.gate <= 1) {
+      console.error(chalk.yellow(`Warning: --gate ${options.gate} looks like a decimal. Did you mean --gate ${Math.round(options.gate * 100)}? (--gate uses 0-100 scale)`));
+    }
     if (!config.gates) {
       config.gates = { passRateMin: options.gate / 100 } as KindLMConfig["gates"];
     } else {

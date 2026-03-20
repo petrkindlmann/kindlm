@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import type { ApiToken, ApiTokenCreateResponse } from "@/lib/api";
 import { fetcher, apiClient } from "@/lib/api";
@@ -16,6 +16,14 @@ export default function TokensPage() {
   const [tokenName, setTokenName] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
+  // Auto-hide the created token after 30 seconds
+  useEffect(() => {
+    if (newToken) {
+      const timer = setTimeout(() => setNewToken(null), 30000);
+      return () => clearTimeout(timer);
+    }
+  }, [newToken]);
 
   const tokens = data?.tokens ?? [];
 

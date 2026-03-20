@@ -74,21 +74,35 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
         ];
       }
 
-      const response = await context.judgeAdapter.complete({
-        model: config.model ?? context.judgeModel,
-        messages: [
-          { role: "system", content: JUDGE_SYSTEM_PROMPT },
+      let response;
+      try {
+        response = await context.judgeAdapter.complete({
+          model: config.model ?? context.judgeModel,
+          messages: [
+            { role: "system", content: JUDGE_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: buildUserPrompt(
+                context.outputText,
+                config.criteria,
+                config.rubric,
+              ),
+            },
+          ],
+          params: { temperature: 0, maxTokens: 512 },
+        });
+      } catch (e) {
+        return [
           {
-            role: "user",
-            content: buildUserPrompt(
-              context.outputText,
-              config.criteria,
-              config.rubric,
-            ),
+            assertionType: "judge",
+            label: `Judge: ${config.criteria}`,
+            passed: false,
+            score: 0,
+            failureCode: "JUDGE_EVAL_ERROR",
+            failureMessage: `Judge adapter error: ${e instanceof Error ? e.message : String(e)}`,
           },
-        ],
-        params: { temperature: 0, maxTokens: 512 },
-      });
+        ];
+      }
 
       const parsed = parseJudgeResponse(response.text);
       if (!parsed.ok) {

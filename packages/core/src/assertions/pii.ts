@@ -7,6 +7,7 @@ export interface PiiAssertionConfig {
 
 const MAX_PII_MATCHES = 1000;
 const REGEX_TIMEOUT_MS = 100;
+const EVALUATION_TIMEOUT_MS = 500;
 
 function redact(match: string): string {
   if (match.length <= 4) return "*".repeat(match.length);
@@ -95,9 +96,11 @@ export function createPiiAssertion(config: PiiAssertionConfig): Assertion {
 
       const matches: Array<{ name: string; redacted: string }> = [];
       let totalMatches = 0;
+      const evalStart = Date.now();
 
       for (const { name, regex } of compiledPatterns) {
         if (totalMatches >= MAX_PII_MATCHES) break;
+        if (Date.now() - evalStart > EVALUATION_TIMEOUT_MS) break;
         const remaining = MAX_PII_MATCHES - totalMatches;
         const found = safeRegexExec(regex, context.outputText, remaining);
         for (const m of found) {

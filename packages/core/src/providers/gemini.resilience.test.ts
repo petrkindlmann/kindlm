@@ -99,6 +99,49 @@ describe("Gemini adapter resilience", () => {
     });
   });
 
+  describe("HTTP 200 with error body", () => {
+    it("throws ProviderError when Gemini returns 200 with error payload", async () => {
+      const httpClient = createMockHttpClient({
+        error: {
+          code: 400,
+          message: "API key not valid. Please pass a valid API key.",
+          status: "INVALID_ARGUMENT",
+        },
+      });
+      const adapter = await createInitializedAdapter(httpClient);
+
+      try {
+        await adapter.complete(baseRequest());
+        expect.fail("Should have thrown");
+      } catch (e) {
+        expect(e).toBeInstanceOf(ProviderError);
+        const pe = e as ProviderError;
+        expect(pe.message).toContain("API key not valid");
+      }
+    });
+
+    it("throws ProviderError for 200 with error code 429 (rate limited)", async () => {
+      const httpClient = createMockHttpClient({
+        error: {
+          code: 429,
+          message: "Resource has been exhausted",
+          status: "RESOURCE_EXHAUSTED",
+        },
+      });
+      const adapter = await createInitializedAdapter(httpClient);
+
+      try {
+        await adapter.complete(baseRequest());
+        expect.fail("Should have thrown");
+      } catch (e) {
+        expect(e).toBeInstanceOf(ProviderError);
+        const pe = e as ProviderError;
+        expect(pe.code).toBe("RATE_LIMITED");
+        expect(pe.retryable).toBe(true);
+      }
+    });
+  });
+
   describe("tool call edge cases", () => {
     it("tool calls with args already as objects (no JSON.parse needed) work correctly", async () => {
       const httpClient = createMockHttpClient({

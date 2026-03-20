@@ -45,6 +45,8 @@ export default function AuditLogPage() {
   const hasNext = offset + PAGE_SIZE < total;
   const hasPrev = offset > 0;
 
+  if (!org) return <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />;
+
   if (org && !isEnterprise) {
     return (
       <div className="space-y-6">

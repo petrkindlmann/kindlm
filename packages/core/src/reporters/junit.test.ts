@@ -120,6 +120,60 @@ describe("createJunitReporter", () => {
     expect(output.content).toContain('name="passRateMin"');
   });
 
+  it("strips XML-illegal control characters", async () => {
+    const runResult: RunResult = {
+      totalTests: 1,
+      passed: 0,
+      failed: 1,
+      errored: 0,
+      skipped: 0,
+      durationMs: 100,
+      suites: [
+        {
+          name: "suite",
+          status: "failed",
+          tests: [
+            {
+              name: "control-char-test",
+              modelId: "",
+              status: "failed",
+              assertions: [
+                {
+                  assertionType: "contains",
+                  label: "contains",
+                  passed: false,
+                  score: 0,
+                  failureCode: "CONTAINS_FAILED",
+                  failureMessage: "Has \x00null \x08backspace \x0Bvtab \x0Cformfeed \x1Funit-sep \uFFFEbom chars",
+                },
+              ],
+              latencyMs: 50,
+              costUsd: 0,
+            },
+          ],
+        },
+      ],
+    };
+    const output = await reporter.generate(runResult, { passed: true, gates: [] });
+    // Control chars should be stripped — verify by checking char codes
+    const hasIllegalControlChar = [...output.content].some((ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      return (
+        (code >= 0x00 && code <= 0x08) ||
+        code === 0x0b ||
+        code === 0x0c ||
+        (code >= 0x0e && code <= 0x1f) ||
+        code === 0xfffe ||
+        code === 0xffff
+      );
+    });
+    expect(hasIllegalControlChar).toBe(false);
+    // But the readable text around them should survive
+    expect(output.content).toContain("null");
+    expect(output.content).toContain("backspace");
+    // Tabs (\x09), newlines (\x0A), carriage returns (\x0D) are XML-legal and should be preserved
+  });
+
   it("handles skipped tests", async () => {
     const runResult: RunResult = {
       totalTests: 1,

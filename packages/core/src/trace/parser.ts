@@ -59,8 +59,12 @@ export function parseOtlpPayload(raw: unknown): Result<ParsedSpan[]> {
 }
 
 function nanosToMs(nanos: string): number {
-  const n = BigInt(nanos);
-  return Number(n / 1_000_000n);
+  try {
+    const n = BigInt(nanos);
+    return Number(n / 1_000_000n);
+  } catch {
+    return 0;
+  }
 }
 
 function flattenAttributes(

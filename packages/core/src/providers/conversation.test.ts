@@ -53,6 +53,7 @@ describe("runConversation", () => {
     expect(result.turns).toHaveLength(1);
     expect(result.finalText).toBe("Hi there!");
     expect(result.allToolCalls).toEqual([]);
+    expect(result.truncated).toBe(false);
   });
 
   it("handles multi-turn with tool simulation", async () => {
@@ -183,7 +184,8 @@ describe("runConversation", () => {
       maxTurns: 3,
     });
     expect(result.turns).toHaveLength(3);
-    expect(result.finalText).toBe("thinking...");
+    expect(result.truncated).toBe(true);
+    expect(result.finalText).toContain("[Note: Conversation truncated after 3 turns]");
   });
 
   it("aggregates total usage across turns", async () => {

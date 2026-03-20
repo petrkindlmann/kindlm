@@ -190,6 +190,7 @@ describe("stripe webhook route", () => {
     const mockUpsertBilling = vi.fn().mockResolvedValue(undefined);
     vi.mocked(getQueries).mockReturnValue({
       upsertBilling: mockUpsertBilling,
+      getBillingByCustomerId: vi.fn().mockResolvedValue(null),
     } as unknown as ReturnType<typeof getQueries>);
 
     const { app, env } = createWebhookApp();
@@ -226,6 +227,7 @@ describe("stripe webhook route", () => {
     const mockUpsertBilling = vi.fn().mockResolvedValue(undefined);
     vi.mocked(getQueries).mockReturnValue({
       upsertBilling: mockUpsertBilling,
+      getBillingByCustomerId: vi.fn().mockResolvedValue(null),
     } as unknown as ReturnType<typeof getQueries>);
 
     const { app, env } = createWebhookApp();
@@ -267,6 +269,7 @@ describe("stripe webhook route", () => {
     const mockUpsertBilling = vi.fn().mockResolvedValue(undefined);
     vi.mocked(getQueries).mockReturnValue({
       upsertBilling: mockUpsertBilling,
+      getBillingByCustomerId: vi.fn().mockResolvedValue(null),
     } as unknown as ReturnType<typeof getQueries>);
 
     const { app, env } = createWebhookApp();

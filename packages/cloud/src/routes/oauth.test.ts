@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types.js";
 import { oauthRoutes } from "./oauth.js";
 import { testEnv, testExecutionCtx, createMockD1 } from "../test-helpers.js";
+import { encryptWithSecret } from "../crypto/envelope.js";
 
 vi.mock("../db/queries.js", () => ({
   getQueries: vi.fn(),
@@ -117,9 +118,12 @@ describe("oauth routes", () => {
       const mockD1 = createMockD1();
       const env = { ...testEnv, DB: mockD1 as unknown as D1Database };
 
+      // Encrypt the token as the exchange route now decrypts it
+      const encryptedToken = await encryptWithSecret("klm_abc123", testEnv.GITHUB_CLIENT_SECRET, "auth_codes");
+
       // The route uses raw DB.prepare, not getQueries
       mockD1._configureResponse("DELETE FROM auth_codes", {
-        first: { token: "klm_abc123" },
+        first: { token: encryptedToken },
       });
 
       const app = createApp();

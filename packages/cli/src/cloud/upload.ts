@@ -60,9 +60,19 @@ export async function uploadResults(
   // 4. Batch insert results (chunks of 50 to avoid payload limits)
   const results = mapAggregatedResults(runnerResult.aggregated);
   const BATCH_SIZE = 50;
-  for (let i = 0; i < results.length; i += BATCH_SIZE) {
-    const batch = results.slice(i, i + BATCH_SIZE);
-    await client.post(`/v1/runs/${e(run.id)}/results`, { results: batch });
+  try {
+    for (let i = 0; i < results.length; i += BATCH_SIZE) {
+      const batch = results.slice(i, i + BATCH_SIZE);
+      await client.post(`/v1/runs/${e(run.id)}/results`, { results: batch });
+    }
+  } catch (batchError) {
+    // P-05: Mark the run as failed so it doesn't leave orphaned data
+    try {
+      await client.patch(`/v1/runs/${e(run.id)}`, { status: "failed" });
+    } catch {
+      // Best effort cleanup
+    }
+    throw batchError;
   }
 
   // 5. Compute run-level metrics and finalize

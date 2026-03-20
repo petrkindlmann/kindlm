@@ -123,4 +123,5 @@ export interface ConversationResult {
   allToolCalls: ProviderToolCall[];
   totalUsage: ProviderResponse["usage"];
   totalLatencyMs: number;
+  truncated: boolean;
 }

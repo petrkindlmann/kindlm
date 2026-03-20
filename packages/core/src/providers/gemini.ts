@@ -243,7 +243,14 @@ export function createGeminiAdapter(httpClient: HttpClient): ProviderAdapter {
           totalTokenCount?: number;
         };
         modelVersion?: string;
+        error?: { code?: number; message?: string; status?: string };
       };
+
+      // Gemini can return HTTP 200 with an error body
+      if (parsed.error) {
+        const code = parsed.error.code ?? 400;
+        throw mapError(code, { error: parsed.error });
+      }
 
       const candidate = parsed.candidates?.[0];
       const parts = candidate?.content?.parts ?? [];

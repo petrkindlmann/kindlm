@@ -19,6 +19,7 @@ import { createNodeFileReader } from "../utils/file-reader.js";
 interface BaselineSetOptions {
   config: string;
   runs?: string;
+  force?: boolean;
 }
 
 interface BaselineCompareOptions {
@@ -40,6 +41,7 @@ export function registerBaselineCommand(program: Command): void {
     .description("Save current results as baseline")
     .option("-c, --config <path>", "Path to config file", "kindlm.yaml")
     .option("--runs <count>", "Override run count")
+    .option("--force", "Save baseline even if all tests failed")
     .action(async (options: BaselineSetOptions) => {
       try {
         const configDir = dirname(resolve(process.cwd(), options.config));
@@ -52,7 +54,21 @@ export function registerBaselineCommand(program: Command): void {
           runs: options.runs !== undefined ? parseInt(options.runs, 10) : undefined,
         });
 
-        const { aggregated } = runnerResult;
+        const { runResult, aggregated } = runnerResult;
+
+        // P-04: Refuse to save baseline when all tests failed unless --force
+        const passRate = runResult.totalTests > 0
+          ? runResult.passed / runResult.totalTests
+          : 0;
+        if (passRate === 0 && !options.force) {
+          console.error(
+            chalk.red("All tests failed or errored. Refusing to save a failing baseline."),
+          );
+          console.error(
+            chalk.yellow("Use --force to save anyway."),
+          );
+          process.exit(1);
+        }
 
         // Build + write baseline
         const baselineData = buildBaselineData(

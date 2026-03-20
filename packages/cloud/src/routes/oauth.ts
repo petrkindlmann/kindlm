@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types.js";
 import { getQueries } from "../db/queries.js";
 import { hashToken } from "../middleware/auth.js";
+import { encryptWithSecret, decryptWithSecret } from "../crypto/envelope.js";
 
 interface GitHubTokenResponse {
   access_token: string;
@@ -124,7 +125,11 @@ oauthRoutes.post("/exchange", async (c) => {
     return c.json({ error: "Invalid or expired code" }, 400);
   }
 
-  return c.json({ token: row.token });
+  // Decrypt the token (it was encrypted before storage)
+  const AUTH_CODE_SALT = "auth_codes";
+  const token = await decryptWithSecret(row.token, c.env.GITHUB_CLIENT_SECRET, AUTH_CODE_SALT);
+
+  return c.json({ token });
 });
 
 // GET /github/callback — Exchange code for token, create/find user
@@ -264,10 +269,12 @@ oauthRoutes.get("/github/callback", async (c) => {
         .join("");
       const expiresAt = new Date(Date.now() + AUTH_CODE_TTL_SECONDS * 1000).toISOString();
 
+      // Encrypt the token before storage
+      const encryptedToken = await encryptWithSecret(plaintext, c.env.GITHUB_CLIENT_SECRET, "auth_codes");
       await c.env.DB.prepare(
         "INSERT INTO auth_codes (code, token, expires_at) VALUES (?, ?, ?)",
       )
-        .bind(authCode, plaintext, expiresAt)
+        .bind(authCode, encryptedToken, expiresAt)
         .run();
 
       const redirectUrl = new URL(dashboardRedirect);

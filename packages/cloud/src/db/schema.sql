@@ -323,3 +323,14 @@ CREATE TABLE IF NOT EXISTS pending_invites (
 
 CREATE INDEX IF NOT EXISTS idx_pending_invites_org ON pending_invites(org_id);
 CREATE INDEX IF NOT EXISTS idx_pending_invites_email ON pending_invites(email);
+
+-- ============================================================
+-- SAML Assertion Replay Protection (0009_saml_assertions.sql)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS saml_assertions (
+  assertion_id TEXT PRIMARY KEY,
+  org_id       TEXT NOT NULL,
+  used_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at   TEXT NOT NULL
+);

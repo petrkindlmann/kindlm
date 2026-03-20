@@ -35,6 +35,10 @@ async function stripeRequest(
     },
     body: body ? new URLSearchParams(body).toString() : undefined,
   });
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`Stripe API error ${res.status}: ${errorBody}`);
+  }
   return res.json();
 }
 
@@ -231,16 +235,27 @@ stripeWebhookRoute.post("/", async (c) => {
 
   const queries = getQueries(c.env.DB);
   const obj = event.data.object;
-  const orgId = obj.metadata?.org_id;
+  const customerId = typeof obj.customer === "string" ? obj.customer : null;
+
+  // Look up org by stripe_customer_id instead of trusting metadata.org_id
+  async function resolveOrgId(): Promise<string | null> {
+    if (customerId) {
+      const billing = await queries.getBillingByCustomerId(customerId);
+      if (billing) return billing.orgId;
+    }
+    // Fallback for checkout.session.completed where billing record may not exist yet
+    return obj.metadata?.org_id ?? null;
+  }
 
   switch (event.type) {
     case "checkout.session.completed": {
+      const orgId = await resolveOrgId();
       if (orgId && obj.metadata?.plan) {
         const plan = obj.metadata.plan as Plan;
         await queries.upsertBilling(orgId, {
           plan,
           stripeSubscriptionId: (obj as { subscription?: string }).subscription ?? null,
-          stripeCustomerId: (typeof obj.customer === "string" ? obj.customer : null) ?? null,
+          stripeCustomerId: customerId,
         });
         // Update org plan
         await c.env.DB.prepare("UPDATE orgs SET plan = ?, updated_at = datetime('now') WHERE id = ?")
@@ -250,6 +265,7 @@ stripeWebhookRoute.post("/", async (c) => {
       break;
     }
     case "customer.subscription.updated": {
+      const orgId = await resolveOrgId();
       if (orgId) {
         const periodEnd = obj.current_period_end
           ? new Date(obj.current_period_end * 1000).toISOString()
@@ -279,6 +295,7 @@ stripeWebhookRoute.post("/", async (c) => {
       break;
     }
     case "customer.subscription.deleted": {
+      const orgId = await resolveOrgId();
       if (orgId) {
         await queries.upsertBilling(orgId, { plan: "free" });
         await c.env.DB.prepare("UPDATE orgs SET plan = 'free', updated_at = datetime('now') WHERE id = ?")

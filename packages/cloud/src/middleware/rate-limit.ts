@@ -5,16 +5,21 @@ import { getLimits } from "./plan-gate.js";
 const WINDOW_SECONDS = 60;
 const CLEANUP_PROBABILITY = 0.01; // ~1 in 100 requests
 
+const UNAUTHENTICATED_RATE_LIMIT = 30; // per minute per IP for public endpoints
+
 export async function rateLimitMiddleware(
   c: Context<AppEnv>,
   next: Next,
 ): Promise<Response | void> {
   const auth = c.get("auth");
-  if (!auth) return next();
 
-  const orgId = auth.org.id;
-  const limit = getLimits(auth.org.plan).rateLimit;
-  const db = c.env.DB;
+  // For unauthenticated requests (e.g. /auth/*), rate-limit by IP
+  const rateLimitKey = auth
+    ? auth.org.id
+    : (c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown");
+  const limit = auth ? getLimits(auth.org.plan).rateLimit : UNAUTHENTICATED_RATE_LIMIT;
+  const db = c.env?.DB;
+  if (!db) return next();
   const now = new Date().toISOString().slice(0, 16); // minute-level: "2026-03-20T14:30"
 
   try {
@@ -45,13 +50,13 @@ export async function rateLimitMiddleware(
            END,
            window_start = excluded.window_start`,
       )
-      .bind(orgId, now)
+      .bind(rateLimitKey, now)
       .run();
 
     // Read the current count after atomic increment
     const row = await db
       .prepare("SELECT count FROM rate_limits WHERE key = ?")
-      .bind(orgId)
+      .bind(rateLimitKey)
       .first<{ count: number }>();
 
     if (row && row.count > limit) {

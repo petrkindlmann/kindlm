@@ -144,6 +144,19 @@ describe("getQueries", () => {
     });
 
     it("getOrCreateSuite creates when not found", async () => {
+      // After INSERT ON CONFLICT DO NOTHING + SELECT, mock the SELECT response
+      mockDb._configureResponse("SELECT * FROM suites WHERE project_id", {
+        first: {
+          id: "suite-new",
+          project_id: "proj-1",
+          name: "New Suite",
+          description: null,
+          config_hash: "hash",
+          tags: null,
+          created_at: "2025-01-01",
+          updated_at: "2025-01-01",
+        },
+      });
       const suite = await queries.getOrCreateSuite("proj-1", "New Suite", "hash");
       expect(suite.name).toBe("New Suite");
     });

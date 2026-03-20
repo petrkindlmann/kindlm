@@ -40,13 +40,17 @@ export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion 
 
   const validatorCache = new Map<string, AjvValidateFunction>();
 
-  function getOrCompileValidator(ajv: AjvInstance, schema: Record<string, unknown>): AjvValidateFunction {
+  function getOrCompileValidator(ajv: AjvInstance, schema: Record<string, unknown>): AjvValidateFunction | { compileError: string } {
     const key = JSON.stringify(schema);
     const cached = validatorCache.get(key);
     if (cached) return cached;
-    const validate = ajv.compile(schema);
-    validatorCache.set(key, validate);
-    return validate;
+    try {
+      const validate = ajv.compile(schema);
+      validatorCache.set(key, validate);
+      return validate;
+    } catch (e) {
+      return { compileError: e instanceof Error ? e.message : String(e) };
+    }
   }
   return {
     type: "schema",
@@ -78,19 +82,31 @@ export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion 
 
       if (config.schemaContent) {
         const ajv = await getAjvInstance();
-        const validate = getOrCompileValidator(ajv, config.schemaContent);
-        const valid = validate(parsed ?? context.outputText);
-        results.push({
-          assertionType: "schema",
-          label: "Output matches JSON Schema",
-          passed: valid,
-          score: valid ? 1 : 0,
-          failureCode: valid ? undefined : "SCHEMA_INVALID",
-          failureMessage: valid
-            ? undefined
-            : `Schema validation failed: ${ajv.errorsText(validate.errors)}`,
-          metadata: valid ? undefined : { errors: validate.errors },
-        });
+        const validateOrError = getOrCompileValidator(ajv, config.schemaContent);
+        if ("compileError" in validateOrError) {
+          results.push({
+            assertionType: "schema",
+            label: "Output matches JSON Schema",
+            passed: false,
+            score: 0,
+            failureCode: "SCHEMA_INVALID",
+            failureMessage: `Schema compilation failed: ${validateOrError.compileError}`,
+          });
+        } else {
+          const validate = validateOrError;
+          const valid = validate(parsed ?? context.outputText);
+          results.push({
+            assertionType: "schema",
+            label: "Output matches JSON Schema",
+            passed: valid,
+            score: valid ? 1 : 0,
+            failureCode: valid ? undefined : "SCHEMA_INVALID",
+            failureMessage: valid
+              ? undefined
+              : `Schema validation failed: ${ajv.errorsText(validate.errors)}`,
+            metadata: valid ? undefined : { errors: validate.errors },
+          });
+        }
       }
 
       if (config.contains) {

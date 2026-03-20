@@ -12,6 +12,7 @@ export interface TestCaseRunResult {
   tokenUsage: { inputTokens: number; outputTokens: number; totalTokens: number };
   costEstimateUsd: number | null;
   errored?: boolean;
+  error?: { code: string; message: string };
 }
 
 export interface AggregatedTestResult {

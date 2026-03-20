@@ -84,7 +84,12 @@ complianceRoutes.post("/sign", requirePlan("enterprise"), async (c) => {
     return c.json({ error: "content is required" }, 400);
   }
 
-  const { privateKey, publicKeyBase64 } = await getOrCreateKeyPair(auth.org.id, queries, c.env.SIGNING_KEY_SECRET);
+  const signingKeySecret = c.env.SIGNING_KEY_SECRET;
+  if (!signingKeySecret || signingKeySecret.length < 32) {
+    return c.json({ error: "SIGNING_KEY_SECRET not configured or too short" }, 500);
+  }
+
+  const { privateKey, publicKeyBase64 } = await getOrCreateKeyPair(auth.org.id, queries, signingKeySecret);
 
   const encoder = new TextEncoder();
   const data = encoder.encode(body.content);

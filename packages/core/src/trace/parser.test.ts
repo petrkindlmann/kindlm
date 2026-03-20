@@ -161,4 +161,67 @@ describe("parseOtlpPayload", () => {
     const span = result.data[0] ?? expect.fail("expected span");
     expect(span.parentSpanId).toBe("parent");
   });
+
+  it("handles malformed nanosecond timestamps without crashing", () => {
+    const payload = {
+      resourceSpans: [
+        {
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  traceId: "t1",
+                  spanId: "s1",
+                  name: "bad-nanos",
+                  kind: 1,
+                  startTimeUnixNano: "not-a-number",
+                  endTimeUnixNano: "also-bad",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = parseOtlpPayload(payload);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const span = result.data[0] ?? expect.fail("expected span");
+    expect(span.startTimeMs).toBe(0);
+    expect(span.endTimeMs).toBe(0);
+    expect(span.durationMs).toBe(0);
+  });
+
+  it("handles empty string nanosecond timestamps", () => {
+    const payload = {
+      resourceSpans: [
+        {
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  traceId: "t1",
+                  spanId: "s1",
+                  name: "empty-nanos",
+                  kind: 1,
+                  startTimeUnixNano: "",
+                  endTimeUnixNano: "",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = parseOtlpPayload(payload);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const span = result.data[0] ?? expect.fail("expected span");
+    expect(span.startTimeMs).toBe(0);
+    expect(span.endTimeMs).toBe(0);
+  });
 });
