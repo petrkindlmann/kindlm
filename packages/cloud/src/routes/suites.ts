@@ -91,7 +91,7 @@ suiteRoutes.delete("/:suiteId", async (c) => {
     return c.json({ error: "Suite not found" }, 404);
   }
 
-  const deleted = await queries.deleteSuite(suiteId);
+  const deleted = await queries.deleteSuite(suiteId, project.id);
   if (!deleted) {
     return c.json({ error: "Suite not found" }, 404);
   }

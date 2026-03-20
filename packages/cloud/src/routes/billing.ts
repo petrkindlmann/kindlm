@@ -240,6 +240,7 @@ stripeWebhookRoute.post("/", async (c) => {
         await queries.upsertBilling(orgId, {
           plan,
           stripeSubscriptionId: (obj as { subscription?: string }).subscription ?? null,
+          stripeCustomerId: (typeof obj.customer === "string" ? obj.customer : null) ?? null,
         });
         // Update org plan
         await c.env.DB.prepare("UPDATE orgs SET plan = ?, updated_at = datetime('now') WHERE id = ?")
@@ -253,10 +254,27 @@ stripeWebhookRoute.post("/", async (c) => {
         const periodEnd = obj.current_period_end
           ? new Date(obj.current_period_end * 1000).toISOString()
           : null;
-        await queries.upsertBilling(orgId, {
+
+        // Extract plan from subscription items
+        const items = (obj as { items?: { data?: Array<{ price?: { metadata?: { plan?: string } } }> } }).items;
+        const subPlan = items?.data?.[0]?.price?.metadata?.plan as Plan | undefined;
+
+        const billingUpdate: Parameters<typeof queries.upsertBilling>[1] = {
           stripeSubscriptionId: obj.id ?? null,
           periodEnd,
-        });
+        };
+        if (subPlan) {
+          billingUpdate.plan = subPlan;
+        }
+
+        await queries.upsertBilling(orgId, billingUpdate);
+
+        // Sync org plan if extracted from subscription
+        if (subPlan) {
+          await c.env.DB.prepare("UPDATE orgs SET plan = ?, updated_at = datetime('now') WHERE id = ?")
+            .bind(subPlan, orgId)
+            .run();
+        }
       }
       break;
     }

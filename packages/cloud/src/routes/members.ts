@@ -30,6 +30,48 @@ memberRoutes.get("/", async (c) => {
   });
 });
 
+// GET /invites — List pending invites for org
+memberRoutes.get("/invites", async (c) => {
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can view pending invites" }, 403);
+  }
+
+  const invites = await queries.getPendingInvitesByOrg(auth.org.id);
+  return c.json({ invites });
+});
+
+// DELETE /invites/:id — Cancel a pending invite
+memberRoutes.delete("/invites/:id", async (c) => {
+  const inviteId = c.req.param("id");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const callerId = auth.token.userId ?? auth.user?.id;
+  if (!callerId) {
+    return c.json({ error: "Token not associated with a user" }, 403);
+  }
+  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
+  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+    return c.json({ error: "Only owners and admins can cancel invites" }, 403);
+  }
+
+  const deleted = await queries.deletePendingInvite(inviteId, auth.org.id);
+  if (!deleted) {
+    return c.json({ error: "Invite not found" }, 404);
+  }
+
+  auditLog(c, "member.invite_cancel", "pending_invite", inviteId);
+  return c.body(null, 204);
+});
+
 // POST /invite — Invite a member by GitHub username
 memberRoutes.post("/invite", async (c) => {
   const auth = c.get("auth");
@@ -192,47 +234,5 @@ memberRoutes.delete("/:userId", async (c) => {
   }
 
   auditLog(c, "member.remove", "member", userId);
-  return c.body(null, 204);
-});
-
-// GET /invites — List pending invites for org
-memberRoutes.get("/invites", async (c) => {
-  const auth = c.get("auth");
-  const queries = getQueries(c.env.DB);
-
-  const callerId = auth.token.userId ?? auth.user?.id;
-  if (!callerId) {
-    return c.json({ error: "Token not associated with a user" }, 403);
-  }
-  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
-  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
-    return c.json({ error: "Only owners and admins can view pending invites" }, 403);
-  }
-
-  const invites = await queries.getPendingInvitesByOrg(auth.org.id);
-  return c.json({ invites });
-});
-
-// DELETE /invites/:id — Cancel a pending invite
-memberRoutes.delete("/invites/:id", async (c) => {
-  const inviteId = c.req.param("id");
-  const auth = c.get("auth");
-  const queries = getQueries(c.env.DB);
-
-  const callerId = auth.token.userId ?? auth.user?.id;
-  if (!callerId) {
-    return c.json({ error: "Token not associated with a user" }, 403);
-  }
-  const callerMember = await queries.getOrgMember(auth.org.id, callerId);
-  if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
-    return c.json({ error: "Only owners and admins can cancel invites" }, 403);
-  }
-
-  const deleted = await queries.deletePendingInvite(inviteId, auth.org.id);
-  if (!deleted) {
-    return c.json({ error: "Invite not found" }, 404);
-  }
-
-  auditLog(c, "member.invite_cancel", "pending_invite", inviteId);
   return c.body(null, 204);
 });

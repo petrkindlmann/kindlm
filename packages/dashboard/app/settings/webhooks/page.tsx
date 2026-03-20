@@ -7,7 +7,7 @@ import WebhookList from "@/components/WebhookList";
 import EmptyState from "@/components/EmptyState";
 
 export default function WebhooksPage() {
-  const key = "/v1/org/webhooks";
+  const key = "/v1/webhooks";
   const {
     data,
     isLoading,

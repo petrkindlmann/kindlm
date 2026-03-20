@@ -9,6 +9,7 @@ function makeAggregated(overrides: Partial<AggregatedTestResult> = {}): Aggregat
     modelId: "openai:gpt-4o",
     runCount: 3,
     passed: true,
+    errored: false,
     passRate: 1.0,
     assertionScores: { tool_called: { mean: 1, min: 1, max: 1 } },
     failureCodes: [],

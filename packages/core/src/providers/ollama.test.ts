@@ -217,10 +217,13 @@ describe("createOllamaAdapter", () => {
       await adapter.initialize({ apiKey: "", timeoutMs: 30000, maxRetries: 0 });
 
       const result = await adapter.complete(baseRequest());
-      expect(result.toolCalls).toEqual([
-        { id: "ollama_call_0", name: "get_weather", arguments: { city: "London" } },
-        { id: "ollama_call_1", name: "get_time", arguments: { timezone: "UTC" } },
-      ]);
+      expect(result.toolCalls).toHaveLength(2);
+      expect(result.toolCalls[0]?.id).toMatch(/^ollama_call_\d+_0$/);
+      expect(result.toolCalls[0]?.name).toBe("get_weather");
+      expect(result.toolCalls[0]?.arguments).toEqual({ city: "London" });
+      expect(result.toolCalls[1]?.id).toMatch(/^ollama_call_\d+_1$/);
+      expect(result.toolCalls[1]?.name).toBe("get_time");
+      expect(result.toolCalls[1]?.arguments).toEqual({ timezone: "UTC" });
       expect(result.finishReason).toBe("tool_calls");
     });
 

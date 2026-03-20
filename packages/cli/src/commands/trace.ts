@@ -11,12 +11,8 @@ import {
   mapSpansToResult,
   buildContextFromTrace,
   createAssertionsFromExpect,
-  createPrettyReporter,
-  createJsonReporter,
-  createJunitReporter,
 } from "@kindlm/core";
 import type {
-  Colorize,
   KindLMConfig,
   ProviderAdapter,
   TraceConfig,
@@ -30,6 +26,7 @@ import { createTraceServer } from "../utils/trace-server.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createNodeFileReader } from "../utils/file-reader.js";
 import { createHttpClient } from "../utils/http.js";
+import { selectReporter } from "../utils/select-reporter.js";
 
 export function registerTraceCommand(program: Command): void {
   program
@@ -189,6 +186,8 @@ export function registerTraceCommand(program: Command): void {
           }
 
           // 8. Build RunResult + GateEvaluation for reporters
+          const skippedCount = config.tests.filter((t) => t.skip).length;
+          const traceLatencyMs = mappingResult.latencyMs;
           const testRunResults: TestRunResult[] = testResults.map(({ testName, assertions }) => {
             const allPassed = assertions.every((a) => a.passed);
             return {
@@ -196,7 +195,7 @@ export function registerTraceCommand(program: Command): void {
               modelId: "trace",
               status: allPassed ? "passed" : "failed",
               assertions,
-              latencyMs: 0,
+              latencyMs: traceLatencyMs,
               costUsd: 0,
             } satisfies TestRunResult;
           });
@@ -216,14 +215,14 @@ export function registerTraceCommand(program: Command): void {
             passed: passedTests,
             failed: failedTests,
             errored: 0,
-            skipped: 0,
-            durationMs: 0,
+            skipped: skippedCount,
+            durationMs: traceLatencyMs,
           };
 
           const gateEvaluation: GateEvaluation = { passed: failedTests === 0, gates: [] };
 
           // 9. Select + generate report
-          const reporter = selectTraceReporter(opts.reporter);
+          const reporter = selectReporter(opts.reporter);
           const report = await reporter.generate(runResult, gateEvaluation);
           console.log(report.content);
 
@@ -238,31 +237,4 @@ export function registerTraceCommand(program: Command): void {
         process.exit(1);
       }
     });
-}
-
-const chalkColorize: Colorize = {
-  bold: (t) => chalk.bold(t),
-  red: (t) => chalk.red(t),
-  green: (t) => chalk.green(t),
-  yellow: (t) => chalk.yellow(t),
-  cyan: (t) => chalk.cyan(t),
-  dim: (t) => chalk.dim(t),
-  greenBold: (t) => chalk.green.bold(t),
-  redBold: (t) => chalk.red.bold(t),
-};
-
-const KNOWN_REPORTERS = ["pretty", "json", "junit"] as const;
-
-function selectTraceReporter(type: string) {
-  switch (type) {
-    case "json":
-      return createJsonReporter();
-    case "junit":
-      return createJunitReporter();
-    case "pretty":
-      return createPrettyReporter(chalkColorize);
-    default:
-      console.error(chalk.red(`Unknown reporter: '${type}'. Available: ${KNOWN_REPORTERS.join(", ")}`));
-      process.exit(1);
-  }
 }

@@ -26,10 +26,10 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 |----------|---------------|
 | OpenAI | `openai:gpt-4o` |
 | Anthropic | `anthropic:claude-sonnet-4-5-20250929` |
-| Ollama | `ollama:llama3` |
 | Google Gemini | `google:gemini-2.0-flash` |
-| AWS Bedrock | `bedrock:anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| Azure OpenAI | `azure:my-gpt4o-deployment` |
+| Mistral | `mistral:mistral-large-latest` |
+| Cohere | `cohere:command-r-plus` |
+| Ollama | `ollama:llama3` |
 
 ## Quick Start
 

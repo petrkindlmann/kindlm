@@ -94,19 +94,29 @@ export interface Baseline {
 }
 
 export interface ComparisonData {
-  run: TestRun;
-  baseline: Baseline;
-  regressions: ComparisonDelta[];
-  improvements: ComparisonDelta[];
-  unchanged: number;
+  hasBaseline: boolean;
+  baseline?: {
+    id: string;
+    label: string;
+    runId: string;
+  };
+  summary?: {
+    regressions: number;
+    improvements: number;
+    unchanged: number;
+    new: number;
+    removed: number;
+  };
+  diffs?: ResultDiff[];
 }
 
-export interface ComparisonDelta {
+export interface ResultDiff {
   testCaseName: string;
-  field: string;
-  baselineValue: number;
-  currentValue: number;
-  delta: number;
+  modelId: string;
+  status: "regression" | "improvement" | "unchanged" | "new" | "removed";
+  baselinePassRate: number | null;
+  currentPassRate: number | null;
+  delta: number | null;
 }
 
 /** Matches shape returned by GET /v1/auth/tokens (auth route maps each token) */
@@ -159,27 +169,30 @@ export interface Webhook {
 export interface AuditLogEntry {
   id: string;
   orgId: string;
+  actorId: string | null;
+  actorType: string;
   action: string;
   resourceType: string;
-  resourceId: string;
-  userId: string;
+  resourceId: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
 }
 
 /** Matches shape returned by GET /v1/sso/config */
 export interface SamlConfig {
-  entityId: string;
-  ssoUrl: string;
-  certificate: string;
-  createdAt: string;
-  updatedAt: string;
+  configured: boolean;
+  idpEntityId?: string;
+  idpSsoUrl?: string;
+  spEntityId?: string;
+  enabled?: boolean;
+  createdAt?: string;
 }
 
 /** Matches shape returned by GET /v1/runs/:runId/compliance */
 export interface ComplianceReport {
-  report: string;
-  hash: string;
+  runId: string;
+  complianceReport: string;
+  complianceHash: string;
 }
 
 /** Matches shape returned by GET /v1/billing */
@@ -227,6 +240,9 @@ export async function apiClient<T>(
   });
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
     const body = await res.text();
     throw new ApiError(res.status, body || res.statusText);
   }

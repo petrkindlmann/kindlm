@@ -492,10 +492,10 @@ export function getQueries(db: D1Database) {
     return createSuite(projectId, name, configHash);
   }
 
-  async function deleteSuite(id: string): Promise<boolean> {
+  async function deleteSuite(id: string, projectId: string): Promise<boolean> {
     const result = await db
-      .prepare("DELETE FROM suites WHERE id = ?")
-      .bind(id)
+      .prepare("DELETE FROM suites WHERE id = ? AND project_id = ?")
+      .bind(id, projectId)
       .run();
     return (result.meta?.changes ?? 0) > 0;
   }

@@ -12,6 +12,10 @@ export interface ComplianceRunMetadata {
   gitCommitSha?: string;
   modelIds: string[];
   configHash?: string;
+  systemName?: string;
+  operator?: string;
+  riskLevel?: string;
+  intendedPurpose?: string;
 }
 
 // ============================================================
@@ -59,6 +63,18 @@ export function createComplianceReporter(metadata?: ComplianceRunMetadata): Repo
       sections.push(`**Generated:** ${timestamp}`);
       sections.push(`**Framework:** EU AI Act (Regulation 2024/1689)`);
       sections.push(`**Tool:** KindLM v${versionLabel}`);
+      if (metadata?.systemName) {
+        sections.push(`**System Name:** ${metadata.systemName}`);
+      }
+      if (metadata?.operator) {
+        sections.push(`**Operator:** ${metadata.operator}`);
+      }
+      if (metadata?.riskLevel) {
+        sections.push(`**Risk Level:** ${metadata.riskLevel}`);
+      }
+      if (metadata?.intendedPurpose) {
+        sections.push(`**Intended Purpose:** ${metadata.intendedPurpose}`);
+      }
       sections.push("");
 
       // Article 9 — Risk Management

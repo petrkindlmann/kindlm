@@ -13,6 +13,8 @@ import {
 } from "./keywords.js";
 import { createJudgeAssertion } from "./judge.js";
 import { createDriftAssertion } from "./drift.js";
+import { createLatencyAssertion } from "./latency.js";
+import { createCostAssertion } from "./cost.js";
 export type AssertionFactory = (config: Expect) => Assertion;
 
 export interface AssertionOverrides {
@@ -98,6 +100,7 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
           criteria: criterion.criteria,
           minScore: criterion.minScore,
           rubric: criterion.rubric,
+          model: criterion.model,
         }),
       );
     }
@@ -110,6 +113,18 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
         method: expect.baseline.drift.method,
         fields: expect.baseline.drift.fields,
       }),
+    );
+  }
+
+  if (expect.latency) {
+    assertions.push(
+      createLatencyAssertion({ maxMs: expect.latency.maxMs }),
+    );
+  }
+
+  if (expect.cost) {
+    assertions.push(
+      createCostAssertion({ maxUsd: expect.cost.maxUsd }),
     );
   }
 

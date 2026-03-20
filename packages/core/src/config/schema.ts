@@ -259,12 +259,6 @@ const ToolCallExpectSchema = z.object({
     .describe(
       "Expected position in the sequence of tool calls (0-indexed)",
     ),
-  responseContains: z
-    .string()
-    .optional()
-    .describe(
-      "Assert the simulated tool response contains this substring",
-    ),
 });
 
 const BaselineDriftSchema = z.object({
@@ -308,6 +302,18 @@ const ExpectSchema = z.object({
       drift: BaselineDriftSchema.optional(),
     })
     .optional(),
+  latency: z
+    .object({
+      maxMs: z.number().positive().describe("Maximum allowed latency in milliseconds"),
+    })
+    .optional()
+    .describe("Assert response latency is within threshold"),
+  cost: z
+    .object({
+      maxUsd: z.number().positive().describe("Maximum allowed cost in USD"),
+    })
+    .optional()
+    .describe("Assert response cost is within budget"),
 });
 
 // ============================================================
@@ -502,18 +508,6 @@ const ComplianceSchema = z.object({
 
 const UploadSchema = z.object({
   enabled: z.boolean().default(false),
-  includeArtifacts: z
-    .boolean()
-    .default(false)
-    .describe(
-      "Upload raw prompt inputs and model outputs. Disabled by default for privacy.",
-    ),
-  redactPatterns: z
-    .array(RegexPattern)
-    .optional()
-    .describe(
-      "Patterns to redact from artifacts before upload (applied on top of PII guardrails)",
-    ),
   apiUrl: z
     .string()
     .url()

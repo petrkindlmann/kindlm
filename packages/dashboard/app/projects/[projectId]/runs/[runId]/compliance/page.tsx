@@ -18,9 +18,9 @@ export default function ComplianceReportPage() {
   );
 
   function handleDownload() {
-    if (!data?.report) return;
+    if (!data?.complianceReport) return;
 
-    const blob = new Blob([data.report], { type: "text/markdown" });
+    const blob = new Blob([data.complianceReport], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -59,7 +59,7 @@ export default function ComplianceReportPage() {
     );
   }
 
-  if (!data?.report) {
+  if (!data?.complianceReport) {
     return (
       <div className="space-y-6">
         <div>
@@ -144,7 +144,7 @@ export default function ComplianceReportPage() {
             Content Hash (SHA-256)
           </p>
           <code className="mt-1 block break-all text-sm text-stone-700">
-            {data.hash}
+            {data.complianceHash}
           </code>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
@@ -160,7 +160,7 @@ export default function ComplianceReportPage() {
       {/* Report content */}
       <div className="rounded-xl border border-stone-200 bg-white p-6 lg:p-8">
         <div className="prose prose-stone max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-          {data.report}
+          {data.complianceReport}
         </div>
       </div>
     </div>

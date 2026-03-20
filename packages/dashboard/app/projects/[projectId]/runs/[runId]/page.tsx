@@ -15,14 +15,14 @@ export default function RunDetailPage() {
     runId: string;
   }>();
 
-  const { data: run, isLoading: loadingRun } = useSWR<TestRun>(
+  const { data: run, isLoading: loadingRun, error: runError } = useSWR<TestRun>(
     `/v1/runs/${runId}`,
     fetcher,
   );
 
-  const { data: resultsData, isLoading: loadingResults } = useSWR<{
+  const { data: resultsData, isLoading: loadingResults, error: resultsError } = useSWR<{
     results: TestResult[];
-  }>(`/v1/runs/${runId}/results`, fetcher);
+  }>(`/v1/results/${runId}/results`, fetcher);
 
   const isLoading = loadingRun || loadingResults;
   const results = resultsData?.results ?? [];
@@ -48,6 +48,27 @@ export default function RunDetailPage() {
           ))}
         </div>
         <div className="h-64 animate-pulse rounded-xl bg-stone-200" />
+      </div>
+    );
+  }
+
+  if (runError || resultsError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Link
+            href={`/projects/${projectId}/runs`}
+            className="text-sm text-indigo-600 hover:text-indigo-700"
+          >
+            &larr; Back to runs
+          </Link>
+          <h1 className="mt-2 text-2xl font-semibold text-stone-900">
+            Run Detail
+          </h1>
+        </div>
+        <div className="rounded-xl bg-red-50 p-6 text-center text-sm text-red-700 ring-1 ring-red-200">
+          Failed to load run details. Please try again.
+        </div>
       </div>
     );
   }

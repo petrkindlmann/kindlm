@@ -11,6 +11,7 @@ export interface TestCaseRunResult {
   latencyMs: number;
   tokenUsage: { inputTokens: number; outputTokens: number; totalTokens: number };
   costEstimateUsd: number | null;
+  errored?: boolean;
 }
 
 export interface AggregatedTestResult {
@@ -18,6 +19,7 @@ export interface AggregatedTestResult {
   modelId: string;
   runCount: number;
   passed: boolean;
+  errored: boolean;
   passRate: number;
   assertionScores: Record<string, { mean: number; min: number; max: number }>;
   failureCodes: string[];
@@ -87,11 +89,14 @@ export function aggregateRuns(runs: TestCaseRunResult[]): Result<AggregatedTestR
     0,
   );
 
+  const hasErrored = runs.some((r) => r.errored === true);
+
   return ok({
     testCaseName,
     modelId,
     runCount: runs.length,
     passed: passRate === 1,
+    errored: hasErrored,
     passRate,
     assertionScores,
     failureCodes: [...failureCodeSet],

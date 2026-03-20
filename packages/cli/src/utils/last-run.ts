@@ -8,6 +8,8 @@ export interface LastRunData {
   suiteName: string;
   configHash: string;
   timestamp: string;
+  complianceReport?: string;
+  complianceHash?: string;
 }
 
 function getLastRunPath(): string {

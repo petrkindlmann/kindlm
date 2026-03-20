@@ -53,6 +53,8 @@ export function registerUploadCommand(program: Command): void {
             branch: ciEnv.branch ?? gitInfo.branch ?? undefined,
             environment: ciEnv.isCI ? "ci" : "local",
             triggeredBy: ciEnv.name ?? "local",
+            complianceReport: lastRun.complianceReport,
+            complianceHash: lastRun.complianceHash,
           });
 
           spinner.succeed("Uploaded successfully.");

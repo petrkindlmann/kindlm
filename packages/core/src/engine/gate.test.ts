@@ -19,6 +19,7 @@ function makeResult(overrides: Partial<AggregatedTestResult> = {}): AggregatedTe
     modelId: "openai:gpt-4o",
     runCount: 1,
     passed: true,
+    errored: false,
     passRate: 1,
     assertionScores: {},
     failureCodes: [],

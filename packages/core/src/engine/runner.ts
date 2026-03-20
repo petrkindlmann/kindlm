@@ -73,9 +73,14 @@ interface ExecutionUnit {
   runIndex: number;
 }
 
+export interface RunOptions {
+  tags?: string[];
+}
+
 export function createRunner(
   config: KindLMConfig,
   deps: RunnerDeps,
+  options?: RunOptions,
 ): { run(): Promise<Result<RunnerResult>> } {
   return {
     async run(): Promise<Result<RunnerResult>> {
@@ -105,9 +110,17 @@ export function createRunner(
       }
 
       // 2. Build execution plan
+      const tagFilter = options?.tags;
       const units: ExecutionUnit[] = [];
       for (const test of config.tests) {
         if (test.skip) continue;
+
+        // Skip tests that don't match the tag filter
+        if (tagFilter && tagFilter.length > 0) {
+          const testTags = test.tags ?? [];
+          const hasMatch = tagFilter.some((t) => testTags.includes(t));
+          if (!hasMatch) continue;
+        }
 
         const repeat = test.repeat ?? config.defaults.repeat;
 
@@ -189,14 +202,21 @@ export function createRunner(
       }
 
       // 5. Build TestRunResults from aggregated
-      const testRunResults: TestRunResult[] = aggregated.map((agg) => ({
-        name: agg.testCaseName,
-        modelId: agg.modelId,
-        status: agg.passed ? "passed" as const : "failed" as const,
-        assertions: (agg.passed ? agg.runs[0] : agg.runs.find(r => !r.assertions.every(a => a.passed)) ?? agg.runs[0])?.assertions ?? [],
-        latencyMs: agg.latencyAvgMs,
-        costUsd: agg.totalCostUsd,
-      }));
+      const testRunResults: TestRunResult[] = aggregated.map((agg) => {
+        const status: TestRunResult["status"] = agg.errored
+          ? "errored"
+          : agg.passed
+            ? "passed"
+            : "failed";
+        return {
+          name: agg.testCaseName,
+          modelId: agg.modelId,
+          status,
+          assertions: (agg.passed ? agg.runs[0] : agg.runs.find(r => !r.assertions.every(a => a.passed)) ?? agg.runs[0])?.assertions ?? [],
+          latencyMs: agg.latencyAvgMs,
+          costUsd: agg.totalCostUsd,
+        };
+      });
 
       // 6. Build skipped test results
       const skippedTests: TestRunResult[] = config.tests
@@ -296,6 +316,15 @@ async function executeUnit(
       messages.push({ role: "system", content: sysResult.data });
     }
     messages.push({ role: "user", content: userResult.data });
+
+    // Add assistant prefill if configured (Anthropic-style prefill)
+    if (promptDef.assistant) {
+      const assistantResult = interpolate(promptDef.assistant, test.vars);
+      if (!assistantResult.success) {
+        return errorResult(test.name, modelConfig.id, runIndex, assistantResult.error.message);
+      }
+      messages.push({ role: "assistant", content: assistantResult.data });
+    }
 
     // Build tool definitions from simulations
     const tools: ProviderToolDefinition[] = (test.tools ?? []).map((t) => ({
@@ -579,6 +608,7 @@ function errorResult(
     latencyMs: 0,
     tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
     costEstimateUsd: null,
+    errored: true,
   };
 }
 

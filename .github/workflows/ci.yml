@@ -37,6 +37,21 @@ jobs:
 
       - run: npx turbo run test --filter=@kindlm/core --filter=@kindlm/cli
 
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx turbo run build --filter=@kindlm/dashboard
+
   cloud:
     runs-on: ubuntu-latest
     timeout-minutes: 15

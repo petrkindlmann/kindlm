@@ -52,7 +52,7 @@ export function computeRetryDelayMs(options: {
     return retryAfterMs;
   }
   const cap = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt));
-  return Math.floor(Math.random() * cap);
+  return Math.max(Math.floor(baseDelayMs / 2), Math.floor(Math.random() * cap));
 }
 
 function sleep(ms: number): Promise<void> {

@@ -14,7 +14,7 @@ export default function ComparePage() {
   }>();
 
   const { data, isLoading, error } = useSWR<ComparisonData>(
-    `/v1/runs/${runId}/compare`,
+    `/v1/compare/${runId}/compare`,
     fetcher,
   );
 
@@ -27,7 +27,15 @@ export default function ComparePage() {
     );
   }
 
-  if (error?.status === 404) {
+  if (error) {
+    return (
+      <div className="rounded-xl bg-red-50 p-6 text-center text-sm text-red-700 ring-1 ring-red-200">
+        Failed to load comparison data. Please try again.
+      </div>
+    );
+  }
+
+  if (data && !data.hasBaseline) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-stone-900">
@@ -43,14 +51,6 @@ export default function ComparePage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="rounded-xl bg-red-50 p-6 text-center text-sm text-red-700 ring-1 ring-red-200">
-        Failed to load comparison data. Please try again.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div>
@@ -62,7 +62,7 @@ export default function ComparePage() {
         </p>
       </div>
 
-      {data && <ComparisonView data={data} />}
+      {data && data.hasBaseline && <ComparisonView data={data} />}
     </div>
   );
 }

@@ -2,13 +2,13 @@ import type { Reporter, ReporterOutput } from "./interface.js";
 import type { RunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
 
-export function createJsonReporter(): Reporter {
+export function createJsonReporter(version?: string): Reporter {
   return {
     name: "json",
     async generate(runResult: RunResult, gateEvaluation: GateEvaluation): Promise<ReporterOutput> {
       const report = {
         kindlm: {
-          version: "1.0.0",
+          version: version ?? "0.0.0",
           timestamp: new Date().toISOString(),
         },
         summary: {

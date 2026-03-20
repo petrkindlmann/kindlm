@@ -7,8 +7,8 @@ import { fetcher, apiClient } from "@/lib/api";
 
 const SP_METADATA_URL =
   process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/v1/sso/metadata`
-    : "https://api.kindlm.com/v1/sso/metadata";
+    ? `${process.env.NEXT_PUBLIC_API_URL}/auth/saml/metadata`
+    : "https://api.kindlm.com/auth/saml/metadata";
 
 export default function SsoPage() {
   // Check organization plan
@@ -28,10 +28,9 @@ export default function SsoPage() {
 
   // Populate form when config loads
   useEffect(() => {
-    if (config) {
-      setEntityId(config.entityId ?? "");
-      setSsoUrl(config.ssoUrl ?? "");
-      setCertificate(config.certificate ?? "");
+    if (config && config.configured) {
+      setEntityId(config.idpEntityId ?? "");
+      setSsoUrl(config.idpSsoUrl ?? "");
     }
   }, [config]);
 
@@ -43,9 +42,9 @@ export default function SsoPage() {
       await apiClient("/v1/sso/config", {
         method: "PUT",
         body: JSON.stringify({
-          entityId: entityId.trim(),
-          ssoUrl: ssoUrl.trim(),
-          certificate: certificate.trim(),
+          idpEntityId: entityId.trim(),
+          idpSsoUrl: ssoUrl.trim(),
+          idpCertificate: certificate.trim(),
         }),
       });
       setSaved(true);

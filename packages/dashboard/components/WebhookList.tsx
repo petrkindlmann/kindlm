@@ -25,7 +25,7 @@ export default function WebhookList({ webhooks, onUpdate }: WebhookListProps) {
     setCreating(true);
 
     try {
-      await apiClient("/v1/org/webhooks", {
+      await apiClient("/v1/webhooks", {
         method: "POST",
         body: JSON.stringify({ url: newUrl.trim(), events: newEvents }),
       });
@@ -41,7 +41,7 @@ export default function WebhookList({ webhooks, onUpdate }: WebhookListProps) {
   async function deleteWebhook(webhookId: string) {
     if (!confirm("Delete this webhook?")) return;
 
-    await apiClient(`/v1/org/webhooks/${webhookId}`, { method: "DELETE" });
+    await apiClient(`/v1/webhooks/${webhookId}`, { method: "DELETE" });
     onUpdate();
   }
 

@@ -13,16 +13,16 @@ export default function BaselinesPage() {
     suiteId: string;
   }>();
 
-  const key = `/v1/suites/${suiteId}/baselines`;
-  const { data, isLoading, error } = useSWR<{ data: Baseline[] }>(
+  const key = `/v1/baselines/${suiteId}/baselines`;
+  const { data, isLoading, error } = useSWR<{ baselines: Baseline[] }>(
     key,
     fetcher,
   );
 
-  const baselines = data?.data ?? [];
+  const baselines = data?.baselines ?? [];
 
   async function activateBaseline(baselineId: string) {
-    await apiClient(`/v1/suites/${suiteId}/baselines/${baselineId}/activate`, {
+    await apiClient(`/v1/baselines/${baselineId}/activate`, {
       method: "POST",
     });
     mutate(key);
@@ -31,7 +31,7 @@ export default function BaselinesPage() {
   async function deleteBaseline(baselineId: string) {
     if (!confirm("Delete this baseline? This cannot be undone.")) return;
 
-    await apiClient(`/v1/suites/${suiteId}/baselines/${baselineId}`, {
+    await apiClient(`/v1/baselines/${baselineId}`, {
       method: "DELETE",
     });
     mutate(key);

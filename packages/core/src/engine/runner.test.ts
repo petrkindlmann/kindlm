@@ -93,7 +93,7 @@ function makeConfig(overrides?: Partial<KindLMConfig>): KindLMConfig {
       piiFailuresMax: 0,
       keywordFailuresMax: 0,
     },
-    upload: { enabled: false, includeArtifacts: false, apiUrl: "https://api.kindlm.com/v1" },
+    upload: { enabled: false, apiUrl: "https://api.kindlm.com/v1" },
     defaults: {
       repeat: 1,
       concurrency: 4,
@@ -414,7 +414,8 @@ describe("createRunner", () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
 
-    expect(result.data.runResult.failed).toBe(1);
+    expect(result.data.runResult.errored).toBe(1);
+    expect(result.data.runResult.suites[0]!.tests[0]!.status).toBe("errored");
     const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
     expect(assertions[0]!.failureCode).toBe("INTERNAL_ERROR");
     expect(assertions[0]!.failureMessage).toContain("API rate limited");

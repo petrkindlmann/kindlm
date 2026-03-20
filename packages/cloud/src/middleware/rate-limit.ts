@@ -15,7 +15,7 @@ export async function rateLimitMiddleware(
   const orgId = auth.org.id;
   const limit = getLimits(auth.org.plan).rateLimit;
   const db = c.env.DB;
-  const now = new Date().toISOString();
+  const now = new Date().toISOString().slice(0, 16); // minute-level: "2026-03-20T14:30"
 
   try {
     // Probabilistic cleanup of stale entries

@@ -16,7 +16,7 @@ export function createCostAssertion(config: CostAssertionConfig): Assertion {
           label: `Cost <= $${config.maxUsd}`,
           passed,
           score: passed ? 1 : 0,
-          failureCode: passed ? undefined : "INTERNAL_ERROR",
+          failureCode: passed ? undefined : "BUDGET_EXCEEDED",
           failureMessage: passed
             ? undefined
             : `Cost $${costUsd.toFixed(4)} exceeds max $${config.maxUsd}`,

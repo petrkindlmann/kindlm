@@ -14,6 +14,8 @@ export interface UploadOptions {
   branch?: string;
   environment?: string;
   triggeredBy?: string;
+  complianceReport?: string;
+  complianceHash?: string;
 }
 
 interface CloudProject {
@@ -93,6 +95,8 @@ export async function uploadResults(
     judgeAvgScore,
     latencyAvgMs,
     costEstimateUsd,
+    complianceReport: options.complianceReport,
+    complianceHash: options.complianceHash,
     finishedAt: new Date().toISOString(),
   });
 

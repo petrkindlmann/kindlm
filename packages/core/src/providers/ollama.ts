@@ -180,7 +180,7 @@ export function createOllamaAdapter(httpClient: HttpClient): ProviderAdapter {
       const rawToolCalls = message?.tool_calls ?? [];
 
       const toolCalls: ProviderToolCall[] = rawToolCalls.map((tc, index) => ({
-        id: `ollama_call_${index}`,
+        id: `ollama_call_${Date.now()}_${index}`,
         name: tc.function.name,
         arguments: tc.function.arguments ?? {},
       }));

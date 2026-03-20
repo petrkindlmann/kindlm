@@ -98,8 +98,14 @@ async function buildSamlResponse(opts: SamlResponseOptions = {}): Promise<string
     return `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}</saml:Assertion></samlp:Response>`;
   }
 
-  // Build the SignedInfo
-  const signedInfo = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference URI=""><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>placeholder</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
+  // Compute a real DigestValue over the full document (minus signature, since it doesn't exist yet).
+  // The Reference URI="" means the whole document with the Signature element removed.
+  const unsignedXml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}</saml:Assertion></samlp:Response>`;
+  const digestBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(unsignedXml));
+  const digestB64 = bytesToBase64(new Uint8Array(digestBuf));
+
+  // Build the SignedInfo with the real digest
+  const signedInfo = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference URI=""><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>${digestB64}</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
 
   // Sign the SignedInfo with our test private key
   const signedInfoBytes = new TextEncoder().encode(signedInfo);
@@ -465,13 +471,15 @@ describe("SSO routes", () => {
       expect(body).toContain("Authenticated");
       expect(body).toContain("klm_");
 
-      // Verify user was created
+      // Verify user was created with a negative hash of the email as githubId
       expect(mockCreateUser).toHaveBeenCalledWith(
-        0,
+        expect.any(Number),
         "Alice Smith",
         "alice@example.com",
         null,
       );
+      const githubIdArg = mockCreateUser.mock.calls[0]?.[0] as number;
+      expect(githubIdArg).toBeLessThan(0);
       expect(mockAddOrgMember).toHaveBeenCalledWith("org-1", "user-sso-1", "member");
       expect(mockCreateToken).toHaveBeenCalled();
     });
@@ -590,7 +598,11 @@ describe("SSO routes", () => {
       const app = createMockApp();
 
       // Build a SAML response manually without NameID
-      const signedInfo = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference URI=""><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>placeholder</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
+      const assertionBody = `<saml:Issuer>https://idp.example.com</saml:Issuer><saml:Conditions NotBefore="${new Date(Date.now() - 300_000).toISOString()}" NotOnOrAfter="${new Date(Date.now() + 300_000).toISOString()}"></saml:Conditions><saml:Subject></saml:Subject>`;
+      const unsignedXml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}</saml:Assertion></samlp:Response>`;
+      const digestBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(unsignedXml));
+      const digestB64 = bytesToBase64(new Uint8Array(digestBuf));
+      const signedInfo = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference URI=""><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>${digestB64}</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
       const signedInfoBytes = new TextEncoder().encode(signedInfo);
       const signature = await crypto.subtle.sign(
         { name: "RSASSA-PKCS1-v1_5" },
@@ -600,7 +612,7 @@ describe("SSO routes", () => {
       const sigB64 = bytesToBase64(new Uint8Array(signature));
       const signatureXml = `<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${signedInfo}<ds:SignatureValue>${sigB64}</ds:SignatureValue></ds:Signature>`;
 
-      const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion><saml:Issuer>https://idp.example.com</saml:Issuer><saml:Subject></saml:Subject>${signatureXml}</saml:Assertion></samlp:Response>`;
+      const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}${signatureXml}</saml:Assertion></samlp:Response>`;
 
       const b64 = samlResponseToBase64(xml);
       const res = await req(app, "/auth/saml/callback", {

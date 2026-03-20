@@ -184,37 +184,48 @@ export function createGeminiAdapter(httpClient: HttpClient): ProviderAdapter {
 
       const url = `${baseUrl}/models/${request.model}:generateContent`;
 
-      const response = await withRetry(
-        () =>
-          httpClient.fetch(url, {
+      const json = await withRetry(
+        async () => {
+          const response = await httpClient.fetch(url, {
             method: "POST",
             headers,
             body: JSON.stringify(body),
             timeoutMs,
-          }),
+          });
+
+          if (!response.ok) {
+            let data: unknown;
+            try {
+              data = await response.json();
+            } catch {
+              throw new ProviderError(
+                "PROVIDER_ERROR",
+                "Malformed response body from Gemini API",
+                response.status,
+                response.status >= 500,
+              );
+            }
+            throw mapError(response.status, data);
+          }
+
+          try {
+            return await response.json();
+          } catch {
+            throw new ProviderError(
+              "PROVIDER_ERROR",
+              "Malformed response body from Gemini API",
+              response.status,
+              response.status >= 500,
+            );
+          }
+        },
         {
           maxRetries,
           shouldRetry: (error) =>
             error instanceof ProviderError && error.retryable,
         },
       );
-
-      let json: unknown;
-      try {
-        json = await response.json();
-      } catch {
-        throw new ProviderError(
-          "PROVIDER_ERROR",
-          "Malformed response body from Gemini API",
-          response.status,
-          response.status >= 500,
-        );
-      }
       const latencyMs = Date.now() - startTime;
-
-      if (!response.ok) {
-        throw mapError(response.status, json);
-      }
 
       const parsed = json as {
         candidates?: Array<{

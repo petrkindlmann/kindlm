@@ -15,7 +15,7 @@ export interface ParseOptions {
 
 const MAX_CONFIG_SIZE = 1_048_576; // 1MB
 const MAX_TESTS = 1000;
-const MAX_SUITES = 50;
+const MAX_MODELS = 50;
 
 export function parseConfig(
   yamlContent: string,
@@ -58,10 +58,10 @@ export function parseConfig(
 
   // Count unique suites by model grouping — but here "suites" are implicit via test groupings
   // For simplicity, use the models array length as a proxy
-  if (config.models.length > MAX_SUITES) {
+  if (config.models.length > MAX_MODELS) {
     return err({
       code: "CONFIG_VALIDATION_ERROR",
-      message: `Config exceeds maximum of ${MAX_SUITES} models (got ${config.models.length})`,
+      message: `Config exceeds maximum of ${MAX_MODELS} models (got ${config.models.length})`,
     });
   }
 

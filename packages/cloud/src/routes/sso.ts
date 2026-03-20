@@ -38,6 +38,14 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function hashCode(s: string): number {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -112,7 +120,7 @@ interface AlgorithmConfig {
 }
 
 function getAlgorithmConfig(xmlAlg: string): AlgorithmConfig {
-  if (xmlAlg.includes("rsa-sha1") || xmlAlg.includes("rsa-sha1")) {
+  if (xmlAlg.includes("rsa-sha1") || xmlAlg.includes("sha1")) {
     return {
       importParams: { name: "RSASSA-PKCS1-v1_5", hash: "SHA-1" },
       verifyParams: { name: "RSASSA-PKCS1-v1_5" },
@@ -140,6 +148,28 @@ function canonicalizeSignedInfo(signedInfo: string, fullXml: string): string {
   return canonical;
 }
 
+function getDigestAlgorithm(digestMethodUri: string): string {
+  if (digestMethodUri.includes("sha1")) return "SHA-1";
+  if (digestMethodUri.includes("sha512")) return "SHA-512";
+  // Default to SHA-256
+  return "SHA-256";
+}
+
+function extractReferencedElement(xml: string, uri: string): string | null {
+  if (!uri || uri === "") {
+    // Empty URI means the whole document (minus the Signature element)
+    return xml.replace(/<(?:ds:)?Signature[\s\S]*?<\/(?:ds:)?Signature>/, "");
+  }
+  // URI is typically "#id" — find the element with that ID
+  const id = uri.startsWith("#") ? uri.slice(1) : uri;
+  const idRegex = new RegExp(
+    `<([^>]*\\sID=["']${escapeRegex(id)}["'][^>]*)>[\\s\\S]*?<\\/[^>]+>`,
+    "i",
+  );
+  const match = xml.match(idRegex);
+  return match?.[0] ?? null;
+}
+
 export async function verifySamlSignature(
   xml: string,
   certificatePem: string,
@@ -156,6 +186,43 @@ export async function verifySamlSignature(
     /<(?:ds:)?SignedInfo[^>]*>[\s\S]*?<\/(?:ds:)?SignedInfo>/,
   );
   if (!signedInfoMatch?.[0]) return false;
+  const signedInfoXml = signedInfoMatch[0];
+
+  // Verify DigestValue before checking the signature over SignedInfo.
+  // This ensures the referenced assertion body hasn't been tampered with.
+  const refMatch = signedInfoXml.match(
+    /<(?:ds:)?Reference[^>]*(?:URI=["']([^"']*)["'])?[^>]*>[\s\S]*?<\/(?:ds:)?Reference>/,
+  );
+  if (refMatch) {
+    const refUri = refMatch[1] ?? "";
+
+    // Extract DigestMethod algorithm
+    const digestMethodMatch = refMatch[0].match(
+      /<(?:ds:)?DigestMethod[^>]*Algorithm=["']([^"']+)["']/,
+    );
+    const digestAlg = digestMethodMatch?.[1]
+      ? getDigestAlgorithm(digestMethodMatch[1])
+      : "SHA-256";
+
+    // Extract the claimed DigestValue
+    const digestValueMatch = refMatch[0].match(
+      /<(?:ds:)?DigestValue[^>]*>([\s\S]*?)<\/(?:ds:)?DigestValue>/,
+    );
+    if (!digestValueMatch?.[1]) return false;
+    const claimedDigest = digestValueMatch[1].replace(/\s/g, "");
+
+    // Hash the referenced element and compare
+    const referencedElement = extractReferencedElement(xml, refUri);
+    if (!referencedElement) return false;
+
+    const refBytes = new TextEncoder().encode(referencedElement);
+    const digestBuf = await crypto.subtle.digest(digestAlg, refBytes);
+    const computedDigest = btoa(
+      String.fromCharCode(...new Uint8Array(digestBuf)),
+    );
+
+    if (computedDigest !== claimedDigest) return false;
+  }
 
   // Determine algorithm
   const algMatch = xml.match(
@@ -165,7 +232,7 @@ export async function verifySamlSignature(
   const algConfig = getAlgorithmConfig(algorithm);
 
   // Canonicalize SignedInfo
-  const signedInfo = canonicalizeSignedInfo(signedInfoMatch[0], xml);
+  const signedInfo = canonicalizeSignedInfo(signedInfoXml, xml);
 
   // Import the IDP certificate
   let certDer: ArrayBuffer;
@@ -187,7 +254,7 @@ export async function verifySamlSignature(
     return false;
   }
 
-  // Verify
+  // Verify signature over SignedInfo
   const signedInfoBytes = new TextEncoder().encode(signedInfo);
   try {
     return await crypto.subtle.verify(
@@ -327,8 +394,10 @@ ssoRoutes.post("/callback", async (c) => {
       await queries.updateUser(user.id, { githubLogin: displayName });
     }
   } else {
-    // Create a new user (githubId 0 signals SSO-only user, githubLogin stores display name)
-    user = await queries.createUser(0, displayName ?? email, email, null);
+    // Use a negative hash of the email as a unique pseudo-githubId for SSO-only users,
+    // since the users table has UNIQUE(github_id) and 0 would collide for all SSO users.
+    const ssoGithubId = -Math.abs(hashCode(email));
+    user = await queries.createUser(ssoGithubId, displayName ?? email, email, null);
     // Add user to the SSO org
     await queries.addOrgMember(samlConfig.orgId, user.id, "member");
   }

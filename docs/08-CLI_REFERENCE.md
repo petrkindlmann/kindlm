@@ -382,6 +382,8 @@ kindlm-test:
 
 | Variable | Purpose |
 |----------|---------|
+| `OPENAI_API_KEY` | OpenAI API key |
+| `ANTHROPIC_API_KEY` | Anthropic API key |
 | `GOOGLE_API_KEY` | Google Gemini API key |
 | `MISTRAL_API_KEY` | Mistral API key |
 | `CO_API_KEY` | Cohere API key |

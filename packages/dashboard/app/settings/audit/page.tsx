@@ -32,8 +32,8 @@ export default function AuditLogPage() {
     offset: String(offset),
   });
   if (actionFilter) params.set("action", actionFilter);
-  if (dateFrom) params.set("from", dateFrom);
-  if (dateTo) params.set("to", dateTo);
+  if (dateFrom) params.set("since", dateFrom);
+  if (dateTo) params.set("until", dateTo);
 
   const { data, isLoading, error } = useSWR<{
     entries: AuditLogEntry[];
@@ -221,7 +221,7 @@ export default function AuditLogPage() {
                       </code>
                     </td>
                     <td className="px-4 py-3 text-stone-700">
-                      {entry.userId}
+                      {entry.actorId ?? "system"}
                     </td>
                   </tr>
                 ))}

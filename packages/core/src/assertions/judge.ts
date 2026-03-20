@@ -5,6 +5,7 @@ export interface JudgeAssertionConfig {
   criteria: string;
   minScore: number;
   rubric?: string;
+  model?: string;
 }
 
 const JUDGE_SYSTEM_PROMPT = `You are an impartial AI judge evaluating an AI assistant's response.
@@ -74,7 +75,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
       }
 
       const response = await context.judgeAdapter.complete({
-        model: context.judgeModel,
+        model: config.model ?? context.judgeModel,
         messages: [
           { role: "system", content: JUDGE_SYSTEM_PROMPT },
           {

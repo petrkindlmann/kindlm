@@ -155,6 +155,7 @@ CREATE INDEX IF NOT EXISTS idx_results_test ON results(test_case_name);
 
 -- ============================================================
 -- Artifacts (optional, large data)
+-- Reserved for future use: per-run raw I/O storage
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS artifacts (

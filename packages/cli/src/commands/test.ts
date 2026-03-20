@@ -3,16 +3,14 @@ import type { Command } from "commander";
 import chalk from "chalk";
 import {
   evaluateGates,
-  createPrettyReporter,
-  createJsonReporter,
-  createJunitReporter,
   createComplianceReporter,
   ProviderError,
 } from "@kindlm/core";
-import type { Colorize, KindlmError } from "@kindlm/core";
+import type { KindlmError } from "@kindlm/core";
 import { runTests } from "../utils/run-tests.js";
 import { saveLastRun, computeConfigHash } from "../utils/last-run.js";
 import { renderCompliancePdf } from "../utils/pdf-renderer.js";
+import { selectReporter } from "../utils/select-reporter.js";
 
 interface TestOptions {
   suite?: string;
@@ -60,15 +58,21 @@ export function registerTestCommand(program: Command): void {
         console.log(report.content);
 
         // Compliance report
+        let complianceContent: string | undefined;
+        let complianceHash: string | undefined;
         if (options.compliance) {
           const complianceReporter = createComplianceReporter();
           const complianceReport = await complianceReporter.generate(result, gateEvaluation);
+          complianceContent = complianceReport.content;
+          // Extract the tamper evidence hash embedded in the report
+          const hashMatch = complianceContent.match(/Tamper Evidence Hash \(SHA-256\):\*\* `([a-f0-9]{64})`/);
+          complianceHash = hashMatch?.[1];
           console.log("");
-          console.log(complianceReport.content);
+          console.log(complianceContent);
 
           // PDF export
           if (options.pdf) {
-            const pdfPath = await renderCompliancePdf(complianceReport.content, options.pdf);
+            const pdfPath = await renderCompliancePdf(complianceContent, options.pdf);
             console.log("");
             console.log(chalk.green(`PDF report saved to ${pdfPath}`));
           }
@@ -81,6 +85,8 @@ export function registerTestCommand(program: Command): void {
             suiteName: config.suite.name,
             configHash: computeConfigHash(yamlContent),
             timestamp: new Date().toISOString(),
+            complianceReport: complianceContent,
+            complianceHash,
           });
         } catch {
           // Non-fatal — don't block exit on cache failure
@@ -102,7 +108,7 @@ export function registerTestCommand(program: Command): void {
                   : `Provider error (${e.code})`;
           console.error(chalk.red(`${prefix}: ${e.message}`));
           if (e.retryable) {
-            console.error(chalk.yellow("This error may be transient. Try again or increase --timeout."));
+            console.error(chalk.yellow("This error may be transient. Try again or increase timeoutMs in your kindlm.yaml defaults."));
           }
         } else if (isKindlmError(e)) {
           const isConfig = e.code.startsWith("CONFIG_");
@@ -116,33 +122,6 @@ export function registerTestCommand(program: Command): void {
         process.exit(1);
       }
     });
-}
-
-const chalkColorize: Colorize = {
-  bold: (t) => chalk.bold(t),
-  red: (t) => chalk.red(t),
-  green: (t) => chalk.green(t),
-  yellow: (t) => chalk.yellow(t),
-  cyan: (t) => chalk.cyan(t),
-  dim: (t) => chalk.dim(t),
-  greenBold: (t) => chalk.green.bold(t),
-  redBold: (t) => chalk.red.bold(t),
-};
-
-const KNOWN_REPORTERS = ["pretty", "json", "junit"] as const;
-
-function selectReporter(type: string) {
-  switch (type) {
-    case "json":
-      return createJsonReporter();
-    case "junit":
-      return createJunitReporter();
-    case "pretty":
-      return createPrettyReporter(chalkColorize);
-    default:
-      console.error(chalk.red(`Unknown reporter: '${type}'. Available: ${KNOWN_REPORTERS.join(", ")}`));
-      process.exit(1);
-  }
 }
 
 function isKindlmError(e: unknown): e is KindlmError {
