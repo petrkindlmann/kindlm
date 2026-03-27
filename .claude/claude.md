@@ -8,19 +8,23 @@ KindLM is an open-source CLI tool that runs behavioral regression tests against 
 
 ## Architecture Overview
 
-This is a TypeScript monorepo with three packages:
+This is a TypeScript monorepo with five packages:
 
 ```
 packages/
-├── core/     → @kindlm/core  — All business logic. Zero I/O dependencies.
-├── cli/      → @kindlm/cli   — CLI entry point. Thin wrapper around core.
-└── cloud/    → @kindlm/cloud  — Cloudflare Workers API + D1 database.
+├── core/       → @kindlm/core       — All business logic. Zero I/O dependencies.
+├── cli/        → @kindlm/cli        — CLI entry point. Thin wrapper around core.
+├── cloud/      → @kindlm/cloud      — Cloudflare Workers API + D1 database.
+├── dashboard/  → Next.js app        — Cloud dashboard UI (Tailwind + shadcn/ui).
+└── vscode/     → VS Code extension  — YAML intellisense for kindlm.yaml.
 ```
 
 ### Dependency Rules (STRICT)
-- `core` NEVER imports from `cli` or `cloud`
+- `core` NEVER imports from `cli`, `cloud`, `dashboard`, or `vscode`
 - `cli` depends on `core` for all logic
 - `cloud` imports only **types** from `core` (Workers runtime ≠ Node.js)
+- `dashboard` is standalone Next.js — calls Cloud API over HTTP
+- `vscode` is standalone — reads `core`'s Zod schema for intellisense
 - All provider API calls go through injected interfaces in `core`
 
 ### Tech Stack
@@ -39,50 +43,90 @@ packages/
 Users define test suites in YAML. This is the primary interface:
 
 ```yaml
-version: "1"
-defaults:
-  provider: openai:gpt-4o
-  temperature: 0
-  runs: 3
+kindlm: 1
+project: my-project
 
-suites:
-  - name: "refund-agent"
-    system_prompt_file: ./prompts/refund.md
-    tests:
-      - name: "happy-path-refund"
-        input: "I want to return order #12345"
-        assert:
-          - type: tool_called
-            value: lookup_order
-            args:
-              order_id: "12345"
-          - type: tool_not_called
-            value: process_refund
-          - type: no_pii
-          - type: judge
-            criteria: "Response is empathetic and professional"
-            threshold: 0.8
+suite:
+  name: my-agent-tests
+  description: Behavioral tests for my AI agent
+
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
+    params:
+      temperature: 0
+      maxTokens: 1024
+
+prompts:
+  greeting:
+    system: You are a helpful assistant.
+    user: "{{message}}"
+
+tests:
+  - name: basic-greeting
+    prompt: greeting
+    vars:
+      message: Hello, how are you?
+    expect:
+      output:
+        contains:
+          - hello
+      guardrails:
+        pii:
+          enabled: true
+
+gates:
+  passRateMin: 0.95
+
+defaults:
+  repeat: 1
+  concurrency: 4
+  timeoutMs: 60000
 ```
 
-### Assertion Types (the core differentiator)
-1. **tool_called** — Agent called a specific tool with expected args
-2. **tool_not_called** — Agent did NOT call a forbidden tool
-3. **tool_order** — Tools called in specific sequence
-4. **schema** — Structured output matches JSON Schema (AJV)
-5. **judge** — LLM-as-judge scores response against criteria (0.0–1.0)
-6. **no_pii** — Regex-based PII detection (SSN, CC, email, phone, custom patterns)
-7. **keywords_present** — Required phrases appear in output
-8. **keywords_absent** — Forbidden phrases do not appear
-9. **drift** — Semantic + field-level comparison against stored baseline
-10. **latency** — Response time under threshold
-11. **cost** — Token cost under budget
+**Top-level fields:** `kindlm` (version, must be `1`), `project`, `suite` (single object with `name` + `description`), `providers`, `models`, `prompts`, `tests`, `gates`, `compliance` (optional), `trace` (optional), `upload` (optional), `defaults`.
+
+### Expect Sub-Schemas (the core differentiator)
+Assertions are defined under `expect:` in each test case:
+
+1. **`expect.toolCalls[]`** — Tool call assertions: `tool` (name), `argsMatch` (partial arg match), `shouldNotCall` (boolean), `order` (0-indexed position), `argsSchema` (path to JSON Schema)
+2. **`expect.output.format`** — `"text"` or `"json"`. When `"json"`, requires `schemaFile` (JSON Schema validation via AJV)
+3. **`expect.output.contains`** / **`notContains`** — Required/forbidden substrings in output
+4. **`expect.output.maxLength`** — Maximum character length
+5. **`expect.judge[]`** — LLM-as-judge: `criteria` (natural language), `minScore` (0-1, default 0.7), optional `model` override, optional `rubric`
+6. **`expect.guardrails.pii`** — PII detection: `enabled`, `denyPatterns` (regex array, defaults include SSN/CC/email), `customPatterns`
+7. **`expect.guardrails.keywords`** — `deny` (forbidden words) / `allow` (required words)
+8. **`expect.baseline.drift`** — Baseline comparison: `maxScore` (0-1), `method` (`"judge"` | `"embedding"` | `"field-diff"`), `fields`
+9. **`expect.latency.maxMs`** — Response time threshold
+10. **`expect.cost.maxUsd`** — Token cost budget
 
 ### Providers
-Adapter pattern. Each provider implements `ProviderAdapter` interface:
+Adapter pattern. Each provider implements `ProviderAdapter` interface. Six providers supported:
 - `openai` — OpenAI API (GPT-4o, GPT-4o-mini, etc.)
 - `anthropic` — Anthropic API (Claude Sonnet 4.5, Claude Haiku 4.5, etc.)
 - `ollama` — Local models via Ollama
-- Config format: `provider: openai:gpt-4o` or `provider: anthropic:claude-sonnet-4-5-20250929`
+- `gemini` — Google Gemini API
+- `mistral` — Mistral API
+- `cohere` — Cohere API
+
+Config format uses separate `providers:` and `models:` sections:
+```yaml
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+  anthropic:
+    apiKeyEnv: ANTHROPIC_API_KEY
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
+    params: { temperature: 0, maxTokens: 1024 }
+```
 
 ### Compliance Reports
 `kindlm test --compliance` generates EU AI Act Annex IV documentation:
@@ -98,34 +142,43 @@ src/
 ├── config/
 │   ├── schema.ts          # Zod schema for kindlm.yaml validation
 │   ├── parser.ts          # YAML parse → validate → resolve file refs
-│   ├── interpolation.ts   # Template variable expansion ({{env.VAR}})
+│   ├── interpolation.ts   # Template variable expansion ({{variable}})
 │   └── index.ts
 ├── providers/
-│   ├── interface.ts       # ProviderAdapter interface + ProviderResponse type
+│   ├── interface.ts       # Re-exports from types/provider.ts
 │   ├── openai.ts          # OpenAI implementation
 │   ├── anthropic.ts       # Anthropic implementation
 │   ├── ollama.ts          # Ollama local implementation
-│   ├── registry.ts        # Provider factory from "openai:gpt-4o" string
+│   ├── gemini.ts          # Google Gemini implementation
+│   ├── mistral.ts         # Mistral implementation
+│   ├── cohere.ts          # Cohere implementation
+│   ├── conversation.ts    # Multi-turn conversation runner (tool-call loops)
+│   ├── pricing.ts         # Per-model cost estimation tables
+│   ├── retry.ts           # Retry logic with exponential backoff
+│   ├── registry.ts        # Provider factory by name string
 │   └── index.ts
 ├── assertions/
-│   ├── interface.ts       # AssertionHandler interface + AssertionResult type
-│   ├── tool-calls.ts      # tool_called, tool_not_called, tool_order
+│   ├── interface.ts       # Assertion interface + AssertionResult + AssertionContext
+│   ├── tool-calls.ts      # toolCalls assertions (called, not called, args, order)
 │   ├── schema.ts          # JSON Schema validation via AJV
-│   ├── pii.ts             # PII regex patterns (SSN, CC, email, phone, IBAN)
-│   ├── keywords.ts        # keywords_present, keywords_absent
+│   ├── pii.ts             # PII regex patterns (SSN, CC, email, phone)
+│   ├── keywords.ts        # keywords deny/allow + output contains/notContains
 │   ├── judge.ts           # LLM-as-judge (uses provider to score)
-│   ├── drift.ts           # Baseline comparison (cosine similarity + field diff)
+│   ├── drift.ts           # Baseline comparison (judge, embedding, field-diff)
+│   ├── classification.ts  # Output classification assertions
+│   ├── shared-score.ts    # Shared scoring utilities
 │   ├── latency.ts         # Response time assertions
 │   ├── cost.ts            # Token cost assertions
-│   ├── registry.ts        # Assertion type → handler mapping
+│   ├── registry.ts        # Expect → Assertion[] factory (createAssertionsFromExpect)
 │   └── index.ts
 ├── engine/
 │   ├── runner.ts          # Test execution engine (concurrency, retries, timeout)
 │   ├── aggregator.ts      # Multi-run result aggregation (mean, p50, p95)
+│   ├── command.ts         # Shell command test execution + output parsing
 │   ├── gate.ts            # Pass/fail evaluation per test + suite
 │   └── index.ts
 ├── reporters/
-│   ├── interface.ts       # Reporter interface
+│   ├── interface.ts       # Reporter interface + Colorize
 │   ├── pretty.ts          # Terminal colored output (chalk)
 │   ├── json.ts            # JSON report file
 │   ├── junit.ts           # JUnit XML for CI systems
@@ -133,13 +186,18 @@ src/
 │   └── index.ts
 ├── baseline/
 │   ├── store.ts           # Read/write .kindlm/baselines/*.json
+│   ├── builder.ts         # Build baseline data from aggregated results
 │   ├── compare.ts         # Baseline diff logic
 │   └── index.ts
+├── trace/
+│   ├── types.ts           # TraceConfig Zod schema + OTLP wire types
+│   ├── parser.ts          # OTLP JSON → ParsedSpan normalization
+│   ├── mapper.ts          # Span → ProviderResponse mapping
+│   └── index.ts
 ├── types/
-│   ├── config.ts          # Inferred from Zod schema (z.infer<>)
-│   ├── result.ts          # TestResult, SuiteResult, RunResult
-│   ├── report.ts          # ComplianceReport, JUnitReport
-│   ├── provider.ts        # ProviderRequest, ProviderResponse, ToolCall
+│   ├── config.ts          # Re-exports inferred types from config/schema.ts
+│   ├── result.ts          # Result<T,E>, KindlmError, ErrorCode, ok(), err()
+│   ├── provider.ts        # ProviderAdapter, ProviderRequest, ProviderResponse, ToolCall
 │   └── index.ts
 └── index.ts               # Public barrel export
 ```
@@ -149,47 +207,65 @@ src/
 ```typescript
 // Provider adapter — all providers implement this
 interface ProviderAdapter {
-  id: string;
+  readonly name: string;
+  initialize(config: ProviderAdapterConfig): Promise<void>;
   complete(request: ProviderRequest): Promise<ProviderResponse>;
+  estimateCost(model: string, usage: ProviderResponse["usage"]): number | null;
+  supportsTools(model: string): boolean;
+  embed?(text: string, model?: string): Promise<number[]>;
 }
 
 interface ProviderRequest {
-  system_prompt: string;
-  messages: Message[];
-  tools?: ToolDefinition[];
-  temperature?: number;
-  max_tokens?: number;
+  model: string;
+  messages: ProviderMessage[];
+  params: {
+    temperature: number;
+    maxTokens: number;
+    topP?: number;
+    stopSequences?: string[];
+    seed?: number;
+  };
+  tools?: ProviderToolDefinition[];
+  toolChoice?: "auto" | "required" | "none";
 }
 
 interface ProviderResponse {
   text: string;
-  tool_calls: ToolCall[];
-  usage: { prompt_tokens: number; completion_tokens: number };
-  latency_ms: number;
-  raw: unknown; // Original API response
+  toolCalls: ProviderToolCall[];
+  usage: { inputTokens: number; outputTokens: number; totalTokens: number };
+  latencyMs: number;
+  modelId: string;
+  finishReason: "stop" | "max_tokens" | "tool_calls" | "error" | "unknown";
+  raw: unknown;
 }
 
-// Assertion handler — all assertion types implement this
-interface AssertionHandler {
-  type: string;
-  evaluate(response: ProviderResponse, config: AssertionConfig): Promise<AssertionResult>;
+// Assertion — all assertion types implement this
+interface Assertion {
+  readonly type: string;
+  evaluate(context: AssertionContext): Promise<AssertionResult[]>;
 }
 
 interface AssertionResult {
-  pass: boolean;
-  score?: number;        // 0.0-1.0 for scored assertions (judge, drift)
-  message: string;       // Human-readable explanation
-  details?: unknown;     // Type-specific details (e.g., PII matches found)
+  assertionType: string;
+  label: string;
+  passed: boolean;
+  score: number;          // 0.0-1.0
+  failureCode?: FailureCode;
+  failureMessage?: string;
+  metadata?: Record<string, unknown>;
 }
 ```
 
 ### @kindlm/cli (`packages/cli/`)
 ```
 src/
+├── bin/
+│   └── kindlm.ts          # CLI entry point (shebang)
 ├── commands/
 │   ├── init.ts            # `kindlm init` — scaffold kindlm.yaml
 │   ├── validate.ts        # `kindlm validate` — check config without running
 │   ├── test.ts            # `kindlm test` — run test suites
+│   ├── trace.ts           # `kindlm trace` — ingest OTLP traces + assert
 │   ├── baseline.ts        # `kindlm baseline set|compare|list`
 │   ├── login.ts           # `kindlm login` — token paste auth for Cloud
 │   └── upload.ts          # `kindlm upload` — push last run to Cloud
@@ -197,7 +273,15 @@ src/
 │   ├── git.ts             # Extract commit SHA, branch, dirty state
 │   ├── last-run.ts        # Cache last test run for upload (.kindlm/last-run.json)
 │   ├── env.ts             # Detect CI environment (GitHub Actions, GitLab CI)
-│   └── spinner.ts         # Terminal progress indicator (ora)
+│   ├── spinner.ts         # Terminal progress indicator (ora)
+│   ├── http.ts            # Node.js fetch-based HttpClient
+│   ├── file-reader.ts     # Node.js fs-based FileReader for core
+│   ├── baseline-io.ts     # File-based baseline I/O adapter
+│   ├── command-executor.ts # Shell command execution for command tests
+│   ├── run-tests.ts       # Shared test runner orchestration
+│   ├── select-reporter.ts # Reporter factory from CLI --reporter flag
+│   ├── pdf-renderer.ts    # Compliance report PDF export
+│   └── trace-server.ts    # Embedded OTLP HTTP server for trace command
 ├── cloud/
 │   ├── client.ts          # HTTP client for Cloud API
 │   ├── auth.ts            # Token storage in ~/.kindlm/credentials
@@ -210,17 +294,26 @@ src/
 | Command | Description | Exit Code |
 |---------|-------------|-----------|
 | `kindlm init` | Create kindlm.yaml template | 0 |
+| `kindlm init --force` | Overwrite existing kindlm.yaml | 0 |
 | `kindlm validate` | Validate config, list suites | 0/1 |
-| `kindlm test` | Run all suites | 0 (pass) / 1 (fail) |
+| `kindlm test` | Run all tests | 0 (pass) / 1 (fail) |
 | `kindlm test -s <suite>` | Run specific suite | 0/1 |
 | `kindlm test --compliance` | Run + generate compliance report | 0/1 |
+| `kindlm test --pdf <path>` | Export compliance as PDF (requires --compliance) | 0/1 |
 | `kindlm test --reporter json` | Output JSON instead of pretty | 0/1 |
 | `kindlm test --reporter junit` | Output JUnit XML for CI | 0/1 |
-| `kindlm test --runs 5` | Override run count | 0/1 |
-| `kindlm test --gate 90` | Fail if pass rate < 90% | 0/1 |
+| `kindlm test --runs <count>` | Override repeat count | 0/1 |
+| `kindlm test --gate <percent>` | Fail if pass rate below threshold | 0/1 |
+| `kindlm trace` | Ingest OTLP traces + run assertions | 0/1 |
+| `kindlm trace --port <port>` | OTLP HTTP port (default: 4318) | 0/1 |
+| `kindlm trace --command <cmd>` | Spawn command and collect its traces | 0/1 |
+| `kindlm trace --timeout <ms>` | Trace collection timeout (default: 30000) | 0/1 |
 | `kindlm baseline set` | Save current results as baseline | 0 |
+| `kindlm baseline set --force` | Save baseline even if all tests failed | 0 |
 | `kindlm baseline compare` | Compare latest against baseline | 0/1 |
+| `kindlm baseline list` | List saved baselines | 0 |
 | `kindlm login` | Authenticate with KindLM Cloud (token paste) | 0 |
+| `kindlm login -t <token>` | Authenticate with token (non-interactive) | 0 |
 | `kindlm login --status` | Show current auth state | 0 |
 | `kindlm login --logout` | Remove stored credentials | 0 |
 | `kindlm upload` | Push last run to Cloud | 0/1 |
@@ -231,21 +324,33 @@ src/
 src/
 ├── routes/
 │   ├── auth.ts            # POST/GET/DELETE /v1/auth/tokens — API token management
+│   ├── oauth.ts           # GitHub OAuth flow
+│   ├── sso.ts             # SAML SSO login callback
 │   ├── projects.ts        # CRUD /v1/projects
 │   ├── suites.ts          # CRUD /v1/projects/:id/suites
 │   ├── runs.ts            # GET /v1/projects/:id/runs, POST upload
 │   ├── results.ts         # GET /v1/runs/:id/results
 │   ├── baselines.ts       # CRUD /v1/suites/:id/baselines
-│   └── compare.ts         # GET /v1/runs/:id/compare
+│   ├── compare.ts         # GET /v1/runs/:id/compare
+│   ├── compliance.ts      # Compliance report endpoints
+│   ├── members.ts         # Organization member management
+│   ├── billing.ts         # Stripe billing integration
+│   ├── audit.ts           # Audit log API (enterprise)
+│   ├── audit-helper.ts    # Audit log helpers
+│   └── webhooks.ts        # Webhook management endpoints
 ├── middleware/
 │   ├── auth.ts            # Bearer token validation + org scoping
 │   ├── rate-limit.ts      # Per-org rate limiting
 │   └── plan-gate.ts       # Feature gating by plan (free/team/enterprise)
+├── crypto/
+│   └── envelope.ts        # Encryption envelope for compliance reports
+├── webhooks/
+│   ├── dispatch.ts        # Webhook event dispatch
+│   └── slack-format.ts    # Slack-formatted webhook payloads
 ├── db/
-│   ├── schema.sql         # D1 table definitions
-│   ├── migrations/        # Ordered migration files
 │   └── queries.ts         # Type-safe prepared statement helpers
 ├── types.ts
+├── validation.ts          # Zod schemas for API request validation
 └── index.ts               # Hono router + Worker entry
 ```
 
@@ -325,6 +430,23 @@ CREATE TABLE test_results (
 | Slack/webhook notifications | — | ✓ | ✓ |
 | SLA | — | — | 99.9% |
 | Support | GitHub Issues | Email | Dedicated |
+
+### @kindlm/dashboard (`packages/dashboard/`)
+Next.js app for KindLM Cloud. Uses App Router, Tailwind CSS, and shadcn/ui components.
+```
+app/           # Next.js App Router pages
+components/    # React components (shadcn/ui based)
+lib/           # API client, auth helpers, utilities
+```
+
+### VS Code Extension (`packages/vscode/`)
+Provides YAML intellisense (completions + hover docs) for `kindlm.yaml` files.
+```
+src/
+├── extension.ts    # Extension activation entry point
+├── completions.ts  # Completion provider for kindlm.yaml fields
+└── hover.ts        # Hover documentation provider
+```
 
 ## Development Workflow
 
