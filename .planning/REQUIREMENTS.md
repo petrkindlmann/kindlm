@@ -95,10 +95,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLI-01 through CLI-05 | TBD | Pending |
-| CLOUD-01 through CLOUD-07 | TBD | Pending |
-| DASH-01 through DASH-04 | TBD | Pending |
-| SITE-01 through SITE-03 | TBD | Pending |
-| BILL-01 through BILL-03 | TBD | Pending |
-| REL-01 through REL-04 | TBD | Pending |
-| MON-01 through MON-02 | TBD | Pending |
+| CLI-01 | 1 — CLI Verification & Cloud API | Pending |
+| CLI-02 | 1 — CLI Verification & Cloud API | Pending |
+| CLI-03 | 1 — CLI Verification & Cloud API | Pending |
+| CLI-04 | 1 — CLI Verification & Cloud API | Pending |
+| CLI-05 | 1 — CLI Verification & Cloud API | Pending |
+| CLOUD-01 | 1 — CLI Verification & Cloud API | Pending |
+| CLOUD-02 | 1 — CLI Verification & Cloud API | Pending |
+| CLOUD-03 | 2 — Dashboard & Upload Pipeline | Pending |
+| CLOUD-04 | 1 — CLI Verification & Cloud API | Pending |
+| CLOUD-05 | 1 — CLI Verification & Cloud API | Pending |
+| CLOUD-06 | 1 — CLI Verification & Cloud API | Pending |
+| CLOUD-07 | 1 — CLI Verification & Cloud API | Pending |
+| DASH-01 | 2 — Dashboard & Upload Pipeline | Pending |
+| DASH-02 | 2 — Dashboard & Upload Pipeline | Pending |
+| DASH-03 | 2 — Dashboard & Upload Pipeline | Pending |
+| DASH-04 | 2 — Dashboard & Upload Pipeline | Pending |
+| SITE-01 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| SITE-02 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| SITE-03 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| BILL-01 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| BILL-02 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| BILL-03 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| REL-01 | 4 — Release & Monitoring | Pending |
+| REL-02 | 4 — Release & Monitoring | Pending |
+| REL-03 | 4 — Release & Monitoring | Pending |
+| REL-04 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| MON-01 | 4 — Release & Monitoring | Pending |
+| MON-02 | 4 — Release & Monitoring | Pending |
