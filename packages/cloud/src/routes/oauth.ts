@@ -26,6 +26,7 @@ export const oauthRoutes = new Hono<AppEnv>();
 // We minimize the exposure window by using a short TTL and atomic single-use deletion
 // (see the /exchange endpoint). A KMS-encrypted-at-rest column would be the next step.
 const AUTH_CODE_TTL_SECONDS = 30;
+const TOKEN_EXPIRY_DAYS = 90;
 
 function escapeHtml(s: string): string {
   return s
@@ -250,13 +251,14 @@ oauthRoutes.get("/github/callback", async (c) => {
   const plaintext = `klm_${hex}`;
   const tokenHash = await hashToken(plaintext);
 
+  const tokenExpiresAt = new Date(Date.now() + TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
   await queries.createToken(
     org.id,
     `login-${new Date().toISOString().slice(0, 10)}`,
     tokenHash,
     "full",
     null,
-    null,
+    tokenExpiresAt,
     user.id,
   );
 
