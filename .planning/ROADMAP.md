@@ -23,7 +23,7 @@
 
 **Plans:**
 - Plan 01-01: CLI Verification (init, test, validate, exit codes, stderr/stdout) -- **COMPLETE**
-- Plan 01-02: Cloud API deployment & health check -- pending
+- Plan 01-02: Cloud API deployment & health check -- **COMPLETE**
 
 ---
 
@@ -40,7 +40,9 @@
 2. `kindlm upload` sends test results to the Cloud API and they appear in the dashboard within 10 seconds
 3. `index.html` served with `Cache-Control: no-cache`; hashed JS/CSS assets served with `immutable`
 
-**Plans:** (filled during planning)
+**Plans:**
+- Plan 02-01: Dashboard deployment, SPA routing, and cache headers -- **COMPLETE**
+- Plan 02-02: Upload pipeline verification and dashboard data display -- **COMPLETE**
 
 ---
 
