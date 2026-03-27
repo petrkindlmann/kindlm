@@ -26,10 +26,10 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 |----------|---------------|
 | OpenAI | `openai:gpt-4o` |
 | Anthropic | `anthropic:claude-sonnet-4-5-20250929` |
-| Ollama | `ollama:llama3` |
 | Google Gemini | `google:gemini-2.0-flash` |
-| AWS Bedrock | `bedrock:anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| Azure OpenAI | `azure:my-gpt4o-deployment` |
+| Mistral | `mistral:mistral-large-latest` |
+| Cohere | `cohere:command-r-plus` |
+| Ollama | `ollama:llama3` |
 
 ## Quick Start
 
@@ -41,25 +41,48 @@ kindlm init
 Edit the generated `kindlm.yaml`:
 
 ```yaml
-version: "1"
-defaults:
-  provider: openai:gpt-4o
-  temperature: 0
-  runs: 3
+kindlm: 1
+project: "my-agent"
 
-suites:
-  - name: refund-agent
-    system_prompt: "You are a refund support agent."
-    tests:
-      - name: looks-up-order
-        input: "I want to return order #12345"
-        assert:
-          - type: tool_called
-            value: lookup_order
-          - type: no_pii
-          - type: judge
-            criteria: "Response is empathetic and professional"
-            threshold: 0.8
+suite:
+  name: "refund-agent"
+
+providers:
+  openai:
+    apiKeyEnv: "OPENAI_API_KEY"
+
+models:
+  - id: "gpt-4o"
+    provider: "openai"
+    model: "gpt-4o"
+    params:
+      temperature: 0
+
+prompts:
+  refund:
+    system: "You are a refund support agent. Use lookup_order(order_id) to find orders."
+    user: "{{message}}"
+
+tests:
+  - name: "looks-up-order"
+    prompt: "refund"
+    vars:
+      message: "I want to return order #12345"
+    tools:
+      - name: "lookup_order"
+        responses:
+          - when: { order_id: "12345" }
+            then: { order_id: "12345", status: "eligible" }
+    expect:
+      toolCalls:
+        - tool: "lookup_order"
+          argsMatch: { order_id: "12345" }
+      guardrails:
+        pii:
+          enabled: true
+      judge:
+        - criteria: "Response is empathetic and professional"
+          minScore: 0.8
 ```
 
 Run your tests:
@@ -71,13 +94,16 @@ kindlm test
 Output:
 
 ```
-refund-agent
-  ✓ looks-up-order (3/3 runs passed)
-    ✓ tool_called: lookup_order
-    ✓ no_pii
-    ✓ judge: 0.92 ≥ 0.8
+  refund-agent / looks-up-order
 
-1 suite, 1 test, 3 assertions — all passed
+  gpt-4o
+    ✓ looks-up-order  (1.3s)
+      ✓ tool_called: lookup_order
+      ✓ pii: no PII detected
+      ✓ judge: 0.92 ≥ 0.80
+
+  1 passed, 0 failed
+  Gates: ✓ PASSED
 ```
 
 ## CI Integration
