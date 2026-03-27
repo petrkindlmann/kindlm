@@ -150,6 +150,10 @@ async function handleScheduled(
     await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at < datetime('now')").run();
     // Clean up expired SAML assertion replay records
     await env.DB.prepare("DELETE FROM saml_assertions WHERE expires_at < datetime('now')").run();
+    // Clean up expired tokens (login tokens with past expires_at)
+    await env.DB.prepare(
+      "DELETE FROM tokens WHERE expires_at IS NOT NULL AND expires_at < datetime('now')"
+    ).run();
   };
 
   ctx.waitUntil(work());
