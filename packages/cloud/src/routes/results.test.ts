@@ -74,7 +74,7 @@ function createApp() {
     c.set("auth", { org, token, user: null });
     return next();
   });
-  app.route("/v1/results", resultRoutes);
+  app.route("/v1/runs", resultRoutes);
   return app;
 }
 
@@ -91,7 +91,7 @@ describe("result routes", () => {
     } as unknown as ReturnType<typeof getQueries>);
 
     const app = createApp();
-    const res = await testRequest(app, "/v1/results/run-1/results", {
+    const res = await testRequest(app, "/v1/runs/run-1/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -114,7 +114,7 @@ describe("result routes", () => {
     } as unknown as ReturnType<typeof getQueries>);
 
     const app = createApp();
-    const res = await testRequest(app, "/v1/results/run-1/results");
+    const res = await testRequest(app, "/v1/runs/run-1/results");
 
     expect(res.status).toBe(200);
     const body = await res.json() as Record<string, unknown>;
@@ -133,7 +133,7 @@ describe("result routes", () => {
     } as unknown as ReturnType<typeof getQueries>);
 
     const app = createApp();
-    const res = await testRequest(app, "/v1/results/run-1/results");
+    const res = await testRequest(app, "/v1/runs/run-1/results");
 
     expect(res.status).toBe(404);
   });

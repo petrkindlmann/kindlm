@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import type { AppEnv, Project, Suite } from "../types.js";
-import { suiteRoutes } from "./suites.js";
+import { suiteRoutes, projectSuiteRoutes } from "./suites.js";
 import { mockOrg, mockToken, testRequest } from "../test-helpers.js";
 
 vi.mock("../db/queries.js", () => ({
@@ -39,6 +39,7 @@ function createApp() {
     c.set("auth", { org, token, user: null });
     return next();
   });
+  app.route("/v1/projects", projectSuiteRoutes);
   app.route("/v1/suites", suiteRoutes);
   return app;
 }
@@ -56,7 +57,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites", {
+      const res = await testRequest(app, "/v1/projects/proj-1/suites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Test Suite", configHash: "abc123" }),
@@ -76,7 +77,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites", {
+      const res = await testRequest(app, "/v1/projects/proj-1/suites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Test Suite", configHash: "abc123" }),
@@ -91,7 +92,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/nonexistent/suites", {
+      const res = await testRequest(app, "/v1/projects/nonexistent/suites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Test Suite", configHash: "abc123" }),
@@ -106,7 +107,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites", {
+      const res = await testRequest(app, "/v1/projects/proj-1/suites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ configHash: "abc123" }),
@@ -121,7 +122,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites", {
+      const res = await testRequest(app, "/v1/projects/proj-1/suites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Test Suite" }),
@@ -137,7 +138,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites", {
+      const res = await testRequest(app, "/v1/projects/proj-1/suites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Test Suite", configHash: "abc123" }),
@@ -157,7 +158,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites");
+      const res = await testRequest(app, "/v1/projects/proj-1/suites");
 
       expect(res.status).toBe(200);
       const body = (await res.json()) as Record<string, unknown>;
@@ -173,7 +174,7 @@ describe("suite routes", () => {
       } as unknown as ReturnType<typeof getQueries>);
 
       const app = createApp();
-      const res = await testRequest(app, "/v1/suites/proj-1/suites");
+      const res = await testRequest(app, "/v1/projects/proj-1/suites");
 
       expect(res.status).toBe(404);
     });

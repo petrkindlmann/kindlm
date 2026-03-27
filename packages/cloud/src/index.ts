@@ -6,8 +6,8 @@ import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { oauthRoutes } from "./routes/oauth.js";
 import { authRoutes } from "./routes/auth.js";
 import { projectRoutes } from "./routes/projects.js";
-import { suiteRoutes } from "./routes/suites.js";
-import { runRoutes } from "./routes/runs.js";
+import { suiteRoutes, projectSuiteRoutes } from "./routes/suites.js";
+import { runRoutes, projectRunRoutes } from "./routes/runs.js";
 import { resultRoutes } from "./routes/results.js";
 import { baselineRoutes } from "./routes/baselines.js";
 import { compareRoutes } from "./routes/compare.js";
@@ -41,7 +41,7 @@ app.use("*", async (c, next) => {
 });
 
 app.use("*", async (c, next) => {
-  const origins = ["https://cloud.kindlm.com", "https://kindlm.com"];
+  const origins = ["https://cloud.kindlm.com", "https://kindlm.com", "https://kindlm-dashboard.pages.dev"];
   if (c.env.ENVIRONMENT !== "production") {
     origins.push("http://localhost:3000", "http://localhost:3001");
   }
@@ -109,9 +109,11 @@ app.get("/v1/org", (c) => {
 
 app.route("/v1/auth", authRoutes);
 app.route("/v1/projects", projectRoutes);
-app.route("/v1/suites", suiteRoutes);
-app.route("/v1/runs", runRoutes);
-app.route("/v1/results", resultRoutes);
+app.route("/v1/projects", projectSuiteRoutes); // /:projectId/suites → /v1/projects/:projectId/suites
+app.route("/v1/suites", suiteRoutes);         // /:suiteId → /v1/suites/:suiteId
+app.route("/v1/projects", projectRunRoutes);   // /:projectId/runs → /v1/projects/:projectId/runs
+app.route("/v1/runs", runRoutes);              // /:runId, /:runId/compliance → /v1/runs/:runId
+app.route("/v1/runs", resultRoutes);           // /:runId/results → /v1/runs/:runId/results
 app.route("/v1/baselines", baselineRoutes);
 app.route("/v1/compare", compareRoutes);
 app.route("/v1/webhooks", webhookRoutes);

@@ -5,10 +5,14 @@ import { getQueries } from "../db/queries.js";
 import { dispatchWebhooks } from "../webhooks/dispatch.js";
 import { parseIntBounded, validateBody, createRunBody, updateRunBody } from "../validation.js";
 
+// Project-scoped run routes — mounted at /v1/projects
+export const projectRunRoutes = new Hono<AppEnv>();
+
+// Run-scoped routes — mounted at /v1/runs
 export const runRoutes = new Hono<AppEnv>();
 
 // POST /:projectId/runs — Create run
-runRoutes.post("/:projectId/runs", async (c) => {
+projectRunRoutes.post("/:projectId/runs", async (c) => {
   const projectId = c.req.param("projectId");
   const auth = c.get("auth");
   const queries = getQueries(c.env.DB);
@@ -45,8 +49,8 @@ runRoutes.post("/:projectId/runs", async (c) => {
   return c.json(run, 201);
 });
 
-// GET /:projectId/runs — List runs (must be before /:runId to avoid conflict)
-runRoutes.get("/:projectId/runs", async (c) => {
+// GET /:projectId/runs — List runs
+projectRunRoutes.get("/:projectId/runs", async (c) => {
   const projectId = c.req.param("projectId");
   const auth = c.get("auth");
   const queries = getQueries(c.env.DB);

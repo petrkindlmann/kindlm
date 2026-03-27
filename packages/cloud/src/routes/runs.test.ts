@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import type { AppEnv, Project, Suite, Run } from "../types.js";
-import { runRoutes } from "./runs.js";
+import { runRoutes, projectRunRoutes } from "./runs.js";
 import { mockOrg, mockToken, testRequest } from "../test-helpers.js";
 
 vi.mock("../db/queries.js", () => ({
@@ -70,6 +70,7 @@ function createApp() {
     c.set("auth", { org, token, user: null });
     return next();
   });
+  app.route("/v1/projects", projectRunRoutes);
   app.route("/v1/runs", runRoutes);
   return app;
 }
@@ -87,7 +88,7 @@ describe("run routes", () => {
     } as unknown as ReturnType<typeof getQueries>);
 
     const app = createApp();
-    const res = await testRequest(app, "/v1/runs/proj-1/runs", {
+    const res = await testRequest(app, "/v1/projects/proj-1/runs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suiteId: "suite-1", commitSha: "abc", branch: "main" }),
@@ -127,7 +128,7 @@ describe("run routes", () => {
     } as unknown as ReturnType<typeof getQueries>);
 
     const app = createApp();
-    const res = await testRequest(app, "/v1/runs/proj-1/runs?limit=10&offset=0");
+    const res = await testRequest(app, "/v1/projects/proj-1/runs?limit=10&offset=0");
 
     expect(res.status).toBe(200);
     const body = await res.json() as Record<string, unknown>;

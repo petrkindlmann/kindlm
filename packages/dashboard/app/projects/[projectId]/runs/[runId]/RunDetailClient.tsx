@@ -22,7 +22,7 @@ export default function RunDetailClient() {
 
   const { data: resultsData, isLoading: loadingResults, error: resultsError } = useSWR<{
     results: TestResult[];
-  }>(`/v1/results/${runId}/results`, fetcher);
+  }>(`/v1/runs/${runId}/results`, fetcher);
 
   const isLoading = loadingRun || loadingResults;
   const results = resultsData?.results ?? [];

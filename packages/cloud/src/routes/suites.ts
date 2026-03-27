@@ -4,10 +4,14 @@ import { getQueries } from "../db/queries.js";
 import { createSuiteBody, updateSuiteBody, validateBody } from "../validation.js";
 import { auditLog } from "./audit-helper.js";
 
+// Project-scoped suite routes — mounted at /v1/projects
+export const projectSuiteRoutes = new Hono<AppEnv>();
+
+// Suite-scoped routes — mounted at /v1/suites
 export const suiteRoutes = new Hono<AppEnv>();
 
 // POST /:projectId/suites — Create suite
-suiteRoutes.post("/:projectId/suites", async (c) => {
+projectSuiteRoutes.post("/:projectId/suites", async (c) => {
   const projectId = c.req.param("projectId");
   const auth = c.get("auth");
   const queries = getQueries(c.env.DB);
@@ -42,7 +46,7 @@ suiteRoutes.post("/:projectId/suites", async (c) => {
 });
 
 // GET /:projectId/suites — List suites for project
-suiteRoutes.get("/:projectId/suites", async (c) => {
+projectSuiteRoutes.get("/:projectId/suites", async (c) => {
   const projectId = c.req.param("projectId");
   const auth = c.get("auth");
   const queries = getQueries(c.env.DB);
