@@ -31,7 +31,7 @@ name = "kindlm-api-staging"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "kindlm-staging"
-database_id = "placeholder-replace-with-staging-id"
+database_id = "8f1a40fe-1d79-400c-91c5-5b28fb60638d"
 
 [env.staging.vars]
 ENVIRONMENT = "staging"
