@@ -21,7 +21,9 @@
 3. `curl -sf https://api.kindlm.com/health` returns `{"status":"ok"}` and GitHub OAuth login flow completes in browser
 4. `kindlm validate` rejects invalid YAML without requiring any API keys; all errors go to stderr, test output to stdout
 
-**Plans:** (filled during planning)
+**Plans:**
+- Plan 01-01: CLI Verification (init, test, validate, exit codes, stderr/stdout) -- **COMPLETE**
+- Plan 01-02: Cloud API deployment & health check -- pending
 
 ---
 
