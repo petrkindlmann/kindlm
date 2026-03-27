@@ -12,7 +12,7 @@ export function createSpinner(): Spinner {
 
   return {
     start(text: string): void {
-      instance = ora(text).start();
+      instance = ora({ text, stream: process.stderr }).start();
     },
     succeed(text: string): void {
       instance?.succeed(text);
