@@ -2,9 +2,14 @@
   "name": "kindlm",
   "displayName": "KindLM",
   "description": "YAML validation, completions, and hover docs for KindLM config files",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "kindlm",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kindlm/kindlm.git",
+    "directory": "packages/vscode"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
