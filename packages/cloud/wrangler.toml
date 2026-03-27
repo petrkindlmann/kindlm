@@ -18,8 +18,9 @@ database_id = "7fcb217f-d830-4199-955b-a6341bc79fff"
 ENVIRONMENT = "production"
 
 # Secrets (set via `wrangler secret put`):
-# GITHUB_CLIENT_ID
-# GITHUB_CLIENT_SECRET
+# GITHUB_CLIENT_ID         (required)
+# GITHUB_CLIENT_SECRET     (required)
+# SIGNING_KEY_SECRET       (required — envelope encryption for auth codes)
 # STRIPE_SECRET_KEY        (Phase 3)
 # STRIPE_WEBHOOK_SECRET    (Phase 3)
 
