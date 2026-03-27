@@ -79,7 +79,11 @@ function isAllowedOrigin(url: string, env: AppEnv["Bindings"]): boolean {
 // GET /github — Redirect to GitHub OAuth authorization
 oauthRoutes.get("/github", async (c) => {
   const clientId = c.env.GITHUB_CLIENT_ID;
-  const redirectUri = new URL("/auth/github/callback", c.req.url).toString();
+  const redirectUri = c.env.ENVIRONMENT === "production"
+    ? "https://api.kindlm.com/auth/github/callback"
+    : c.env.ENVIRONMENT === "staging"
+      ? "https://api-staging.kindlm.com/auth/github/callback"
+      : `${new URL(c.req.url).origin}/auth/github/callback`;
   const nonce = crypto.randomUUID();
   const dashboardRedirect = c.req.query("redirect_uri");
 
