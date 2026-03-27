@@ -12,7 +12,9 @@ jobs:
         with: { node-version: 20 }
       - run: npm ci
       - run: npx turbo run build --filter=@kindlm/dashboard
+        env:
+          NEXT_PUBLIC_API_URL: https://api.kindlm.com
       - name: Deploy to Cloudflare
-        run: npx wrangler pages deploy packages/dashboard/.next --project-name=kindlm-dashboard
+        run: npx wrangler pages deploy packages/dashboard/out --project-name=kindlm-dashboard
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}

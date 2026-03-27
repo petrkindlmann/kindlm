@@ -9,5 +9,6 @@ dist/
 settings.local.json
 .vercel
 .next/
+out/
 .open-next/
 .playwright-mcp/
