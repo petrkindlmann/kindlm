@@ -33,6 +33,14 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 
 ## Quick Start
 
+Try it instantly:
+
+```bash
+npx @kindlm/cli init
+```
+
+Or install globally:
+
 ```bash
 npm install -g @kindlm/cli
 kindlm init
