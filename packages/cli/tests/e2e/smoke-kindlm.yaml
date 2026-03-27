@@ -1,0 +1,39 @@
+kindlm: 1
+project: kindlm-smoke
+
+suite:
+  name: smoke
+  description: Minimal E2E smoke test against real OpenAI API
+
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+
+models:
+  - id: mini
+    provider: openai
+    model: gpt-4o-mini
+    params:
+      temperature: 0
+      maxTokens: 64
+
+prompts:
+  capital-of-france:
+    system: You are a concise geography assistant. Answer in one word only.
+    user: What is the capital of France?
+
+tests:
+  - name: capital-of-france
+    prompt: capital-of-france
+    expect:
+      output:
+        contains:
+          - Paris
+      guardrails:
+        pii:
+          enabled: true
+
+defaults:
+  repeat: 1
+  concurrency: 1
+  timeoutMs: 30000
