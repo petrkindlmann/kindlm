@@ -54,6 +54,21 @@ app.use("*", async (c, next) => {
   return middleware(c, next);
 });
 
+// Fail fast if required secrets are missing (skip for health check)
+app.use("*", async (c, next) => {
+  if (c.req.path === "/health" || c.req.path === "/") {
+    return next();
+  }
+  const required = ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "SIGNING_KEY_SECRET"] as const;
+  const missing = required.filter((k) => !c.env[k]);
+  if (missing.length > 0) {
+    // eslint-disable-next-line no-console
+    console.error(`Missing required secrets: ${missing.join(", ")}`);
+    return c.json({ error: "Server misconfigured" }, 500);
+  }
+  return next();
+});
+
 // Rate-limit on auth routes (public, no auth middleware but rate limited)
 app.use("/auth/*", rateLimitMiddleware);
 
