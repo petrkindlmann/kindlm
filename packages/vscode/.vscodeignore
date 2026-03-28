@@ -3,3 +3,6 @@ tsconfig.json
 .turbo
 *.vsix
 node_modules/**
+# Exclude monorepo root and all sibling packages (vsce resolves npm workspace links)
+../
+../../
