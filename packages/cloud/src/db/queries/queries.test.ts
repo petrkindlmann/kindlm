@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockD1, type MockD1 } from "../test-helpers.js";
-import { getQueries } from "./queries.js";
+import { createMockD1, type MockD1 } from "../../test-helpers.js";
+import { getQueries } from "./index.js";
 
 let mockDb: MockD1;
 let queries: ReturnType<typeof getQueries>;
