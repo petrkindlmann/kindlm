@@ -32,9 +32,9 @@
 
 ### Marketing Site
 
-- [ ] **SITE-01**: Marketing site deployed to Cloudflare Pages at kindlm.com
-- [ ] **SITE-02**: Docs pages render correctly with navigation
-- [ ] **SITE-03**: README terminal screenshot/GIF showing test output
+- [x] **SITE-01**: Marketing site deployed to Cloudflare Pages at kindlm.com
+- [x] **SITE-02**: Docs pages render correctly with navigation
+- [x] **SITE-03**: README terminal screenshot/GIF showing test output
 
 ### Billing
 
@@ -111,9 +111,9 @@
 | DASH-02 | 2 — Dashboard & Upload Pipeline | Pending |
 | DASH-03 | 2 — Dashboard & Upload Pipeline | Pending |
 | DASH-04 | 2 — Dashboard & Upload Pipeline | Pending |
-| SITE-01 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
-| SITE-02 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
-| SITE-03 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
+| SITE-01 | 3 — Marketing Site, Billing & VS Code Extension | Complete |
+| SITE-02 | 3 — Marketing Site, Billing & VS Code Extension | Complete |
+| SITE-03 | 3 — Marketing Site, Billing & VS Code Extension | Complete |
 | BILL-01 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
 | BILL-02 | 3 — Marketing Site, Billing & VS Code Extension | Pending |
 | BILL-03 | 3 — Marketing Site, Billing & VS Code Extension | Pending |

@@ -25,7 +25,7 @@ The CLI must reliably test AI agent behavior end-to-end — from YAML config to 
 - ✓ Next.js dashboard with 18 pages — existing
 - ✓ VS Code extension with YAML intellisense — existing
 - ✓ Marketing site with docs + blog — existing
-- ✓ npm published (@kindlm/core v0.2.1, @kindlm/cli v0.4.1) — existing
+- ✓ npm published (@kindlm/core v1.0.0, @kindlm/cli v1.0.0) — Phase 4
 - ✓ CI/CD: GitHub Actions for lint/test/typecheck + deploy workflows — existing
 - ✓ CONTRIBUTING.md, README with npx quick start — existing (just added)
 
@@ -35,11 +35,16 @@ The CLI must reliably test AI agent behavior end-to-end — from YAML config to 
 - ✓ Stripe billing refactored: Price IDs from env vars, no inline price_data; 255/255 tests pass — Phase 3
 - ✓ VS Code extension: CHANGELOG.md, icon.png, @vscode/vsce; clean 17.24 KB VSIX built — Phase 3
 
+### Validated in Phase 4
+
+- ✓ @kindlm/core v1.0.0 and @kindlm/cli v1.0.0 published to npm with provenance — Phase 4
+- ✓ GitHub Releases auto-created via changesets/action (3 releases) — Phase 4
+- ✓ Health check endpoint verified: GET /health → {"status":"ok"} — Phase 4
+- ✓ UptimeRobot monitoring active: api.kindlm.com/health, 5-min interval, keyword check — Phase 4
+- ✓ E2E verified: kindlm init → kindlm validate → kindlm --version 1.0.0 — Phase 4
+
 ### Active
 
-- [ ] Cut v1.0.0 release tag with Changesets (REL-01, REL-02, REL-03)
-- [ ] Health check endpoint verified (MON-01)
-- [ ] UptimeRobot monitoring set up (MON-02)
 - [ ] VS Code extension published to marketplace (REL-04 — needs publisher account + PAT)
 - [ ] kindlm.com custom domain activated in CF Pages (SITE-01 — DNS ready)
 - [ ] Stripe Products/Prices + Worker secrets set (BILL-01 — dashboard setup needed)
@@ -54,11 +59,11 @@ The CLI must reliably test AI agent behavior end-to-end — from YAML config to 
 
 ## Context
 
-- **Codebase state:** Feature-complete across all 5 packages. 149+ tests pass. Build and typecheck clean. Today's session fixed 9 documentation and deployment gaps.
-- **Cloud API:** Deployed once but currently broken. Needs debugging — OAuth flow, upload endpoint, and dashboard connectivity all need E2E verification.
-- **Security concern:** SAML XML signature verification is regex-based and incomplete per CONCERNS.md. Needs proper implementation before enterprise customers.
-- **Technical debt:** queries.ts (1529 LOC) and sso.ts (596 LOC) are monolithic. Not blocking v1 launch but fragile.
-- **Target user for v1:** Solo developer who runs `npx @kindlm/cli init`, writes kindlm.yaml, runs `kindlm test` in CI. Cloud dashboard is secondary but must work.
+- **Codebase state:** v1.0.0 released. All 4 phases complete. 255+ tests pass. @kindlm/core and @kindlm/cli published to npm with provenance attestation.
+- **Cloud API:** Deployed at api.kindlm.com. Health endpoint monitored by UptimeRobot (5-min interval). GitHub OAuth login works.
+- **Security concern:** SAML XML signature verification is regex-based and incomplete per CONCERNS.md. Needs proper implementation before enterprise customers (v2).
+- **Technical debt:** queries.ts (1529 LOC) and sso.ts (596 LOC) are monolithic. Not blocking but fragile (v2 INFRA-01/02).
+- **Target user for v1:** Solo developer who runs `npx @kindlm/cli init`, writes kindlm.yaml, runs `kindlm test` in CI.
 
 ## Constraints
 
@@ -74,7 +79,7 @@ The CLI must reliably test AI agent behavior end-to-end — from YAML config to 
 | Static export for dashboard | CF Pages can't run SSR Next.js; dashboard is client-side SPA anyway | ✓ Good — builds clean, 12 static pages |
 | Remove marketing site middleware | Middleware incompatible with static export; docs subdomain rewrite can use CF routing | — Pending |
 | Solo devs first, teams later | Lower bar to ship; validates core CLI value before adding team complexity | — Pending |
-| Fix Cloud API before cutting 1.0 | Users expect `kindlm upload` to work even on free tier | — Pending |
+| Fix Cloud API before cutting 1.0 | Users expect `kindlm upload` to work even on free tier | ✓ Done — API deployed, health monitored |
 
 ## Evolution
 
@@ -94,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 3 completion*
+*Last updated: 2026-03-28 after Phase 4 completion — v1.0.0 shipped*
