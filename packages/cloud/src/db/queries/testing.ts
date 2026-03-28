@@ -41,6 +41,8 @@ function mapRun(row: Record<string, unknown>): Run {
     gatePassed: (row.gate_passed as number) ?? null,
     complianceReport: (row.compliance_report as string) ?? null,
     complianceHash: (row.compliance_hash as string) ?? null,
+    complianceSignature: (row.compliance_signature as string) ?? null,
+    complianceSignedAt: (row.compliance_signed_at as string) ?? null,
     startedAt: row.started_at as string,
     finishedAt: (row.finished_at as string) ?? null,
     createdAt: row.created_at as string,
@@ -246,6 +248,8 @@ export function getTestingQueries(db: D1Database) {
       gatePassed: null,
       complianceReport: null,
       complianceHash: null,
+      complianceSignature: null,
+      complianceSignedAt: null,
       startedAt: now,
       finishedAt: null,
       createdAt: now,
@@ -271,6 +275,8 @@ export function getTestingQueries(db: D1Database) {
         | "gatePassed"
         | "complianceReport"
         | "complianceHash"
+        | "complianceSignature"
+        | "complianceSignedAt"
         | "finishedAt"
       >
     >,
@@ -293,6 +299,8 @@ export function getTestingQueries(db: D1Database) {
       gatePassed: "gate_passed",
       complianceReport: "compliance_report",
       complianceHash: "compliance_hash",
+      complianceSignature: "compliance_signature",
+      complianceSignedAt: "compliance_signed_at",
       finishedAt: "finished_at",
     };
 

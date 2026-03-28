@@ -743,5 +743,117 @@ describe("SSO routes", () => {
       const result = await verifySamlSignature(xml, "not-a-certificate");
       expect(result).toBe(false);
     });
+
+    it("returns false for XML Signature Wrapping (XSW) attack", async () => {
+      // Build a legitimately signed response
+      const legitimateXml = await buildSamlResponse({
+        nameId: "legitimate@example.com",
+      });
+
+      // XSW attack: wrap the legitimate signed response inside a new envelope
+      // and inject a malicious assertion at the top level that the parser should ignore.
+      const maliciousAssertion = `<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Issuer>https://idp.example.com</saml:Issuer><saml:Subject><saml:NameID>attacker@evil.com</saml:NameID></saml:Subject></saml:Assertion>`;
+
+      // Insert the malicious assertion before the legitimate Response
+      const xswXml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><Evil>${maliciousAssertion}</Evil>${legitimateXml}</samlp:Response>`;
+
+      // The signature should fail because the document structure has changed
+      // and the digest over the original document no longer matches
+      const result = await verifySamlSignature(xswXml, testCertPem);
+      expect(result).toBe(false);
+    });
+
+    it("returns false when digest value is tampered", async () => {
+      let xml = await buildSamlResponse();
+      // Tamper with the DigestValue
+      xml = xml.replace(
+        /<ds:DigestValue>([^<]+)<\/ds:DigestValue>/,
+        "<ds:DigestValue>dGFtcGVyZWQ=</ds:DigestValue>",
+      );
+      const result = await verifySamlSignature(xml, testCertPem);
+      expect(result).toBe(false);
+    });
+  });
+
+  // ------- ECDSA support -------
+
+  describe("ECDSA signature verification", () => {
+    let ecKeyPair: CryptoKeyPair;
+    let ecCertPem: string;
+
+    beforeAll(async () => {
+      const result = await crypto.subtle.generateKey(
+        { name: "ECDSA", namedCurve: "P-256" },
+        true,
+        ["sign", "verify"],
+      );
+      ecKeyPair = result as CryptoKeyPair;
+      const spki = await crypto.subtle.exportKey("spki", ecKeyPair.publicKey) as ArrayBuffer;
+      const b64 = bytesToBase64(new Uint8Array(spki));
+      ecCertPem = wrapPem(b64, "PUBLIC KEY");
+    });
+
+    it("verifies a valid ECDSA P-256 signature", async () => {
+      // Build an unsigned SAML response, then sign it with ECDSA
+      const issuer = "https://idp.example.com";
+      const nameId = "ecdsa-user@example.com";
+      const nb = new Date(Date.now() - 300_000).toISOString();
+      const noa = new Date(Date.now() + 300_000).toISOString();
+
+      const assertionBody = `<saml:Issuer>${issuer}</saml:Issuer><saml:Conditions NotBefore="${nb}" NotOnOrAfter="${noa}"></saml:Conditions><saml:Subject><saml:NameID>${nameId}</saml:NameID></saml:Subject>`;
+      const unsignedXml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}</saml:Assertion></samlp:Response>`;
+
+      const digestBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(unsignedXml));
+      const digestB64 = bytesToBase64(new Uint8Array(digestBuf));
+
+      const signedInfo = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/><ds:Reference URI=""><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>${digestB64}</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
+
+      const signedInfoBytes = new TextEncoder().encode(signedInfo);
+      const signature = await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        ecKeyPair.privateKey,
+        signedInfoBytes,
+      );
+      const sigB64 = bytesToBase64(new Uint8Array(signature));
+
+      const signatureXml = `<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${signedInfo}<ds:SignatureValue>${sigB64}</ds:SignatureValue></ds:Signature>`;
+
+      const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}${signatureXml}</saml:Assertion></samlp:Response>`;
+
+      const result = await verifySamlSignature(xml, ecCertPem);
+      expect(result).toBe(true);
+    });
+
+    it("rejects ECDSA signature with wrong key", async () => {
+      // Sign with ecKeyPair but verify with the RSA testCertPem
+      const issuer = "https://idp.example.com";
+      const nameId = "ecdsa-user@example.com";
+      const nb = new Date(Date.now() - 300_000).toISOString();
+      const noa = new Date(Date.now() + 300_000).toISOString();
+
+      const assertionBody = `<saml:Issuer>${issuer}</saml:Issuer><saml:Conditions NotBefore="${nb}" NotOnOrAfter="${noa}"></saml:Conditions><saml:Subject><saml:NameID>${nameId}</saml:NameID></saml:Subject>`;
+      const unsignedXml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}</saml:Assertion></samlp:Response>`;
+
+      const digestBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(unsignedXml));
+      const digestB64 = bytesToBase64(new Uint8Array(digestBuf));
+
+      const signedInfo = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/><ds:Reference URI=""><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>${digestB64}</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
+
+      const signedInfoBytes = new TextEncoder().encode(signedInfo);
+      const signature = await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        ecKeyPair.privateKey,
+        signedInfoBytes,
+      );
+      const sigB64 = bytesToBase64(new Uint8Array(signature));
+
+      const signatureXml = `<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${signedInfo}<ds:SignatureValue>${sigB64}</ds:SignatureValue></ds:Signature>`;
+
+      const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"><saml:Assertion>${assertionBody}${signatureXml}</saml:Assertion></samlp:Response>`;
+
+      // Verify with the RSA key — should fail because algorithm mismatch
+      const result = await verifySamlSignature(xml, testCertPem);
+      expect(result).toBe(false);
+    });
   });
 });

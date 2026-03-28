@@ -6,24 +6,25 @@ import { requirePlan } from "../middleware/plan-gate.js";
 import { auditLog } from "./audit-helper.js";
 import { encryptWithSecret } from "../crypto/envelope.js";
 import {
-  SP_ENTITY_ID,
-  ACS_URL,
-  AUTH_CODE_TTL_SECONDS,
   extractNameID,
   extractAttribute,
   extractIssuer,
   extractAssertionId,
   checkConditions,
-  base64ToBytes,
-  ssoGithubId,
   escapeHtml,
+  ssoGithubId,
+  base64ToBytes,
   verifySamlSignature,
-  getAllowedOrigins,
 } from "../saml/helpers.js";
 
-// Re-export helpers so existing test imports from "./sso.js" still work
+export const ssoRoutes = new Hono<AppEnv>();
+
+const SP_ENTITY_ID = "https://api.kindlm.com/auth/saml";
+const ACS_URL = "https://api.kindlm.com/auth/saml/callback";
+const AUTH_CODE_TTL_SECONDS = 30;
+
+// Re-export helpers for backward compatibility with tests
 export {
-  verifySamlSignature,
   extractNameID,
   extractAttribute,
   extractIssuer,
@@ -32,9 +33,20 @@ export {
   base64ToBytes,
   canonicalizeSignedInfo,
   ssoGithubId,
+  verifySamlSignature,
 } from "../saml/helpers.js";
 
-export const ssoRoutes = new Hono<AppEnv>();
+// ---------------------------------------------------------------------------
+// Dashboard redirect helpers
+// ---------------------------------------------------------------------------
+
+function getAllowedOrigins(env: AppEnv["Bindings"]): string[] {
+  const origins = ["https://cloud.kindlm.com"];
+  if (env.ENVIRONMENT !== "production") {
+    origins.push("http://localhost:3001");
+  }
+  return origins;
+}
 
 // ---------------------------------------------------------------------------
 // Routes

@@ -44,6 +44,8 @@ const run: Run = {
   gatePassed: null,
   complianceReport: null,
   complianceHash: null,
+  complianceSignature: null,
+  complianceSignedAt: null,
   startedAt: "2025-01-01T00:00:00.000Z",
   finishedAt: null,
   createdAt: "2025-01-01T00:00:00.000Z",

@@ -143,6 +143,121 @@ complianceRoutes.post("/verify", requirePlan("enterprise"), async (c) => {
   return c.json({ valid, algorithm: "Ed25519" });
 });
 
+// POST /sign-report — Sign a compliance report attached to a specific run
+complianceRoutes.post("/sign-report", requirePlan("enterprise"), async (c) => {
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const body = await c.req.json<{ runId?: string }>();
+  if (!body.runId) {
+    return c.json({ error: "runId is required" }, 400);
+  }
+
+  const signingKeySecret = c.env.SIGNING_KEY_SECRET;
+  if (!signingKeySecret || signingKeySecret.length < 32) {
+    return c.json({ error: "SIGNING_KEY_SECRET not configured or too short" }, 500);
+  }
+
+  const run = await queries.getRun(body.runId);
+  if (!run) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  // Verify run belongs to one of this org's projects
+  const project = await queries.getProject(run.projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  if (!run.complianceReport) {
+    return c.json({ error: "Run has no compliance report to sign" }, 400);
+  }
+
+  if (run.complianceSignature) {
+    return c.json({ error: "Run compliance report is already signed" }, 409);
+  }
+
+  const { privateKey, publicKeyBase64 } = await getOrCreateKeyPair(auth.org.id, queries, signingKeySecret);
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(run.complianceReport);
+  const signatureBuffer = await crypto.subtle.sign("Ed25519", privateKey, data);
+  const signatureBytes = new Uint8Array(signatureBuffer);
+  let signatureBinary = "";
+  for (const byte of signatureBytes) {
+    signatureBinary += String.fromCharCode(byte);
+  }
+  const signature = btoa(signatureBinary);
+  const signedAt = new Date().toISOString();
+
+  await queries.updateRun(body.runId, {
+    complianceSignature: signature,
+    complianceSignedAt: signedAt,
+  });
+
+  auditLog(c, "compliance.sign_report", "run", body.runId, { projectId: run.projectId });
+
+  return c.json({
+    runId: body.runId,
+    signature,
+    publicKey: publicKeyBase64,
+    algorithm: "Ed25519",
+    signedAt,
+  });
+});
+
+// POST /verify-report — Verify a run's compliance report signature
+complianceRoutes.post("/verify-report", requirePlan("enterprise"), async (c) => {
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const body = await c.req.json<{ runId?: string }>();
+  if (!body.runId) {
+    return c.json({ error: "runId is required" }, 400);
+  }
+
+  const run = await queries.getRun(body.runId);
+  if (!run) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  // Verify run belongs to one of this org's projects
+  const project = await queries.getProject(run.projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Run not found" }, 404);
+  }
+
+  if (!run.complianceReport || !run.complianceSignature) {
+    return c.json({ error: "Run has no signed compliance report" }, 400);
+  }
+
+  const signingKey = await queries.getSigningKey(auth.org.id);
+  if (!signingKey) {
+    return c.json({ error: "No signing key found" }, 404);
+  }
+
+  const publicKey = await crypto.subtle.importKey(
+    "spki",
+    base64ToBuffer(signingKey.publicKey),
+    { name: "Ed25519" },
+    false,
+    ["verify"],
+  );
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(run.complianceReport);
+  const signatureBuffer = base64ToBuffer(run.complianceSignature);
+
+  const valid = await crypto.subtle.verify("Ed25519", publicKey, signatureBuffer, data);
+
+  return c.json({
+    runId: body.runId,
+    valid,
+    algorithm: "Ed25519",
+    signedAt: run.complianceSignedAt,
+  });
+});
+
 // GET /public-key — Return org's public key
 complianceRoutes.get("/public-key", requirePlan("enterprise"), async (c) => {
   const auth = c.get("auth");

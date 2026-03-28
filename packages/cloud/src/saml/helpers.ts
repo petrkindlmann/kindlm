@@ -1,52 +1,78 @@
-import type { AppEnv } from "../types.js";
+// SAML XML extraction and signature verification helpers.
+// Uses fast-xml-parser for structured extraction (XSW defense)
+// and Web Crypto API for signature verification (Workers compatible).
+
+import {
+  parseSamlXml,
+  extractNameIdFromParsed,
+  extractAttributeFromParsed,
+  extractIssuerFromParsed,
+  extractAssertionIdFromParsed,
+  extractConditionsFromParsed,
+  extractSignatureFromParsed,
+} from "./xml-parser.js";
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-export const SP_ENTITY_ID = "https://api.kindlm.com/auth/saml";
-export const ACS_URL = "https://api.kindlm.com/auth/saml/callback";
-export const AUTH_CODE_TTL_SECONDS = 30;
-
-// ---------------------------------------------------------------------------
-// XML parsing helpers — lightweight string-based extraction for SAML responses
+// XML extraction — delegates to parsed XML tree (not regex)
 // ---------------------------------------------------------------------------
 
 export function extractNameID(xml: string): string | null {
-  const match = xml.match(/<(?:saml[2p]?:)?NameID[^>]*>([^<]+)</);
-  return match?.[1]?.trim() ?? null;
+  const doc = parseSamlXml(xml);
+  return extractNameIdFromParsed(doc);
 }
 
 export function extractAttribute(xml: string, name: string): string | null {
-  const attrRegex = new RegExp(
-    `<(?:saml[2p]?:)?Attribute[^>]*Name=["']${escapeRegex(name)}["'][^>]*>[\\s\\S]*?<(?:saml[2p]?:)?AttributeValue[^>]*>([^<]+)`,
-    "i",
-  );
-  const match = xml.match(attrRegex);
-  return match?.[1]?.trim() ?? null;
+  const doc = parseSamlXml(xml);
+  return extractAttributeFromParsed(doc, name);
 }
 
 export function extractIssuer(xml: string): string | null {
-  const match = xml.match(/<(?:saml[2p]?:)?Issuer[^>]*>([^<]+)</);
-  return match?.[1]?.trim() ?? null;
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-export async function ssoGithubId(email: string): Promise<number> {
-  const data = new TextEncoder().encode(`sso:${email}`);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  const view = new DataView(hash);
-  // Use first 6 bytes as negative int (safe in JS, avoids collision with real GitHub IDs)
-  return -(view.getUint32(0) * 65536 + view.getUint16(4));
+  const doc = parseSamlXml(xml);
+  return extractIssuerFromParsed(doc);
 }
 
 export function extractAssertionId(xml: string): string | null {
-  const match = xml.match(/<(?:saml[2p]?:)?Assertion[^>]*\sID=["']([^"']+)["']/i);
-  return match?.[1] ?? null;
+  const doc = parseSamlXml(xml);
+  return extractAssertionIdFromParsed(doc);
 }
+
+// ---------------------------------------------------------------------------
+// Timing condition checks (now uses parsed XML instead of regex)
+// ---------------------------------------------------------------------------
+
+export function checkConditions(xml: string): { valid: boolean; error?: string } {
+  const doc = parseSamlXml(xml);
+  const conditions = extractConditionsFromParsed(doc);
+
+  if (!conditions.found) {
+    // No conditions element — accept (some IDPs omit it)
+    return { valid: true };
+  }
+
+  const now = Date.now();
+
+  if (conditions.notBefore) {
+    const notBefore = new Date(conditions.notBefore).getTime();
+    // Allow 60s clock skew
+    if (now < notBefore - 60_000) {
+      return { valid: false, error: "Assertion is not yet valid (NotBefore)" };
+    }
+  }
+
+  if (conditions.notOnOrAfter) {
+    const notOnOrAfter = new Date(conditions.notOnOrAfter).getTime();
+    // Allow 60s clock skew
+    if (now >= notOnOrAfter + 60_000) {
+      return { valid: false, error: "Assertion has expired (NotOnOrAfter)" };
+    }
+  }
+
+  return { valid: true };
+}
+
+// ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
 
 export function escapeHtml(s: string): string {
   return s
@@ -57,41 +83,12 @@ export function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// ---------------------------------------------------------------------------
-// Timing condition checks
-// ---------------------------------------------------------------------------
-
-export function checkConditions(xml: string): { valid: boolean; error?: string } {
-  const conditionsMatch = xml.match(
-    /<(?:saml[2p]?:)?Conditions([^>]*)>/,
-  );
-  if (!conditionsMatch) {
-    // No conditions element — accept (some IDPs omit it)
-    return { valid: true };
-  }
-
-  const attrs = conditionsMatch[1] ?? "";
-  const now = Date.now();
-
-  const notBeforeMatch = attrs.match(/NotBefore=["']([^"']+)["']/);
-  if (notBeforeMatch?.[1]) {
-    const notBefore = new Date(notBeforeMatch[1]).getTime();
-    // Allow 60s clock skew
-    if (now < notBefore - 60_000) {
-      return { valid: false, error: "Assertion is not yet valid (NotBefore)" };
-    }
-  }
-
-  const notOnOrAfterMatch = attrs.match(/NotOnOrAfter=["']([^"']+)["']/);
-  if (notOnOrAfterMatch?.[1]) {
-    const notOnOrAfter = new Date(notOnOrAfterMatch[1]).getTime();
-    // Allow 60s clock skew
-    if (now >= notOnOrAfter + 60_000) {
-      return { valid: false, error: "Assertion has expired (NotOnOrAfter)" };
-    }
-  }
-
-  return { valid: true };
+export async function ssoGithubId(email: string): Promise<number> {
+  const data = new TextEncoder().encode(`sso:${email}`);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  const view = new DataView(hash);
+  // Use first 6 bytes as negative int (safe in JS, avoids collision with real GitHub IDs)
+  return -(view.getUint32(0) * 65536 + view.getUint16(4));
 }
 
 // ---------------------------------------------------------------------------
@@ -116,22 +113,46 @@ function pemToDer(pem: string): ArrayBuffer {
   return buf;
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 interface AlgorithmConfig {
-  importParams: { name: string; hash: string };
-  verifyParams: { name: string };
+  importParams: { name: string; hash?: string; namedCurve?: string };
+  verifyParams: { name: string; hash?: string };
+  signatureType: "rsa" | "ecdsa";
 }
 
 function getAlgorithmConfig(xmlAlg: string): AlgorithmConfig {
+  // ECDSA P-256 with SHA-256
+  if (xmlAlg.includes("ecdsa-sha256") || xmlAlg.includes("#ecdsa-sha256")) {
+    return {
+      importParams: { name: "ECDSA", namedCurve: "P-256" },
+      verifyParams: { name: "ECDSA", hash: "SHA-256" },
+      signatureType: "ecdsa",
+    };
+  }
+  // ECDSA P-384 with SHA-384
+  if (xmlAlg.includes("ecdsa-sha384") || xmlAlg.includes("#ecdsa-sha384")) {
+    return {
+      importParams: { name: "ECDSA", namedCurve: "P-384" },
+      verifyParams: { name: "ECDSA", hash: "SHA-384" },
+      signatureType: "ecdsa",
+    };
+  }
+  // RSA-SHA1 (legacy)
   if (xmlAlg.includes("rsa-sha1") || xmlAlg.includes("sha1")) {
     return {
       importParams: { name: "RSASSA-PKCS1-v1_5", hash: "SHA-1" },
       verifyParams: { name: "RSASSA-PKCS1-v1_5" },
+      signatureType: "rsa",
     };
   }
   // Default: RSA-SHA256
   return {
     importParams: { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     verifyParams: { name: "RSASSA-PKCS1-v1_5" },
+    signatureType: "rsa",
   };
 }
 
@@ -172,66 +193,81 @@ function extractReferencedElement(xml: string, uri: string): string | null {
   return match?.[0] ?? null;
 }
 
+// Convert IEEE P1363 (r || s) signature to ASN.1 DER format required by Web Crypto
+// for ECDSA verification.
+function ieeeP1363ToDer(sig: Uint8Array): Uint8Array {
+  const halfLen = sig.length / 2;
+  const r = sig.slice(0, halfLen);
+  const s = sig.slice(halfLen);
+
+  function encodeInteger(bytes: Uint8Array): Uint8Array {
+    // Strip leading zeros but keep at least one byte
+    let start = 0;
+    while (start < bytes.length - 1 && bytes[start] === 0) start++;
+    const trimmed = bytes.slice(start);
+    // Add a leading 0x00 if the high bit is set (to make it positive in ASN.1)
+    const needsPadding = (trimmed[0]! & 0x80) !== 0;
+    const result = new Uint8Array((needsPadding ? 1 : 0) + trimmed.length);
+    if (needsPadding) result[0] = 0x00;
+    result.set(trimmed, needsPadding ? 1 : 0);
+    return result;
+  }
+
+  const rDer = encodeInteger(r);
+  const sDer = encodeInteger(s);
+
+  // SEQUENCE { INTEGER r, INTEGER s }
+  const totalLen = 2 + rDer.length + 2 + sDer.length;
+  const der = new Uint8Array(2 + totalLen);
+  let offset = 0;
+  der[offset++] = 0x30; // SEQUENCE
+  der[offset++] = totalLen;
+  der[offset++] = 0x02; // INTEGER
+  der[offset++] = rDer.length;
+  der.set(rDer, offset);
+  offset += rDer.length;
+  der[offset++] = 0x02; // INTEGER
+  der[offset++] = sDer.length;
+  der.set(sDer, offset);
+
+  return der;
+}
+
 export async function verifySamlSignature(
   xml: string,
   certificatePem: string,
 ): Promise<boolean> {
-  // Extract SignatureValue
-  const sigValueMatch = xml.match(
-    /<(?:ds:)?SignatureValue[^>]*>([\s\S]*?)<\/(?:ds:)?SignatureValue>/,
-  );
-  if (!sigValueMatch?.[1]) return false;
-  const signatureBytes = base64ToBytes(sigValueMatch[1].replace(/\s/g, ""));
+  // Parse the XML tree to validate structure and detect XSW attacks.
+  // The parser ensures we only look at the Signature that is a direct child
+  // of the Assertion element (not an injected second Signature).
+  const doc = parseSamlXml(xml);
+  const sigData = extractSignatureFromParsed(doc, xml);
+  if (!sigData) return false;
 
-  // Extract SignedInfo
-  const signedInfoMatch = xml.match(
-    /<(?:ds:)?SignedInfo[^>]*>[\s\S]*?<\/(?:ds:)?SignedInfo>/,
-  );
-  if (!signedInfoMatch?.[0]) return false;
-  const signedInfoXml = signedInfoMatch[0];
+  let signatureBytes: Uint8Array;
+  try {
+    signatureBytes = base64ToBytes(sigData.signatureValue);
+  } catch {
+    return false;
+  }
+  const signedInfoXml = sigData.signedInfoXml;
 
   // Verify DigestValue before checking the signature over SignedInfo.
   // This ensures the referenced assertion body hasn't been tampered with.
-  const refMatch = signedInfoXml.match(
-    /<(?:ds:)?Reference[^>]*(?:URI=["']([^"']*)["'])?[^>]*>[\s\S]*?<\/(?:ds:)?Reference>/,
+  const digestAlg = getDigestAlgorithm(sigData.digestMethodAlgorithm);
+  const referencedElement = extractReferencedElement(xml, sigData.referenceUri);
+  if (!referencedElement) return false;
+
+  const refBytes = new TextEncoder().encode(referencedElement);
+  const digestBuf = await crypto.subtle.digest(digestAlg, refBytes);
+  const computedDigest = btoa(
+    String.fromCharCode(...new Uint8Array(digestBuf)),
   );
-  if (refMatch) {
-    const refUri = refMatch[1] ?? "";
 
-    // Extract DigestMethod algorithm
-    const digestMethodMatch = refMatch[0].match(
-      /<(?:ds:)?DigestMethod[^>]*Algorithm=["']([^"']+)["']/,
-    );
-    const digestAlg = digestMethodMatch?.[1]
-      ? getDigestAlgorithm(digestMethodMatch[1])
-      : "SHA-256";
+  if (computedDigest !== sigData.digestValue) return false;
 
-    // Extract the claimed DigestValue
-    const digestValueMatch = refMatch[0].match(
-      /<(?:ds:)?DigestValue[^>]*>([\s\S]*?)<\/(?:ds:)?DigestValue>/,
-    );
-    if (!digestValueMatch?.[1]) return false;
-    const claimedDigest = digestValueMatch[1].replace(/\s/g, "");
-
-    // Hash the referenced element and compare
-    const referencedElement = extractReferencedElement(xml, refUri);
-    if (!referencedElement) return false;
-
-    const refBytes = new TextEncoder().encode(referencedElement);
-    const digestBuf = await crypto.subtle.digest(digestAlg, refBytes);
-    const computedDigest = btoa(
-      String.fromCharCode(...new Uint8Array(digestBuf)),
-    );
-
-    if (computedDigest !== claimedDigest) return false;
-  }
-
-  // Determine algorithm
-  const algMatch = xml.match(
-    /<(?:ds:)?SignatureMethod[^>]*Algorithm=["']([^"']+)["']/,
-  );
-  const algorithm = algMatch?.[1] ?? "";
-  const algConfig = getAlgorithmConfig(algorithm);
+  // Determine algorithm from parsed SignatureMethod
+  const algConfig = getAlgorithmConfig(sigData.signatureMethodAlgorithm);
 
   // Canonicalize SignedInfo
   const signedInfo = canonicalizeSignedInfo(signedInfoXml, xml);
@@ -259,25 +295,16 @@ export async function verifySamlSignature(
   // Verify signature over SignedInfo
   const signedInfoBytes = new TextEncoder().encode(signedInfo);
   try {
-    return await crypto.subtle.verify(
+    // For ECDSA, Web Crypto expects IEEE P1363 format but some IDPs send DER.
+    // Try the raw bytes first, then try DER-to-P1363 conversion on failure.
+    const result = await crypto.subtle.verify(
       algConfig.verifyParams,
       cryptoKey,
       signatureBytes,
       signedInfoBytes,
     );
+    return result;
   } catch {
     return false;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Dashboard redirect helpers
-// ---------------------------------------------------------------------------
-
-export function getAllowedOrigins(env: AppEnv["Bindings"]): string[] {
-  const origins = ["https://cloud.kindlm.com"];
-  if (env.ENVIRONMENT !== "production") {
-    origins.push("http://localhost:3001");
-  }
-  return origins;
 }

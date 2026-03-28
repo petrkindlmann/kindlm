@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import type { AppEnv, Plan, Bindings } from "../types.js";
+import type { AppEnv, Plan, Bindings, Run, Project } from "../types.js";
 import { complianceRoutes } from "./compliance.js";
 import { testExecutionCtx } from "../test-helpers.js";
 
 // Track stored keys so sign+verify roundtrip works with realistic key storage
 let storedKeys: Map<string, { publicKey: string; privateKeyEnc: string; algorithm: string; createdAt: string }>;
+
+// Track runs for sign-report/verify-report tests
+let storedRuns: Map<string, Partial<Run>>;
+let storedProjects: Map<string, Partial<Project>>;
 
 const mockLogAudit = vi.fn().mockResolvedValue(undefined);
 
@@ -18,6 +22,19 @@ vi.mock("../db/queries.js", () => ({
       const entry = { publicKey, privateKeyEnc, algorithm: "Ed25519", createdAt: new Date().toISOString() };
       storedKeys.set(orgId, entry);
       return entry;
+    }),
+    getRun: vi.fn(async (id: string) => {
+      return storedRuns.get(id) ?? null;
+    }),
+    getProject: vi.fn(async (id: string) => {
+      return storedProjects.get(id) ?? null;
+    }),
+    updateRun: vi.fn(async (id: string, fields: Partial<Run>) => {
+      const existing = storedRuns.get(id);
+      if (!existing) return null;
+      const updated = { ...existing, ...fields };
+      storedRuns.set(id, updated);
+      return updated;
     }),
     logAudit: mockLogAudit,
   }),
@@ -57,6 +74,8 @@ describe("compliance routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storedKeys = new Map();
+    storedRuns = new Map();
+    storedProjects = new Map();
   });
 
   it("POST /sign rejects non-enterprise plans", async () => {
@@ -199,5 +218,242 @@ describe("compliance routes", () => {
     expect(keyBody.publicKey).toBe(signBody.publicKey);
     expect(keyBody.algorithm).toBe("Ed25519");
     expect(keyBody.createdAt).toBeTruthy();
+  });
+
+  // ------- Run-level compliance signing -------
+
+  describe("POST /sign-report", () => {
+    it("rejects non-enterprise plans", async () => {
+      const app = createMockApp("team");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("requires runId", async () => {
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toBe("runId is required");
+    });
+
+    it("returns 404 when run not found", async () => {
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "nonexistent" }),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 404 when run belongs to different org", async () => {
+      storedRuns.set("run-1", {
+        id: "run-1",
+        projectId: "proj-other",
+        complianceReport: "# Report",
+        complianceSignature: null,
+      });
+      storedProjects.set("proj-other", {
+        id: "proj-other",
+        orgId: "org-other", // Different org
+        name: "Other Project",
+      });
+
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 400 when run has no compliance report", async () => {
+      storedRuns.set("run-1", {
+        id: "run-1",
+        projectId: "proj-1",
+        complianceReport: null,
+        complianceSignature: null,
+      });
+      storedProjects.set("proj-1", {
+        id: "proj-1",
+        orgId: "org-1",
+        name: "Test Project",
+      });
+
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toContain("no compliance report");
+    });
+
+    it("returns 409 when report already signed", async () => {
+      storedRuns.set("run-1", {
+        id: "run-1",
+        projectId: "proj-1",
+        complianceReport: "# Report",
+        complianceSignature: "existing-sig",
+      });
+      storedProjects.set("proj-1", {
+        id: "proj-1",
+        orgId: "org-1",
+        name: "Test Project",
+      });
+
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(res.status).toBe(409);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toContain("already signed");
+    });
+
+    it("signs a compliance report and stores signature on the run", async () => {
+      storedRuns.set("run-1", {
+        id: "run-1",
+        projectId: "proj-1",
+        complianceReport: "# EU AI Act Compliance Report\n\nAll tests passed.",
+        complianceSignature: null,
+        complianceSignedAt: null,
+      });
+      storedProjects.set("proj-1", {
+        id: "proj-1",
+        orgId: "org-1",
+        name: "Test Project",
+      });
+
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        runId: string;
+        signature: string;
+        publicKey: string;
+        algorithm: string;
+        signedAt: string;
+      };
+      expect(body.runId).toBe("run-1");
+      expect(body.signature).toBeTruthy();
+      expect(body.publicKey).toBeTruthy();
+      expect(body.algorithm).toBe("Ed25519");
+      expect(body.signedAt).toBeTruthy();
+
+      // Run should have been updated with signature
+      const updatedRun = storedRuns.get("run-1");
+      expect(updatedRun?.complianceSignature).toBe(body.signature);
+      expect(updatedRun?.complianceSignedAt).toBe(body.signedAt);
+    });
+  });
+
+  describe("POST /verify-report", () => {
+    it("rejects non-enterprise plans", async () => {
+      const app = createMockApp("team");
+      const res = await req(app, "/v1/compliance/verify-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("requires runId", async () => {
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/verify-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when run has no signed report", async () => {
+      storedRuns.set("run-1", {
+        id: "run-1",
+        projectId: "proj-1",
+        complianceReport: "# Report",
+        complianceSignature: null,
+      });
+      storedProjects.set("proj-1", {
+        id: "proj-1",
+        orgId: "org-1",
+        name: "Test Project",
+      });
+
+      const app = createMockApp("enterprise");
+      const res = await req(app, "/v1/compliance/verify-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toContain("no signed compliance report");
+    });
+
+    it("sign-report then verify-report roundtrip succeeds", async () => {
+      const reportContent = "# EU AI Act Compliance Report\n\nFull test results here.";
+      storedRuns.set("run-1", {
+        id: "run-1",
+        projectId: "proj-1",
+        complianceReport: reportContent,
+        complianceSignature: null,
+        complianceSignedAt: null,
+      });
+      storedProjects.set("proj-1", {
+        id: "proj-1",
+        orgId: "org-1",
+        name: "Test Project",
+      });
+
+      const app = createMockApp("enterprise");
+
+      // Sign the report
+      const signRes = await req(app, "/v1/compliance/sign-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(signRes.status).toBe(200);
+
+      // Verify the report
+      const verifyRes = await req(app, "/v1/compliance/verify-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: "run-1" }),
+      });
+      expect(verifyRes.status).toBe(200);
+      const verifyBody = (await verifyRes.json()) as {
+        runId: string;
+        valid: boolean;
+        algorithm: string;
+        signedAt: string;
+      };
+      expect(verifyBody.runId).toBe("run-1");
+      expect(verifyBody.valid).toBe(true);
+      expect(verifyBody.algorithm).toBe("Ed25519");
+      expect(verifyBody.signedAt).toBeTruthy();
+    });
   });
 });

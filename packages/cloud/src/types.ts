@@ -64,6 +64,8 @@ export interface Run {
   gatePassed: number | null;
   complianceReport: string | null;
   complianceHash: string | null;
+  complianceSignature: string | null;
+  complianceSignedAt: string | null;
   startedAt: string;
   finishedAt: string | null;
   createdAt: string;
