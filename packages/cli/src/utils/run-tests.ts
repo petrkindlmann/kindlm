@@ -18,6 +18,7 @@ import { createHttpClient } from "./http.js";
 import { createSpinner } from "./spinner.js";
 import { createNodeFileReader } from "./file-reader.js";
 import { createNodeCommandExecutor } from "./command-executor.js";
+import { createCachingAdapter } from "./caching-adapter.js";
 
 export interface RunTestsOptions {
   configPath: string;
@@ -25,6 +26,7 @@ export interface RunTestsOptions {
   gate?: number;
   suite?: string;
   baselineData?: BaselineData;
+  noCache?: boolean;
 }
 
 export interface RunTestsResult {
@@ -172,7 +174,12 @@ async function runTestsInner(
       maxRetries: 2,
     });
 
-    adapters.set(name, adapter);
+    // Wrap with caching unless --no-cache
+    if (!options.noCache) {
+      adapters.set(name, createCachingAdapter(adapter));
+    } else {
+      adapters.set(name, adapter);
+    }
   }
 
   // 5. Create + run
