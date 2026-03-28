@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { AppEnv } from "./types.js";
@@ -161,7 +162,13 @@ async function handleScheduled(
   ctx.waitUntil(work());
 }
 
-export default {
-  fetch: app.fetch,
-  scheduled: handleScheduled,
-};
+export default Sentry.withSentry(
+  (env: Record<string, string>) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: 0.1,
+  }),
+  {
+    fetch: app.fetch,
+    scheduled: handleScheduled,
+  } as ExportedHandler,
+);

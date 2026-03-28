@@ -192,6 +192,7 @@ export interface Bindings {
   STRIPE_WEBHOOK_SECRET?: string;
   STRIPE_TEAM_PRICE_ID?: string;
   STRIPE_ENTERPRISE_PRICE_ID?: string;
+  SENTRY_DSN?: string;
 }
 
 export interface AuthContext {
