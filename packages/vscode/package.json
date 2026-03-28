@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "publisher": "kindlm",
   "license": "MIT",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/kindlm/kindlm.git",
@@ -43,11 +44,11 @@
   },
   "scripts": {
     "build": "esbuild --bundle --platform=node --outdir=dist --external:vscode src/extension.ts",
-    "package": "npx vsce package"
+    "package": "npx vsce package --no-dependencies"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.25.0",
     "typescript": "^5.4.0"
   }
