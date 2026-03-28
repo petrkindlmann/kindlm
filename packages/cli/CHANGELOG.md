@@ -1,5 +1,16 @@
 # @kindlm/cli
 
+## 1.0.0
+
+### Major Changes
+
+- 30ca548: Initial stable release of KindLM v1.0.0
+
+### Patch Changes
+
+- Updated dependencies [30ca548]
+  - @kindlm/core@1.0.0
+
 ## 0.1.0
 
 ### Minor Changes
