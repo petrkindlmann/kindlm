@@ -140,26 +140,49 @@ async function runTestsInner(
   const httpClient = createHttpClient();
   const adapters = new Map<string, ProviderAdapter>();
 
-  const providers = config.providers as Record<string, { apiKeyEnv?: string; baseUrl?: string; organization?: string } | undefined>;
+  const providers = config.providers as Record<string, Record<string, unknown> | undefined>;
   for (const [name, providerConfig] of Object.entries(providers)) {
     if (!providerConfig) continue;
 
+    const apiKeyEnv = providerConfig.apiKeyEnv as string | undefined;
     let apiKey = "";
-    if (providerConfig.apiKeyEnv) {
-      const key = process.env[providerConfig.apiKeyEnv];
+    if (apiKeyEnv) {
+      const key = process.env[apiKeyEnv];
       if (!key) {
-        console.error(chalk.red(`Missing environment variable: ${providerConfig.apiKeyEnv}`));
+        console.error(chalk.red(`Missing environment variable: ${apiKeyEnv}`));
         process.exit(1);
       }
       apiKey = key.trim();
-    } else if (name !== "ollama") {
+    } else if (name !== "ollama" && name !== "http") {
       console.error(chalk.red(`Provider "${name}" requires apiKeyEnv to be configured`));
       process.exit(1);
     }
 
     let adapter: ProviderAdapter;
     try {
-      adapter = createProvider(name, httpClient);
+      if (name === "http") {
+        // HTTP provider gets its config object directly + env lookup
+        const httpProviderConfig = providerConfig as {
+          url: string;
+          method?: string;
+          headers?: Record<string, string>;
+          body?: string;
+          responsePath?: string;
+          toolCallsPath?: string;
+          usagePaths?: {
+            inputTokens?: string;
+            outputTokens?: string;
+            totalTokens?: string;
+          };
+          modelIdPath?: string;
+        };
+        adapter = createProvider(name, httpClient, {
+          httpConfig: httpProviderConfig,
+          envLookup: (envName: string) => process.env[envName],
+        });
+      } else {
+        adapter = createProvider(name, httpClient);
+      }
     } catch (cause) {
       const msg = cause instanceof Error ? cause.message : String(cause);
       console.error(chalk.red(`Failed to create provider "${name}": ${msg}`));
@@ -168,8 +191,8 @@ async function runTestsInner(
 
     await adapter.initialize({
       apiKey,
-      baseUrl: providerConfig.baseUrl,
-      organization: providerConfig.organization,
+      baseUrl: providerConfig.baseUrl as string | undefined,
+      organization: providerConfig.organization as string | undefined,
       timeoutMs: config.defaults.timeoutMs,
       maxRetries: 2,
     });
