@@ -3,66 +3,55 @@ status: partial
 phase: 04-release-monitoring
 source: [04-VERIFICATION.md]
 started: 2026-03-28T07:00:00Z
-updated: 2026-03-28T07:00:00Z
+updated: 2026-03-28T08:10:00Z
 ---
 
 ## Current Test
 
-[awaiting human testing]
+[testing paused — 3 items blocked, 1 needs NPM_TOKEN]
 
 ## Tests
 
 ### 1. REL-01: Merge Version Packages PR to trigger npm publish
 expected: `npx @kindlm/cli@latest --version` returns `1.0.0`; `@kindlm/core` also at `1.0.0`; both published with provenance attestation visible on npmjs.com
-result: [pending]
+result: blocked
+blocked_by: third-party
+reason: "NPM_TOKEN secret not set in GitHub repo (gh secret list returns []). Push completed — PR #1 updated to 1.0.0 by Release workflow. Cannot merge until NPM_TOKEN is added to GitHub Settings → Secrets → Actions with @kindlm publish scope. PR is at https://github.com/petrkindlmann/kindlm/pull/1"
 
-Steps:
-1. Push main to remote: `git push origin main`
-2. GitHub Actions `release.yml` runs — changesets/action opens a "Version Packages" PR bumping both packages to 1.0.0
-3. Review the PR — confirm both packages show `1.0.0` in the diff
-4. Verify `NPM_TOKEN` secret is set in GitHub Settings → Secrets → Actions with @kindlm publish scope
-5. Merge the PR
-6. `release.yml` runs again — publishes @kindlm/core@1.0.0 and @kindlm/cli@1.0.0 with npm provenance
-7. Verify: `npm view @kindlm/core version` and `npm view @kindlm/cli version` both return `1.0.0`
+verified_by_automation:
+  - "git push origin main: succeeded (9968a31..main)"
+  - "Release workflow 23678999152: passed in 1m18s"
+  - "PR #1 updated: @kindlm/cli@1.0.0 + @kindlm/core@1.0.0 confirmed in PR body"
+  - "gh api repos/petrkindlmann/kindlm/actions/secrets: {total_count:0} — NPM_TOKEN MISSING"
 
 ### 2. REL-02/REL-03: Confirm npm provenance + GitHub Release
 expected: npm provenance badge visible on npmjs.com; GitHub Release exists with changelog
-result: [pending]
-
-Steps:
-1. Visit https://www.npmjs.com/package/@kindlm/core — check for provenance attestation
-2. Visit https://github.com/petrkindlmann/kindlm/releases — confirm release tagged at `@kindlm/core@1.0.0` with changelog
+result: blocked
+blocked_by: prior-phase
+reason: "Blocked on Test 1 — packages still at cli@0.4.1 / core@0.2.1, not yet 1.0.0. Publish hasn't run."
 
 ### 3. MON-02: Configure UptimeRobot monitoring
 expected: api.kindlm.com/health monitored every 5 minutes with email alerts
-result: [pending]
+result: blocked
+blocked_by: third-party
+reason: "api.kindlm.com/health is LIVE and returns {\"status\":\"ok\"} ✓. UptimeRobot login requires user credentials — browser automation hit GitHub OAuth wall. Manual step: log in at https://dashboard.uptimerobot.com/login and add monitor."
 
-Steps (see monitoring-setup.md for full details):
-1. Go to https://uptimerobot.com and sign up or log in
-2. Add New Monitor → HTTP(s), URL: `https://api.kindlm.com/health`, interval: 5 min
-3. Enable keyword monitoring for `"status":"ok"`
-4. Add email alert contact
-5. Confirm green status badge appears within 5 minutes
+verified_by_automation:
+  - "https://api.kindlm.com/health → {\"status\":\"ok\"} ✓"
 
 ### 4. E2E: Full CLI flow with published 1.0.0
 expected: init/test/upload flow works end-to-end with published CLI
-result: [pending]
-
-Steps:
-1. `npm install -g @kindlm/cli@1.0.0`
-2. `kindlm --version` → should show `1.0.0`
-3. `kindlm init` → creates kindlm.yaml
-4. `kindlm test` → runs tests
-5. `kindlm upload` → uploads results to Cloud
-6. Navigate to dashboard → confirm results visible
+result: blocked
+blocked_by: prior-phase
+reason: "Blocked on Test 1 — @kindlm/cli@1.0.0 not yet published to npm."
 
 ## Summary
 
 total: 4
 passed: 0
 issues: 0
-pending: 4
+pending: 0
 skipped: 0
-blocked: 0
+blocked: 4
 
 ## Gaps
