@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-03-28T03:17:34.916Z"
+status: executing
+last_updated: "2026-03-28T05:51:34.572Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
 ---
 
 # KindLM v1.0 — Project State
@@ -17,12 +17,12 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-03-27)
 **Core value:** The CLI must reliably test AI agent behavior end-to-end
-**Current focus:** Phase 03 — marketing-site-billing-vs-code-extension
+**Current focus:** Phase 04 — Release & Monitoring
 
 ## Current Phase
 
 **Phase:** 4
-**Status:** Ready to plan
+**Status:** Executing Phase 04
 **Blockers:** None
 
 ## Progress
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 | 1 — CLI Verification & Cloud API | Complete | Plans 01-01, 01-02 complete |
 | 2 — Dashboard & Upload Pipeline | Complete | Plans 02-01, 02-02 complete |
 | 3 — Marketing Site, Billing & VS Code Extension | In Progress | Plan 03-01 complete (1/3) |
-| 4 — Release & Monitoring | Not started | — |
+| 4 — Release & Monitoring | In Progress | Plan 04-01 complete (1/2) |
 
 ## Key Context
 
@@ -46,4 +46,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 - 149+ tests pass, build and typecheck clean
 
 ---
-*Last updated: 2026-03-28 (after Plan 03-01 complete — marketing site deployed)*
+- Plan 04-01 complete: v1.0.0 changeset created, npm provenance enabled in release.yml. Manual step: merge "Version Packages" PR on GitHub (verify NPM_TOKEN secret set first).
+
+---
+*Last updated: 2026-03-28 (after Plan 04-01 complete — version bump + release workflow)*
