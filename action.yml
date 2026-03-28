@@ -1,0 +1,113 @@
+name: "KindLM Test"
+description: "Run KindLM behavioral regression tests and post results as PR comment"
+author: "KindLM"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  config:
+    description: "Path to kindlm.yaml config file"
+    required: false
+    default: "kindlm.yaml"
+  node-version:
+    description: "Node.js version to use"
+    required: false
+    default: "20"
+  comment:
+    description: "Post test results as PR comment"
+    required: false
+    default: "true"
+  fail-on-error:
+    description: "Fail the workflow step if any test fails"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Run KindLM tests
+      id: test
+      shell: bash
+      run: |
+        set +e
+        OUTPUT=$(npx @kindlm/cli@latest test --config "${{ inputs.config }}" --reporter json 2>&1)
+        EXIT_CODE=$?
+        echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+        echo "$OUTPUT" > /tmp/kindlm-results.json
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "::warning::KindLM tests failed with exit code $EXIT_CODE"
+        fi
+
+    - name: Post PR comment
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let summary;
+          try {
+            const raw = fs.readFileSync('/tmp/kindlm-results.json', 'utf-8');
+            summary = JSON.parse(raw).summary;
+          } catch (e) {
+            summary = null;
+          }
+
+          const exitCode = parseInt('${{ steps.test.outputs.exit_code }}', 10);
+          const passed = exitCode === 0;
+          const badge = passed ? '✅' : '❌';
+          const marker = '<!-- kindlm-results -->';
+
+          let body = marker + '\n';
+          body += `## ${badge} KindLM Test Results\n\n`;
+
+          if (summary) {
+            body += `| Metric | Value |\n|--------|-------|\n`;
+            body += `| Total | ${summary.totalTests} |\n`;
+            body += `| Passed | ${summary.passed} |\n`;
+            body += `| Failed | ${summary.failed} |\n`;
+            body += `| Duration | ${(summary.durationMs / 1000).toFixed(1)}s |\n`;
+          } else {
+            body += `Tests ${passed ? 'passed' : 'failed'} (exit code: ${exitCode})\n`;
+          }
+
+          body += `\n<sub>Posted by [KindLM](https://kindlm.com) GitHub Action</sub>\n`;
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existing = comments.find(c => c.body?.includes(marker));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: Check test result
+      if: inputs.fail-on-error == 'true'
+      shell: bash
+      run: |
+        if [ "${{ steps.test.outputs.exit_code }}" != "0" ]; then
+          echo "::error::KindLM tests failed"
+          exit 1
+        fi
