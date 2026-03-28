@@ -4,6 +4,8 @@
 
 Behavioral regression testing for AI agents. Test what your agents **do** — not just what they say.
 
+![KindLM test output](site/public/terminal-demo.svg)
+
 ## Why KindLM?
 
 LLM evals measure text quality. KindLM tests **behavior** — the tool calls your agent makes, the decisions it takes, and whether it leaks PII or violates compliance rules. It runs in CI so regressions never ship.
