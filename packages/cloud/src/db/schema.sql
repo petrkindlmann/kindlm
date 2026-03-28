@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_github ON users(github_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- ============================================================
 -- Org Members
@@ -230,6 +231,7 @@ CREATE TABLE IF NOT EXISTS webhooks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_webhooks_org ON webhooks(org_id);
+CREATE INDEX IF NOT EXISTS idx_webhooks_org_active ON webhooks(org_id, active);
 
 -- ============================================================
 -- Billing
@@ -244,6 +246,8 @@ CREATE TABLE IF NOT EXISTS billing (
   created_at              TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_billing_stripe_customer ON billing(stripe_customer_id);
 
 -- ============================================================
 -- Audit Log (0002_audit_log.sql)
@@ -262,6 +266,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_org ON audit_log(org_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(org_id, action, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_log(org_id, resource_type, created_at DESC);
 
 -- ============================================================
 -- Signing Keys (0003_signing_keys.sql)
