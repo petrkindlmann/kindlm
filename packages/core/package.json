@@ -18,11 +18,11 @@
   "homepage": "https://kindlm.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kindlm/kindlm.git",
+    "url": "https://github.com/petrkindlmann/kindlm.git",
     "directory": "packages/core"
   },
   "bugs": {
-    "url": "https://github.com/kindlm/kindlm/issues"
+    "url": "https://github.com/petrkindlmann/kindlm/issues"
   },
   "exports": {
     ".": {
