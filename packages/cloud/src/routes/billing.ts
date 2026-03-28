@@ -17,9 +17,9 @@ function isAllowedRedirectUrl(url: string): boolean {
   }
 }
 
-const PLAN_PRICES: Record<string, { plan: Plan; name: string }> = {
-  team: { plan: "team", name: "KindLM Team" },
-  enterprise: { plan: "enterprise", name: "KindLM Enterprise" },
+const PLAN_KEYS = {
+  team: { plan: "team" as Plan, name: "KindLM Team", envKey: "STRIPE_TEAM_PRICE_ID" as const },
+  enterprise: { plan: "enterprise" as Plan, name: "KindLM Enterprise", envKey: "STRIPE_ENTERPRISE_PRICE_ID" as const },
 };
 
 async function stripeRequest(
@@ -82,7 +82,7 @@ billingRoutes.post("/checkout", async (c) => {
   const body = await c.req.json<{ plan?: string; successUrl?: string; cancelUrl?: string }>();
 
   const planKey = body.plan ?? "team";
-  const planInfo = PLAN_PRICES[planKey];
+  const planInfo = PLAN_KEYS[planKey as keyof typeof PLAN_KEYS];
   if (!planInfo) {
     return c.json({ error: "Invalid plan. Must be team or enterprise" }, 400);
   }
@@ -101,14 +101,19 @@ billingRoutes.post("/checkout", async (c) => {
     await queries.upsertBilling(auth.org.id, { stripeCustomerId: customerId });
   }
 
-  // Create Checkout session
+  // Create Checkout session using pre-created Price ID (required for Customer Portal + analytics)
+  const priceId = c.env[planInfo.envKey];
+  if (!priceId) {
+    return c.json(
+      { error: `Price not configured for ${planKey} plan. Set ${planInfo.envKey} worker secret.` },
+      501,
+    );
+  }
+
   const session = (await stripeRequest("/checkout/sessions", stripeKey, {
     customer: customerId,
     mode: "subscription",
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][product_data][name]": planInfo.name,
-    "line_items[0][price_data][unit_amount]": planKey === "team" ? "4900" : "29900",
-    "line_items[0][price_data][recurring][interval]": "month",
+    "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
     success_url:
       body.successUrl && isAllowedRedirectUrl(body.successUrl)

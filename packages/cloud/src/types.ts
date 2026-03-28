@@ -188,6 +188,8 @@ export interface Bindings {
   SIGNING_KEY_SECRET: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_TEAM_PRICE_ID?: string;
+  STRIPE_ENTERPRISE_PRICE_ID?: string;
 }
 
 export interface AuthContext {

@@ -77,6 +77,34 @@ function createWebhookApp(overrides: Partial<Bindings> = {}) {
   return { app, env };
 }
 
+function createAppWithStripe() {
+  const app = new Hono<AppEnv>();
+  const env: Bindings = {
+    DB: {
+      prepare: vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        first: vi.fn().mockResolvedValue(null),
+      }),
+    } as unknown as D1Database,
+    ENVIRONMENT: "test",
+    GITHUB_CLIENT_ID: "test",
+    GITHUB_CLIENT_SECRET: "test",
+    SIGNING_KEY_SECRET: "test",
+    STRIPE_SECRET_KEY: "sk_test_123",
+    STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
+    STRIPE_TEAM_PRICE_ID: "price_team_test_123",
+    STRIPE_ENTERPRISE_PRICE_ID: "price_enterprise_test_123",
+  };
+  // Inject auth context — env is passed via app.request() third arg
+  app.use("*", async (c, next) => {
+    c.set("auth", { org, token, user: null });
+    return next();
+  });
+  app.route("/v1/billing", billingRoutes);
+  return { app, env };
+}
+
 describe("billing routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -144,6 +172,96 @@ describe("billing routes", () => {
     const body = (await res.json()) as { billing: { plan: string; hasPaymentMethod: boolean } };
     expect(body.billing.plan).toBe("team");
     expect(body.billing.hasPaymentMethod).toBe(true);
+  });
+
+  it("POST /checkout creates session with Price ID (not price_data)", async () => {
+    const mockFetch = vi
+      .fn()
+      // First call: create Stripe customer
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "cus_test_new" }), { status: 200 }))
+      // Second call: create checkout session
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ url: "https://checkout.stripe.com/pay/cs_test_123" }),
+          { status: 200 },
+        ),
+      );
+
+    vi.stubGlobal("fetch", mockFetch);
+
+    vi.mocked(getQueries).mockReturnValue({
+      getBilling: vi.fn().mockResolvedValue(null),
+      upsertBilling: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const { app, env } = createAppWithStripe();
+    const res = await app.request("/v1/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "team" }),
+    }, env, testExecutionCtx);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { checkoutUrl: string };
+    expect(body.checkoutUrl).toBe("https://checkout.stripe.com/pay/cs_test_123");
+
+    // Verify the checkout session call used a Price ID, not price_data
+    const checkoutCall = mockFetch.mock.calls[1] as [string, { body: string }];
+    const checkoutBody = checkoutCall[1].body;
+    expect(checkoutBody).toContain("line_items%5B0%5D%5Bprice%5D=price_team_test_123");
+    expect(checkoutBody).not.toContain("price_data");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("POST /checkout returns 501 when Price ID not configured", async () => {
+    vi.mocked(getQueries).mockReturnValue({
+      getBilling: vi.fn().mockResolvedValue(null),
+      upsertBilling: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    // Use app with Stripe key present but team Price ID missing
+    const app = new Hono<AppEnv>();
+    const envNoTeamPrice: Bindings = {
+      DB: {
+        prepare: vi.fn().mockReturnValue({
+          bind: vi.fn().mockReturnThis(),
+          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+          first: vi.fn().mockResolvedValue(null),
+        }),
+      } as unknown as D1Database,
+      ENVIRONMENT: "test",
+      GITHUB_CLIENT_ID: "test",
+      GITHUB_CLIENT_SECRET: "test",
+      SIGNING_KEY_SECRET: "test",
+      STRIPE_SECRET_KEY: "sk_test_123",
+      STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
+      // STRIPE_TEAM_PRICE_ID deliberately omitted
+      STRIPE_ENTERPRISE_PRICE_ID: "price_enterprise_test_123",
+    };
+    app.use("*", async (c, next) => {
+      c.set("auth", { org, token, user: null });
+      return next();
+    });
+    app.route("/v1/billing", billingRoutes);
+
+    // Mock fetch for customer creation call before price ID check
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "cus_test_new" }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const res = await app.request("/v1/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "team" }),
+    }, envNoTeamPrice, testExecutionCtx);
+
+    expect(res.status).toBe(501);
+    const resBody = (await res.json()) as { error: string };
+    expect(resBody.error).toContain("STRIPE_TEAM_PRICE_ID");
+
+    vi.unstubAllGlobals();
   });
 });
 
@@ -315,5 +433,53 @@ describe("stripe webhook route", () => {
     }, env, testExecutionCtx);
 
     expect(res.status).toBe(501);
+  });
+
+  it("subscription.updated syncs org plan via D1 UPDATE", async () => {
+    const mockPrepare = vi.fn().mockReturnValue({
+      bind: vi.fn().mockReturnThis(),
+      run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+    });
+    const mockUpsertBilling = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(getQueries).mockReturnValue({
+      upsertBilling: mockUpsertBilling,
+      getBillingByCustomerId: vi.fn().mockResolvedValue({ orgId: "org-1" }),
+    } as unknown as ReturnType<typeof getQueries>);
+
+    const { app, env } = createWebhookApp();
+    (env.DB as unknown as { prepare: typeof mockPrepare }).prepare = mockPrepare;
+
+    const periodEnd = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+    const payload = JSON.stringify({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_123",
+          customer: "cus_123",
+          current_period_end: periodEnd,
+          items: {
+            data: [{ price: { metadata: { plan: "team" } } }],
+          },
+        },
+      },
+    });
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const signature = await computeStripeSignature(payload, WEBHOOK_SECRET, timestamp);
+
+    const res = await app.request("/stripe/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "stripe-signature": signature,
+      },
+      body: payload,
+    }, env, testExecutionCtx);
+
+    expect(res.status).toBe(200);
+    // Verify org plan was synced via D1 UPDATE
+    expect(mockPrepare).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE orgs SET plan"),
+    );
   });
 });
