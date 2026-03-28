@@ -9,3 +9,6 @@ export type { GateResult, GateEvaluation } from "./gate.js";
 
 export { parseCommandOutput } from "./command.js";
 export type { CommandExecutor, CommandExecuteOptions, RawCommandOutput, CommandResult } from "./command.js";
+
+export { buildTestPlan } from "./test-plan.js";
+export type { TestPlan, TestPlanEntry } from "./test-plan.js";
