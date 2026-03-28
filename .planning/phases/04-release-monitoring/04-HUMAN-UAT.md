@@ -32,12 +32,11 @@ reason: "Blocked on Test 1 — packages still at cli@0.4.1 / core@0.2.1, not yet
 
 ### 3. MON-02: Configure UptimeRobot monitoring
 expected: api.kindlm.com/health monitored every 5 minutes with email alerts
-result: blocked
-blocked_by: third-party
-reason: "api.kindlm.com/health is LIVE and returns {\"status\":\"ok\"} ✓. UptimeRobot login requires user credentials — browser automation hit GitHub OAuth wall. Manual step: log in at https://dashboard.uptimerobot.com/login and add monitor."
+result: pass
 
 verified_by_automation:
   - "https://api.kindlm.com/health → {\"status\":\"ok\"} ✓"
+  - "UptimeRobot monitor created via API: ID 802715137, keyword \"status\":\"ok\", interval 300s"
 
 ### 4. E2E: Full CLI flow with published 1.0.0
 expected: init/test/upload flow works end-to-end with published CLI
@@ -48,10 +47,10 @@ reason: "Blocked on Test 1 — @kindlm/cli@1.0.0 not yet published to npm."
 ## Summary
 
 total: 4
-passed: 0
+passed: 1
 issues: 0
 pending: 0
 skipped: 0
-blocked: 4
+blocked: 3
 
 ## Gaps
