@@ -46,6 +46,57 @@ const ProviderConfigSchema = z.object({
     .describe("Organization ID (OpenAI-specific)"),
 });
 
+const HttpProviderConfigSchema = z.object({
+  url: z.string().url().describe("HTTP endpoint URL to call"),
+  method: z
+    .string()
+    .optional()
+    .describe("HTTP method. Defaults to POST."),
+  headers: z
+    .record(z.string())
+    .optional()
+    .describe(
+      "Request headers. Values starting with 'env:' are resolved from environment variables.",
+    ),
+  body: z
+    .string()
+    .optional()
+    .describe(
+      "Body template with {{variable}} interpolation. If omitted, sends OpenAI-compatible JSON.",
+    ),
+  responsePath: z
+    .string()
+    .optional()
+    .describe(
+      "Dot-path to extract response text from JSON body. Default: 'choices.0.message.content'",
+    ),
+  toolCallsPath: z
+    .string()
+    .optional()
+    .describe(
+      "Dot-path to extract tool calls array from JSON body.",
+    ),
+  usagePaths: z
+    .object({
+      inputTokens: z.string().optional(),
+      outputTokens: z.string().optional(),
+      totalTokens: z.string().optional(),
+    })
+    .optional()
+    .describe("Dot-paths to extract token usage from response."),
+  modelIdPath: z
+    .string()
+    .optional()
+    .describe("Dot-path to extract model ID from response. Default: 'model'"),
+  apiKeyEnv: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Environment variable name for API key. Optional for HTTP provider — use headers with env: prefix instead.",
+    ),
+});
+
 const OllamaProviderConfigSchema = z.object({
   apiKeyEnv: z
     .string()
@@ -71,6 +122,7 @@ const ProvidersSchema = z
     gemini: ProviderConfigSchema.optional(),
     mistral: ProviderConfigSchema.optional(),
     cohere: ProviderConfigSchema.optional(),
+    http: HttpProviderConfigSchema.optional(),
   })
   .refine(
     (providers) =>
@@ -101,7 +153,7 @@ const ModelSchema = z.object({
     "Unique identifier for this model config, referenced in reports",
   ),
   provider: z
-    .enum(["openai", "anthropic", "ollama", "gemini", "mistral", "cohere"])
+    .enum(["openai", "anthropic", "ollama", "gemini", "mistral", "cohere", "http"])
     .describe("Must match a key in the providers section"),
   model: NonEmptyString.describe(
     "Model name as the provider expects it (e.g., 'gpt-4o', 'claude-sonnet-4-5-20250929')",
@@ -602,6 +654,7 @@ export type JudgeCriterion = z.infer<typeof JudgeCriterionSchema>;
 export type ToolCallExpect = z.infer<typeof ToolCallExpectSchema>;
 export type ToolSimulation = z.infer<typeof ToolSimulationSchema>;
 export type ComplianceConfig = z.infer<typeof ComplianceSchema>;
+export type HttpProviderSchemaConfig = z.infer<typeof HttpProviderConfigSchema>;
 
 // ============================================================
 // Validation
