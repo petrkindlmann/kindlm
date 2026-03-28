@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "workflow": {
+    "mode": "yolo",
+    "research_enabled": true,
+    "plan_checker_enabled": true,
+    "auto_advance": true,
+    "discuss_mode": "assumptions"
+  },
+  "models": {
+    "researcher": "opus",
+    "planner": "opus",
+    "checker": "sonnet",
+    "executor": "sonnet",
+    "verifier": "sonnet",
+    "synthesizer": "sonnet",
+    "roadmapper": "opus"
+  },
+  "parallelization": true,
+  "context_window": 1000000,
+  "branching_strategy": "none",
+  "commit_docs": true,
+  "milestone": "v2.0",
+  "milestone_name": "v2"
+}
