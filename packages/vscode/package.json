@@ -44,7 +44,8 @@
   },
   "scripts": {
     "build": "esbuild --bundle --platform=node --outdir=dist --external:vscode src/extension.ts",
-    "package": "npx vsce package --no-dependencies --allow-package-secrets slack"
+    "package": "npx vsce package --no-dependencies",
+    "publish": "npx vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
