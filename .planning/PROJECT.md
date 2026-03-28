@@ -29,19 +29,20 @@ The CLI must reliably test AI agent behavior end-to-end — from YAML config to 
 - ✓ CI/CD: GitHub Actions for lint/test/typecheck + deploy workflows — existing
 - ✓ CONTRIBUTING.md, README with npx quick start — existing (just added)
 
+### Validated in Phase 3
+
+- ✓ Marketing site deployed to kindlm-site.pages.dev; DNS ready for kindlm.com — Phase 3
+- ✓ Stripe billing refactored: Price IDs from env vars, no inline price_data; 255/255 tests pass — Phase 3
+- ✓ VS Code extension: CHANGELOG.md, icon.png, @vscode/vsce; clean 17.24 KB VSIX built — Phase 3
+
 ### Active
 
-- [ ] Cloud API deployed and responding at api.kindlm.com (currently broken)
-- [ ] Full E2E flow verified: CLI → real LLM → Cloud upload → dashboard view
-- [ ] Dashboard deployed to Cloudflare Pages (static export just fixed, not deployed)
-- [ ] Marketing site deployed to Cloudflare Pages (vercel.json removed, not deployed)
-- [ ] VS Code extension published to marketplace
-- [ ] Stripe billing tested with real checkout flow
-- [ ] SAML signature verification actually implemented (CONCERNS.md flags it as missing)
-- [ ] Large file refactoring: queries.ts (1529 LOC), sso.ts (596 LOC)
-- [ ] Database index audit (CONCERNS.md flags missing indices)
-- [ ] GitHub OAuth secrets configured in production
-- [ ] Cut v1.0.0 release tag with changeset
+- [ ] Cut v1.0.0 release tag with Changesets (REL-01, REL-02, REL-03)
+- [ ] Health check endpoint verified (MON-01)
+- [ ] UptimeRobot monitoring set up (MON-02)
+- [ ] VS Code extension published to marketplace (REL-04 — needs publisher account + PAT)
+- [ ] kindlm.com custom domain activated in CF Pages (SITE-01 — DNS ready)
+- [ ] Stripe Products/Prices + Worker secrets set (BILL-01 — dashboard setup needed)
 
 ### Out of Scope
 
@@ -93,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after initialization*
+*Last updated: 2026-03-28 after Phase 3 completion*
