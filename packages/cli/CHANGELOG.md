@@ -1,5 +1,16 @@
 # @kindlm/cli
 
+## 2.0.0
+
+### Major Changes
+
+- 5dc5d1d: KindLM v2.0.0 — CLI enhancements (--dry-run, --watch, caching, HTTP provider), enterprise features (SAML XML parser, signed compliance, audit log, token rotation), infrastructure refactoring.
+
+### Patch Changes
+
+- Updated dependencies [5dc5d1d]
+  - @kindlm/core@2.0.0
+
 ## 1.0.0
 
 ### Major Changes
