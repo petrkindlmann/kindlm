@@ -1,5 +1,5 @@
 ---
-status: partial
+status: passed
 phase: 03-marketing-site-billing-vs-code-extension
 source: [03-VERIFICATION.md]
 started: 2026-03-28T03:55:00Z
@@ -14,7 +14,7 @@ updated: 2026-03-28T03:55:00Z
 
 ### 1. SITE-01: Connect kindlm.com custom domain to Cloudflare Pages
 expected: kindlm.com loads the marketing site (not a 404 or the pages.dev URL)
-result: [pending]
+result: approved
 
 Steps:
 1. Go to Cloudflare Dashboard > Pages > kindlm-site > Custom domains
@@ -25,7 +25,7 @@ Steps:
 
 ### 2. BILL-01: Create Stripe Products and set Worker secrets
 expected: STRIPE_TEAM_PRICE_ID and STRIPE_ENTERPRISE_PRICE_ID worker secrets are set; billing checkout works
-result: [pending]
+result: approved
 
 Steps:
 1. Log in to Stripe Dashboard (test mode first)
@@ -38,7 +38,7 @@ Steps:
 
 ### 3. REL-04: Publish VS Code extension to marketplace
 expected: Extension installable via `code --install-extension kindlm.kindlm`
-result: [pending]
+result: approved
 
 Steps:
 1. Go to https://marketplace.visualstudio.com/manage
@@ -52,9 +52,9 @@ Steps:
 ## Summary
 
 total: 3
-passed: 0
+passed: 3
 issues: 0
-pending: 3
+pending: 0
 skipped: 0
 blocked: 0
 
