@@ -202,9 +202,27 @@ export function getOrgQueries(db: D1Database) {
     return (result.meta?.changes ?? 0) > 0;
   }
 
+  async function getOrgTokenTtl(orgId: string): Promise<number | null> {
+    const row = await db
+      .prepare("SELECT token_default_ttl_hours FROM orgs WHERE id = ?")
+      .bind(orgId)
+      .first<{ token_default_ttl_hours: number | null }>();
+    return row?.token_default_ttl_hours ?? null;
+  }
+
+  async function updateOrgTokenTtl(orgId: string, ttlHours: number | null): Promise<boolean> {
+    const result = await db
+      .prepare("UPDATE orgs SET token_default_ttl_hours = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(ttlHours, orgId)
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
+
   return {
     getOrg,
     createOrg,
+    getOrgTokenTtl,
+    updateOrgTokenTtl,
     addOrgMember,
     listOrgMembers,
     removeOrgMember,

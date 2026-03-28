@@ -36,7 +36,7 @@ const mockEntries = [
   },
 ];
 
-const mockListAuditLog = vi.fn().mockResolvedValue({ entries: mockEntries, total: 1 });
+const mockListAuditLog = vi.fn().mockResolvedValue({ entries: mockEntries, total: 1, nextCursor: null });
 
 vi.mock("../db/queries.js", () => ({
   getQueries: () => ({
@@ -47,16 +47,18 @@ vi.mock("../db/queries.js", () => ({
 describe("audit routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockListAuditLog.mockResolvedValue({ entries: mockEntries, total: 1, nextCursor: null });
   });
 
   it("GET /v1/audit returns audit entries for enterprise", async () => {
     const app = createMockApp("enterprise");
     const res = await req(app, "/v1/audit");
     expect(res.status).toBe(200);
-    const body = await res.json() as { entries: Array<{ action: string }>; total: number };
+    const body = await res.json() as { entries: Array<{ action: string }>; total: number; nextCursor: string | null };
     expect(body.entries).toHaveLength(1);
     expect(body.total).toBe(1);
     expect(body.entries[0]?.action).toBe("project.create");
+    expect(body.nextCursor).toBeNull();
   });
 
   it("GET /v1/audit rejects non-enterprise plans", async () => {
@@ -71,8 +73,10 @@ describe("audit routes", () => {
     expect(mockListAuditLog).toHaveBeenCalledWith("org-1", {
       action: "project.create",
       resourceType: "project",
+      actorId: undefined,
       since: undefined,
       until: undefined,
+      cursor: undefined,
       limit: 10,
       offset: 5,
     });
@@ -84,6 +88,64 @@ describe("audit routes", () => {
     expect(mockListAuditLog).toHaveBeenCalledWith("org-1", expect.objectContaining({
       since: "2026-01-01",
       until: "2026-02-01",
+    }));
+  });
+
+  it("GET /v1/audit passes actorId filter", async () => {
+    const app = createMockApp("enterprise");
+    await req(app, "/v1/audit?actorId=tok-1");
+    expect(mockListAuditLog).toHaveBeenCalledWith("org-1", expect.objectContaining({
+      actorId: "tok-1",
+    }));
+  });
+
+  it("GET /v1/audit passes cursor for pagination", async () => {
+    const app = createMockApp("enterprise");
+    await req(app, "/v1/audit?cursor=2026-01-01T00:00:00Z");
+    expect(mockListAuditLog).toHaveBeenCalledWith("org-1", expect.objectContaining({
+      cursor: "2026-01-01T00:00:00Z",
+    }));
+  });
+
+  it("GET /v1/audit returns nextCursor when more results exist", async () => {
+    mockListAuditLog.mockResolvedValue({
+      entries: mockEntries,
+      total: 100,
+      nextCursor: "2025-12-31T23:59:59Z",
+    });
+    const app = createMockApp("enterprise");
+    const res = await req(app, "/v1/audit?limit=1");
+    const body = await res.json() as { nextCursor: string | null };
+    expect(body.nextCursor).toBe("2025-12-31T23:59:59Z");
+  });
+
+  it("GET /v1/audit/export returns CSV", async () => {
+    const app = createMockApp("enterprise");
+    const res = await req(app, "/v1/audit/export");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");
+    expect(res.headers.get("Content-Disposition")).toContain("audit-log-");
+    const text = await res.text();
+    const lines = text.split("\n");
+    expect(lines[0]).toBe("id,orgId,actorId,actorType,action,resourceType,resourceId,createdAt");
+    expect(lines).toHaveLength(2); // header + 1 entry
+    expect(lines[1]).toContain("project.create");
+  });
+
+  it("GET /v1/audit/export rejects non-enterprise plans", async () => {
+    const app = createMockApp("team");
+    const res = await req(app, "/v1/audit/export");
+    expect(res.status).toBe(403);
+  });
+
+  it("GET /v1/audit/export passes filter params", async () => {
+    const app = createMockApp("enterprise");
+    await req(app, "/v1/audit/export?action=token.create&actorId=tok-1");
+    expect(mockListAuditLog).toHaveBeenCalledWith("org-1", expect.objectContaining({
+      action: "token.create",
+      actorId: "tok-1",
+      limit: 10000,
+      offset: 0,
     }));
   });
 });

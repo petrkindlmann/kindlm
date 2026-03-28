@@ -267,15 +267,21 @@ export function getBillingQueries(db: D1Database) {
     opts?: {
       action?: string;
       resourceType?: string;
+      actorId?: string;
       since?: string;
       until?: string;
       limit?: number;
       offset?: number;
+      cursor?: string;
     },
-  ): Promise<{ entries: AuditEntry[]; total: number }> {
+  ): Promise<{ entries: AuditEntry[]; total: number; nextCursor: string | null }> {
     const where = ["org_id = ?"];
     const params: unknown[] = [orgId];
 
+    if (opts?.actorId) {
+      where.push("actor_id = ?");
+      params.push(opts.actorId);
+    }
     if (opts?.action) {
       where.push("action = ?");
       params.push(opts.action);
@@ -292,6 +298,10 @@ export function getBillingQueries(db: D1Database) {
       where.push("created_at <= ?");
       params.push(opts.until);
     }
+    if (opts?.cursor) {
+      where.push("created_at < ?");
+      params.push(opts.cursor);
+    }
 
     const whereClause = where.join(" AND ");
 
@@ -302,7 +312,7 @@ export function getBillingQueries(db: D1Database) {
     const total = countRow?.count ?? 0;
 
     const limit = opts?.limit ?? 50;
-    const offset = opts?.offset ?? 0;
+    const offset = opts?.cursor ? 0 : (opts?.offset ?? 0);
     const { results } = await db
       .prepare(
         `SELECT * FROM audit_log WHERE ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
@@ -310,7 +320,10 @@ export function getBillingQueries(db: D1Database) {
       .bind(...params, limit, offset)
       .all();
 
-    return { entries: results.map(mapAuditEntry), total };
+    const entries = results.map(mapAuditEntry);
+    const nextCursor = entries.length === limit ? (entries[entries.length - 1]?.createdAt ?? null) : null;
+
+    return { entries, total, nextCursor };
   }
 
   // ---- Idempotency ----

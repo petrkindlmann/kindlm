@@ -59,13 +59,24 @@ authRoutes.post("/tokens", async (c) => {
   const tokenHash = await hashToken(plaintext);
 
   const queries = getQueries(c.env.DB);
+
+  // Apply org default TTL if no explicit expiresAt provided
+  let expiresAt = body.expiresAt ?? null;
+  if (!expiresAt) {
+    const ttlHours = await queries.getOrgTokenTtl(orgId);
+    if (ttlHours !== null && ttlHours > 0) {
+      const expiry = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+      expiresAt = expiry.toISOString();
+    }
+  }
+
   const token = await queries.createToken(
     orgId,
     body.name,
     tokenHash,
     scope,
     body.projectId ?? null,
-    body.expiresAt ?? null,
+    expiresAt,
   );
 
   auditLog(c, "token.create", "token", token.id, { name: token.name, scope });
@@ -115,4 +126,158 @@ authRoutes.delete("/tokens/:id", async (c) => {
 
   auditLog(c, "token.revoke", "token", id);
   return c.body(null, 204);
+});
+
+// POST /tokens/:id/rotate — Revoke old token and issue a replacement with same config
+authRoutes.post("/tokens/:id/rotate", async (c) => {
+  const id = c.req.param("id");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  // Find the existing token
+  const existing = await queries.getTokenById(id, auth.org.id);
+  if (!existing) {
+    return c.json({ error: "Token not found" }, 404);
+  }
+
+  // Revoke the old token
+  await queries.revokeToken(id, auth.org.id);
+
+  // Generate new plaintext token
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const plaintext = `klm_${hex}`;
+  const tokenHash = await hashToken(plaintext);
+
+  // Recompute expiry: apply org default TTL if original had no expiry
+  let expiresAt = existing.expiresAt;
+  if (!expiresAt) {
+    const ttlHours = await queries.getOrgTokenTtl(auth.org.id);
+    if (ttlHours !== null && ttlHours > 0) {
+      expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString();
+    }
+  }
+
+  const newToken = await queries.createToken(
+    auth.org.id,
+    existing.name,
+    tokenHash,
+    existing.scope,
+    existing.projectId,
+    expiresAt,
+    existing.userId,
+  );
+
+  auditLog(c, "token.rotate", "token", newToken.id, {
+    previousTokenId: id,
+    name: newToken.name,
+    scope: newToken.scope,
+  });
+
+  return c.json(
+    {
+      token: plaintext,
+      id: newToken.id,
+      name: newToken.name,
+      scope: newToken.scope,
+      projectId: newToken.projectId,
+      expiresAt: newToken.expiresAt,
+      createdAt: newToken.createdAt,
+      previousTokenId: id,
+    },
+    201,
+  );
+});
+
+// POST /tokens/refresh — Refresh the calling token (issue new token, revoke current)
+authRoutes.post("/tokens/refresh", async (c) => {
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const current = auth.token;
+
+  // Revoke current token
+  await queries.revokeToken(current.id, auth.org.id);
+
+  // Generate new plaintext token
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const plaintext = `klm_${hex}`;
+  const tokenHash = await hashToken(plaintext);
+
+  // Apply org default TTL
+  let expiresAt = current.expiresAt;
+  if (!expiresAt) {
+    const ttlHours = await queries.getOrgTokenTtl(auth.org.id);
+    if (ttlHours !== null && ttlHours > 0) {
+      expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString();
+    }
+  }
+
+  const newToken = await queries.createToken(
+    auth.org.id,
+    current.name,
+    tokenHash,
+    current.scope,
+    current.projectId,
+    expiresAt,
+    current.userId,
+  );
+
+  auditLog(c, "token.refresh", "token", newToken.id, {
+    previousTokenId: current.id,
+  });
+
+  return c.json(
+    {
+      token: plaintext,
+      id: newToken.id,
+      name: newToken.name,
+      scope: newToken.scope,
+      projectId: newToken.projectId,
+      expiresAt: newToken.expiresAt,
+      createdAt: newToken.createdAt,
+      previousTokenId: current.id,
+    },
+    201,
+  );
+});
+
+// GET /tokens/settings — Get org token TTL settings
+authRoutes.get("/tokens/settings", async (c) => {
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+  const ttlHours = await queries.getOrgTokenTtl(auth.org.id);
+
+  return c.json({ tokenDefaultTtlHours: ttlHours });
+});
+
+// PUT /tokens/settings — Update org token TTL settings
+authRoutes.put("/tokens/settings", async (c) => {
+  const auth = c.get("auth");
+  const raw = await c.req.json();
+
+  const ttlHours = (raw as Record<string, unknown>).tokenDefaultTtlHours;
+  if (ttlHours !== null && (typeof ttlHours !== "number" || ttlHours < 1 || ttlHours > 8760)) {
+    return c.json({ error: "tokenDefaultTtlHours must be null or a number between 1 and 8760" }, 400);
+  }
+
+  const queries = getQueries(c.env.DB);
+  const updated = await queries.updateOrgTokenTtl(auth.org.id, ttlHours as number | null);
+
+  if (!updated) {
+    return c.json({ error: "Organization not found" }, 404);
+  }
+
+  auditLog(c, "org.update_token_ttl", "org", auth.org.id, {
+    tokenDefaultTtlHours: ttlHours,
+  });
+
+  return c.json({ tokenDefaultTtlHours: ttlHours as number | null });
 });

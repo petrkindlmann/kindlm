@@ -103,6 +103,14 @@ export function getAuthQueries(db: D1Database) {
     return (result.meta?.changes ?? 0) > 0;
   }
 
+  async function getTokenById(id: string, orgId: string): Promise<Token | null> {
+    const row = await db
+      .prepare("SELECT * FROM tokens WHERE id = ? AND org_id = ? AND revoked_at IS NULL")
+      .bind(id, orgId)
+      .first();
+    return row ? mapToken(row) : null;
+  }
+
   async function updateTokenLastUsed(id: string): Promise<void> {
     await db
       .prepare("UPDATE tokens SET last_used = datetime('now') WHERE id = ?")
@@ -206,6 +214,7 @@ export function getAuthQueries(db: D1Database) {
     createToken,
     listTokens,
     revokeToken,
+    getTokenById,
     updateTokenLastUsed,
     getSigningKey,
     createSigningKey,
