@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 | 1 — CLI Verification & Cloud API | Complete | Plans 01-01, 01-02 complete |
 | 2 — Dashboard & Upload Pipeline | Complete | Plans 02-01, 02-02 complete |
 | 3 — Marketing Site, Billing & VS Code Extension | In Progress | Plan 03-01 complete (1/3) |
-| 4 — Release & Monitoring | In Progress | Plan 04-01 complete (1/2) |
+| 4 — Release & Monitoring | In Progress | Plans 04-01, 04-02 complete (2/2) — manual checkpoints pending |
 
 ## Key Context
 
@@ -49,4 +49,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 - Plan 04-01 complete: v1.0.0 changeset created, npm provenance enabled in release.yml. Manual step: merge "Version Packages" PR on GitHub (verify NPM_TOKEN secret set first).
 
 ---
-*Last updated: 2026-03-28 (after Plan 04-01 complete — version bump + release workflow)*
+- Plan 04-02 complete: /health endpoint verified (packages/cloud/src/index.ts lines 83–90), monitoring-setup.md written, smoke test assessed (skips without OPENAI_API_KEY — intentional). Manual checkpoints: UptimeRobot setup, `curl https://api.kindlm.com/health`, full E2E after npm publish.
+
+---
+*Last updated: 2026-03-28 (after Plan 04-02 complete — monitoring docs + E2E verification)*
