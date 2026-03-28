@@ -1,6 +1,7 @@
 name = "kindlm-api"
 main = "src/index.ts"
 compatibility_date = "2026-02-01"
+compatibility_flags = ["nodejs_compat"]
 
 routes = [
   { pattern = "api.kindlm.com/*", zone_name = "kindlm.com" }
