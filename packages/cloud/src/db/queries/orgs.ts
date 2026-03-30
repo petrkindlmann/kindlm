@@ -3,7 +3,6 @@ import type {
   OrgMember,
   OrgRole,
   PendingInvite,
-  User,
 } from "../../types.js";
 
 function mapOrg(row: Record<string, unknown>): Org {

@@ -195,7 +195,7 @@ function extractReferencedElement(xml: string, uri: string): string | null {
 
 // Convert IEEE P1363 (r || s) signature to ASN.1 DER format required by Web Crypto
 // for ECDSA verification.
-function ieeeP1363ToDer(sig: Uint8Array): Uint8Array {
+function _ieeeP1363ToDer(sig: Uint8Array): Uint8Array {
   const halfLen = sig.length / 2;
   const r = sig.slice(0, halfLen);
   const s = sig.slice(halfLen);
@@ -206,7 +206,7 @@ function ieeeP1363ToDer(sig: Uint8Array): Uint8Array {
     while (start < bytes.length - 1 && bytes[start] === 0) start++;
     const trimmed = bytes.slice(start);
     // Add a leading 0x00 if the high bit is set (to make it positive in ASN.1)
-    const needsPadding = (trimmed[0]! & 0x80) !== 0;
+    const needsPadding = ((trimmed[0] ?? 0) & 0x80) !== 0;
     const result = new Uint8Array((needsPadding ? 1 : 0) + trimmed.length);
     if (needsPadding) result[0] = 0x00;
     result.set(trimmed, needsPadding ? 1 : 0);

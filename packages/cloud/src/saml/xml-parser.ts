@@ -88,7 +88,7 @@ function deepFindSamlTag(obj: unknown, localName: string): unknown {
   return undefined;
 }
 
-function deepFindDsTag(obj: unknown, localName: string): unknown {
+function _deepFindDsTag(obj: unknown, localName: string): unknown {
   if (!obj || typeof obj !== "object") return undefined;
   const parsed = obj as ParsedXml;
 
@@ -98,7 +98,7 @@ function deepFindDsTag(obj: unknown, localName: string): unknown {
   for (const [key, value] of Object.entries(parsed)) {
     if (key.startsWith("@_") || key === "#text") continue;
     if (typeof value === "object" && value !== null) {
-      const found = deepFindDsTag(value, localName);
+      const found = _deepFindDsTag(value, localName);
       if (found !== undefined) return found;
     }
   }
