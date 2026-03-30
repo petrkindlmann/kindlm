@@ -4,87 +4,655 @@
   "title": "KindLM Configuration",
   "description": "Schema for kindlm.yaml — behavioral regression test configuration for AI agents.",
   "type": "object",
-  "required": ["version", "suites"],
+  "required": ["kindlm", "project", "suite", "providers", "models", "prompts", "tests"],
   "additionalProperties": false,
   "properties": {
-    "version": {
+    "kindlm": {
+      "type": "integer",
+      "const": 1,
+      "description": "Config schema version. Must be 1."
+    },
+    "project": {
       "type": "string",
-      "const": "1",
-      "description": "Config schema version. Must be \"1\"."
+      "minLength": 1,
+      "description": "Project identifier for Cloud upload and report grouping."
+    },
+    "suite": {
+      "$ref": "#/$defs/suite"
+    },
+    "providers": {
+      "$ref": "#/$defs/providers"
+    },
+    "models": {
+      "type": "array",
+      "description": "Model configurations. At least one required.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/model" }
+    },
+    "prompts": {
+      "type": "object",
+      "description": "Named prompt templates. Tests reference these by key.",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/prompt" }
+    },
+    "tests": {
+      "type": "array",
+      "description": "Test cases — each sends a prompt to a model and evaluates assertions.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/testCase" }
+    },
+    "gates": {
+      "$ref": "#/$defs/gates"
     },
     "defaults": {
+      "$ref": "#/$defs/defaults"
+    },
+    "compliance": {
+      "$ref": "#/$defs/compliance"
+    },
+    "upload": {
+      "$ref": "#/$defs/upload"
+    }
+  },
+  "$defs": {
+    "suite": {
       "type": "object",
-      "description": "Default settings applied to all suites and tests unless overridden.",
+      "description": "Suite metadata — groups tests under a name for reporting.",
+      "required": ["name"],
       "additionalProperties": false,
       "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Suite name. Appears in reports and JUnit output."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this suite tests."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for filtering in CLI (e.g., --tags regression)."
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "description": "Provider configurations. At least one required. API keys are referenced by env var name, never raw values.",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "openai":    { "$ref": "#/$defs/providerConfig" },
+        "anthropic": { "$ref": "#/$defs/providerConfig" },
+        "gemini":    { "$ref": "#/$defs/providerConfig" },
+        "mistral":   { "$ref": "#/$defs/providerConfig" },
+        "cohere":    { "$ref": "#/$defs/providerConfig" },
+        "ollama":    { "$ref": "#/$defs/ollamaProviderConfig" },
+        "http":      { "$ref": "#/$defs/httpProviderConfig" }
+      }
+    },
+    "providerConfig": {
+      "type": "object",
+      "description": "Standard provider configuration.",
+      "required": ["apiKeyEnv"],
+      "additionalProperties": false,
+      "properties": {
+        "apiKeyEnv": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Environment variable name containing the API key. Never a raw key value."
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Custom base URL for API-compatible proxies (e.g., Azure OpenAI, LiteLLM)."
+        },
+        "organization": {
+          "type": "string",
+          "description": "Organization ID (OpenAI-specific)."
+        }
+      }
+    },
+    "ollamaProviderConfig": {
+      "type": "object",
+      "description": "Ollama (local models) configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "apiKeyEnv": {
+          "type": "string",
+          "description": "Optional API key env var. Not required for local Ollama."
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "default": "http://localhost:11434",
+          "description": "Ollama server URL. Defaults to http://localhost:11434."
+        }
+      }
+    },
+    "httpProviderConfig": {
+      "type": "object",
+      "description": "Generic HTTP provider for any OpenAI-compatible API.",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "HTTP endpoint URL to call."
+        },
+        "method": {
+          "type": "string",
+          "description": "HTTP method. Defaults to POST."
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Request headers. Values starting with 'env:' are resolved from environment variables."
+        },
+        "body": {
+          "type": "string",
+          "description": "Body template with {{variable}} interpolation. If omitted, sends OpenAI-compatible JSON."
+        },
+        "responsePath": {
+          "type": "string",
+          "description": "Dot-path to extract response text from JSON body. Default: 'choices.0.message.content'."
+        },
+        "apiKeyEnv": {
+          "type": "string",
+          "description": "Optional API key env var — use headers with 'env:' prefix instead."
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "description": "A model configuration. Each model entry is referenced in tests by its id.",
+      "required": ["id", "provider", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier for this model config. Referenced in test.models[] and defaults.judgeModel."
+        },
         "provider": {
           "type": "string",
-          "pattern": "^(openai|anthropic|gemini|mistral|cohere|ollama):.+$",
-          "description": "Default provider and model in \"provider:model\" format (e.g., \"openai:gpt-4o\").",
-          "examples": [
-            "openai:gpt-4o",
-            "anthropic:claude-sonnet-4-5-20250929",
-            "ollama:llama3.1"
-          ]
+          "enum": ["openai", "anthropic", "ollama", "gemini", "mistral", "cohere", "http"],
+          "description": "Must match a key in the providers section."
         },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Model name as the provider expects it (e.g., 'gpt-4o', 'claude-sonnet-4-5-20250929')."
+        },
+        "params": {
+          "$ref": "#/$defs/modelParams"
+        }
+      }
+    },
+    "modelParams": {
+      "type": "object",
+      "description": "Model generation parameters.",
+      "additionalProperties": false,
+      "properties": {
         "temperature": {
           "type": "number",
           "minimum": 0,
           "maximum": 2,
-          "default": 0,
-          "description": "Sampling temperature for model responses. 0 = deterministic."
+          "default": 0.2,
+          "description": "Sampling temperature. 0 = deterministic, 2 = maximum randomness."
         },
-        "runs": {
-          "type": "integer",
-          "minimum": 1,
-          "default": 1,
-          "description": "Number of times to run each test for statistical confidence."
-        },
-        "max_tokens": {
+        "maxTokens": {
           "type": "integer",
           "minimum": 1,
           "maximum": 128000,
           "default": 1024,
           "description": "Maximum tokens in the model response."
         },
-        "timeout_ms": {
+        "topP": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Top-p nucleus sampling. Alternative to temperature."
+        },
+        "stopSequences": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sequences that stop generation."
+        },
+        "seed": {
           "type": "integer",
-          "minimum": 1000,
-          "default": 60000,
-          "description": "Timeout per provider call in milliseconds."
+          "description": "Seed for reproducibility (provider-dependent support)."
+        }
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "description": "A named prompt template. Tests reference it by key.",
+      "required": ["user"],
+      "additionalProperties": false,
+      "properties": {
+        "system": {
+          "type": "string",
+          "description": "System prompt. Supports {{variable}} interpolation."
+        },
+        "user": {
+          "type": "string",
+          "minLength": 1,
+          "description": "User message template. Supports {{variable}} interpolation."
+        },
+        "assistant": {
+          "type": "string",
+          "description": "Prefill for assistant response (Anthropic-specific)."
+        }
+      }
+    },
+    "testCase": {
+      "type": "object",
+      "description": "A test case. Exactly one of 'prompt' or 'command' must be set.",
+      "required": ["name", "expect"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique test case name. Used in reports and JUnit output."
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to a key in the prompts section. Mutually exclusive with command."
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shell command to execute. Stdout is captured and assertions run against it. Mutually exclusive with prompt."
+        },
+        "vars": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Variables to interpolate into the prompt template or command."
+        },
+        "models": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Run this test only against these model IDs. Defaults to all configured models."
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Number of repeat runs for statistical confidence. Overrides defaults.repeat."
+        },
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/toolSimulation" },
+          "description": "Tool definitions available to the model for this test case."
+        },
+        "expect": {
+          "$ref": "#/$defs/expect"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for filtering in CLI."
+        },
+        "skip": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip this test case during execution."
+        }
+      }
+    },
+    "expect": {
+      "type": "object",
+      "description": "Assertions to evaluate against the model output.",
+      "additionalProperties": false,
+      "properties": {
+        "output": {
+          "$ref": "#/$defs/outputExpect"
+        },
+        "toolCalls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/toolCallExpect" },
+          "description": "Expected tool/function calls in the model response."
+        },
+        "judge": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/judgeCriterion" },
+          "description": "LLM-as-judge evaluations. Each criterion is scored independently."
+        },
+        "guardrails": {
+          "$ref": "#/$defs/guardrails"
+        },
+        "baseline": {
+          "type": "object",
+          "description": "Baseline comparison assertions.",
+          "additionalProperties": false,
+          "properties": {
+            "drift": { "$ref": "#/$defs/baselineDrift" }
+          }
+        },
+        "latency": {
+          "type": "object",
+          "description": "Assert response latency is within threshold.",
+          "required": ["maxMs"],
+          "additionalProperties": false,
+          "properties": {
+            "maxMs": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Maximum allowed latency in milliseconds."
+            }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "description": "Assert response cost is within budget.",
+          "required": ["maxUsd"],
+          "additionalProperties": false,
+          "properties": {
+            "maxUsd": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Maximum allowed cost in USD."
+            }
+          }
+        }
+      }
+    },
+    "outputExpect": {
+      "type": "object",
+      "description": "Output format and content assertions.",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["text", "json"],
+          "default": "text",
+          "description": "Expected output format. 'json' requires schemaFile."
+        },
+        "schemaFile": {
+          "type": "string",
+          "description": "Path to JSON Schema file (relative to config). Required when format is 'json'."
+        },
+        "contains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Output must contain all of these substrings (case-sensitive)."
+        },
+        "notContains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Output must NOT contain any of these substrings (case-sensitive)."
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum character length of the output."
+        }
+      }
+    },
+    "toolCallExpect": {
+      "type": "object",
+      "description": "An expected tool/function call in the model response.",
+      "required": ["tool"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Expected tool/function name."
+        },
+        "shouldNotCall": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, assert this tool was NOT called."
+        },
+        "argsMatch": {
+          "type": "object",
+          "description": "Key-value pairs that must be present in the tool call arguments (partial match)."
+        },
+        "argsSchema": {
+          "type": "string",
+          "description": "Path to JSON Schema file to validate the tool call arguments."
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected position in tool call sequence (0-indexed)."
+        }
+      }
+    },
+    "judgeCriterion": {
+      "type": "object",
+      "description": "An LLM-as-judge evaluation criterion.",
+      "required": ["criteria"],
+      "additionalProperties": false,
+      "properties": {
+        "criteria": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Natural language description of what to evaluate (e.g., 'Response is empathetic and professional')."
+        },
+        "minScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7,
+          "description": "Minimum score (0.0-1.0) for this criterion to pass."
+        },
+        "model": {
+          "type": "string",
+          "description": "Override judge model ID for this criterion. Must reference a configured model."
+        },
+        "rubric": {
+          "type": "string",
+          "description": "Detailed scoring rubric. If omitted, a default rubric is generated from criteria."
+        }
+      }
+    },
+    "guardrails": {
+      "type": "object",
+      "description": "Safety and policy guardrails.",
+      "additionalProperties": false,
+      "properties": {
+        "pii": { "$ref": "#/$defs/piiGuardrail" },
+        "keywords": { "$ref": "#/$defs/keywordGuardrail" }
+      }
+    },
+    "piiGuardrail": {
+      "type": "object",
+      "description": "PII detection guardrail. Fails if sensitive data appears in output.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable PII detection."
+        },
+        "denyPatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Regex patterns that must NOT appear in output. Defaults include SSN, credit card, email."
+        },
+        "customPatterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "pattern"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "description": "Human-readable pattern name for reporting." },
+              "pattern": { "type": "string", "description": "Regex pattern to detect." }
+            }
+          },
+          "description": "Named custom PII patterns for reporting clarity."
+        }
+      }
+    },
+    "keywordGuardrail": {
+      "type": "object",
+      "description": "Keyword guardrail. Deny forbidden phrases; optionally require allowed phrases.",
+      "additionalProperties": false,
+      "properties": {
+        "deny": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Words/phrases that must NOT appear in output (case-insensitive)."
+        },
+        "allow": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "If set, output MUST contain at least one of these words/phrases."
+        }
+      }
+    },
+    "baselineDrift": {
+      "type": "object",
+      "description": "Detect behavioral drift against a saved baseline.",
+      "additionalProperties": false,
+      "properties": {
+        "maxScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.15,
+          "description": "Maximum drift score (0-1). Fail if exceeded."
+        },
+        "method": {
+          "type": "string",
+          "enum": ["judge", "embedding", "field-diff"],
+          "default": "judge",
+          "description": "Drift detection method."
+        },
+        "fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For field-diff: JSON paths to compare (e.g., 'response.action')."
+        }
+      }
+    },
+    "toolSimulation": {
+      "type": "object",
+      "description": "A simulated tool available to the model during the test.",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Tool/function name as the model sees it."
+        },
+        "description": {
+          "type": "string",
+          "description": "Tool description."
+        },
+        "parameters": {
+          "type": "object",
+          "description": "JSON Schema for the tool's input parameters."
+        },
+        "responses": {
+          "type": "array",
+          "description": "Simulated responses based on argument matching.",
+          "items": {
+            "type": "object",
+            "required": ["when", "then"],
+            "properties": {
+              "when": { "type": "object", "description": "Condition: match tool call arguments." },
+              "then": { "description": "Simulated response when condition matches." }
+            }
+          }
+        },
+        "defaultResponse": {
+          "description": "Response when no 'when' condition matches."
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "description": "Pass/fail gates for the suite. If any gate fails, the suite fails.",
+      "additionalProperties": false,
+      "properties": {
+        "passRateMin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.95,
+          "description": "Minimum overall pass rate (0-1). Computed after repeats."
+        },
+        "schemaFailuresMax": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Maximum allowed schema validation failures."
+        },
+        "judgeAvgMin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum average LLM-as-judge score across all criteria."
+        },
+        "driftScoreMax": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Maximum allowed drift score against active baseline."
+        },
+        "piiFailuresMax": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Maximum allowed PII detection failures."
+        },
+        "keywordFailuresMax": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Maximum allowed keyword guardrail failures."
+        },
+        "costMaxUsd": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Maximum total cost in USD. Aborts if exceeded mid-run."
+        },
+        "latencyMaxMs": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Maximum average latency in ms."
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Default settings applied to all tests unless overridden.",
+      "additionalProperties": false,
+      "properties": {
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 1,
+          "description": "Default number of repeat runs per test case."
         },
         "concurrency": {
           "type": "integer",
           "minimum": 1,
           "maximum": 32,
           "default": 4,
-          "description": "Number of tests to run concurrently."
+          "description": "Default concurrency for test execution."
         },
-        "judge_model": {
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "default": 60000,
+          "description": "Default timeout per provider call in milliseconds."
+        },
+        "judgeModel": {
           "type": "string",
-          "pattern": "^(openai|anthropic|gemini|mistral|cohere|ollama):.+$",
-          "description": "Default model for LLM-as-judge assertions (e.g., \"openai:gpt-4o\")."
+          "description": "Default model ID for LLM-as-judge assertions. Must reference a configured model ID."
         }
       }
-    },
-    "providers": {
-      "type": "object",
-      "description": "Provider configuration. API keys are referenced by environment variable name, never raw values.",
-      "additionalProperties": false,
-      "properties": {
-        "openai": { "$ref": "#/$defs/providerConfig" },
-        "anthropic": { "$ref": "#/$defs/providerConfig" },
-        "gemini": { "$ref": "#/$defs/providerConfig" },
-        "mistral": { "$ref": "#/$defs/providerConfig" },
-        "cohere": { "$ref": "#/$defs/providerConfig" },
-        "ollama": { "$ref": "#/$defs/ollamaProviderConfig" }
-      }
-    },
-    "suites": {
-      "type": "array",
-      "description": "Test suites. Each suite groups related tests against a specific agent or system prompt.",
-      "minItems": 1,
-      "items": { "$ref": "#/$defs/suite" }
     },
     "compliance": {
       "type": "object",
@@ -102,41 +670,21 @@
           "default": "eu-ai-act",
           "description": "Compliance framework to use."
         },
-        "output_dir": {
+        "outputDir": {
           "type": "string",
           "default": "./compliance-reports",
           "description": "Directory for compliance report output."
         },
         "metadata": {
           "type": "object",
-          "description": "Metadata included in the compliance report.",
           "additionalProperties": false,
           "properties": {
-            "system_name": {
-              "type": "string",
-              "description": "Name of the AI system being tested."
-            },
-            "system_version": {
-              "type": "string",
-              "description": "Version of the AI system."
-            },
-            "risk_level": {
-              "type": "string",
-              "enum": ["high", "limited", "minimal"],
-              "description": "AI Act risk classification."
-            },
-            "operator": {
-              "type": "string",
-              "description": "Organization operating the AI system."
-            },
-            "intended_purpose": {
-              "type": "string",
-              "description": "Documented intended purpose of the AI system."
-            },
-            "data_governance_notes": {
-              "type": "string",
-              "description": "Notes on data governance and training data."
-            }
+            "systemName": { "type": "string" },
+            "systemVersion": { "type": "string" },
+            "riskLevel": { "type": "string", "enum": ["high", "limited", "minimal"] },
+            "operator": { "type": "string" },
+            "intendedPurpose": { "type": "string" },
+            "dataGovernanceNotes": { "type": "string" }
           }
         }
       }
@@ -151,564 +699,11 @@
           "default": false,
           "description": "Enable automatic upload to KindLM Cloud after test runs."
         },
-        "include_artifacts": {
-          "type": "boolean",
-          "default": false,
-          "description": "Upload raw prompt inputs and model outputs. Disabled by default for privacy."
-        },
-        "redact_patterns": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Regex patterns to redact from artifacts before upload."
-        },
-        "api_url": {
+        "apiUrl": {
           "type": "string",
           "format": "uri",
           "default": "https://api.kindlm.com/v1",
           "description": "Cloud API URL. Override for self-hosted deployments."
-        }
-      }
-    }
-  },
-  "$defs": {
-    "providerConfig": {
-      "type": "object",
-      "description": "Configuration for a provider.",
-      "additionalProperties": false,
-      "properties": {
-        "api_key_env": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Environment variable name containing the API key. Never a raw key."
-        },
-        "base_url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Custom base URL for API-compatible proxies (e.g., Azure OpenAI, LiteLLM)."
-        },
-        "organization": {
-          "type": "string",
-          "description": "Organization ID (OpenAI-specific)."
-        }
-      }
-    },
-    "ollamaProviderConfig": {
-      "type": "object",
-      "description": "Configuration for Ollama (local models).",
-      "additionalProperties": false,
-      "properties": {
-        "api_key_env": {
-          "type": "string",
-          "description": "Environment variable name containing the API key. Optional for Ollama."
-        },
-        "base_url": {
-          "type": "string",
-          "format": "uri",
-          "default": "http://localhost:11434",
-          "description": "Ollama server URL. Defaults to http://localhost:11434."
-        }
-      }
-    },
-    "suite": {
-      "type": "object",
-      "description": "A test suite groups related tests against a specific agent or system prompt.",
-      "required": ["name", "tests"],
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Unique suite name. Used in reports and JUnit output."
-        },
-        "description": {
-          "type": "string",
-          "description": "Human-readable description of what this suite tests."
-        },
-        "tags": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Tags for filtering suites in CLI (e.g., --tags regression)."
-        },
-        "system_prompt": {
-          "type": "string",
-          "description": "Inline system prompt for all tests in this suite. Supports {{variable}} interpolation."
-        },
-        "system_prompt_file": {
-          "type": "string",
-          "description": "Path to a file containing the system prompt (relative to config file)."
-        },
-        "provider": {
-          "type": "string",
-          "pattern": "^(openai|anthropic|gemini|mistral|cohere|ollama):.+$",
-          "description": "Override default provider for this suite."
-        },
-        "temperature": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 2,
-          "description": "Override default temperature for this suite."
-        },
-        "runs": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Override default run count for this suite."
-        },
-        "max_tokens": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 128000,
-          "description": "Override default max tokens for this suite."
-        },
-        "gates": { "$ref": "#/$defs/gates" },
-        "tests": {
-          "type": "array",
-          "description": "Test cases in this suite.",
-          "minItems": 1,
-          "items": { "$ref": "#/$defs/test" }
-        }
-      }
-    },
-    "test": {
-      "type": "object",
-      "description": "A single test case that sends input to the agent and evaluates assertions.",
-      "required": ["name", "input"],
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Unique test case name within the suite. Used in reports and JUnit output."
-        },
-        "input": {
-          "type": "string",
-          "minLength": 1,
-          "description": "User message sent to the agent. Supports {{variable}} interpolation."
-        },
-        "provider": {
-          "type": "string",
-          "pattern": "^(openai|anthropic|gemini|mistral|cohere|ollama):.+$",
-          "description": "Override provider for this specific test."
-        },
-        "temperature": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 2,
-          "description": "Override temperature for this specific test."
-        },
-        "runs": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Override run count for this specific test."
-        },
-        "max_tokens": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 128000,
-          "description": "Override max tokens for this specific test."
-        },
-        "skip": {
-          "type": "boolean",
-          "default": false,
-          "description": "Skip this test case during execution."
-        },
-        "tags": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Tags for filtering tests in CLI (e.g., --tags regression)."
-        },
-        "vars": {
-          "type": "object",
-          "additionalProperties": { "type": "string" },
-          "description": "Variables to interpolate into prompt templates."
-        },
-        "tools": {
-          "type": "array",
-          "description": "Tool definitions available to the agent for this test case.",
-          "items": { "$ref": "#/$defs/toolDefinition" }
-        },
-        "assert": {
-          "type": "array",
-          "description": "Assertions to evaluate against the agent response.",
-          "items": { "$ref": "#/$defs/assertion" }
-        }
-      }
-    },
-    "toolDefinition": {
-      "type": "object",
-      "description": "A tool/function definition available to the agent.",
-      "required": ["name"],
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Tool/function name as the model sees it."
-        },
-        "description": {
-          "type": "string",
-          "description": "Human-readable description of what the tool does."
-        },
-        "parameters": {
-          "type": "object",
-          "description": "JSON Schema defining the tool's input parameters."
-        },
-        "responses": {
-          "type": "array",
-          "description": "Simulated responses based on argument matching.",
-          "items": {
-            "type": "object",
-            "required": ["when", "then"],
-            "properties": {
-              "when": {
-                "type": "object",
-                "description": "Condition: match tool call arguments (partial match)."
-              },
-              "then": {
-                "description": "Simulated response to return when condition matches."
-              }
-            }
-          }
-        },
-        "default_response": {
-          "description": "Default simulated response when no 'when' condition matches."
-        }
-      }
-    },
-    "assertion": {
-      "type": "object",
-      "description": "An assertion to evaluate against the agent response.",
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "tool_called",
-            "tool_not_called",
-            "tool_order",
-            "schema",
-            "judge",
-            "no_pii",
-            "keywords_present",
-            "keywords_absent",
-            "drift",
-            "latency",
-            "cost"
-          ],
-          "description": "The assertion type to evaluate."
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": { "type": { "const": "tool_called" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "tool_called" },
-              "value": {
-                "type": "string",
-                "minLength": 1,
-                "description": "The name of the tool that should have been called."
-              },
-              "args": {
-                "type": "object",
-                "description": "Expected arguments (partial match). Key-value pairs that must be present in the tool call arguments."
-              },
-              "args_schema": {
-                "type": "string",
-                "description": "Path to JSON Schema file to validate the tool call arguments."
-              },
-              "order": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Expected position in the sequence of tool calls (0-indexed)."
-              }
-            },
-            "required": ["type", "value"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "tool_not_called" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "tool_not_called" },
-              "value": {
-                "type": "string",
-                "minLength": 1,
-                "description": "The name of the tool that should NOT have been called."
-              }
-            },
-            "required": ["type", "value"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "tool_order" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "tool_order" },
-              "value": {
-                "type": "array",
-                "items": { "type": "string", "minLength": 1 },
-                "minItems": 2,
-                "description": "Ordered list of tool names that must have been called in this sequence."
-              }
-            },
-            "required": ["type", "value"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "schema" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "schema" },
-              "value": {
-                "description": "Inline JSON Schema object or path to a JSON Schema file to validate structured output."
-              },
-              "schema_file": {
-                "type": "string",
-                "description": "Path to a JSON Schema file (relative to config file). Alternative to inline 'value'."
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "judge" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "judge" },
-              "criteria": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Natural language description of what to evaluate (e.g., 'Response is empathetic and professional')."
-              },
-              "threshold": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "default": 0.7,
-                "description": "Minimum score (0.0-1.0) for this criterion to pass."
-              },
-              "rubric": {
-                "type": "string",
-                "description": "Detailed scoring rubric for the judge. If omitted, a default rubric is generated from criteria."
-              },
-              "model": {
-                "type": "string",
-                "pattern": "^(openai|anthropic|gemini|mistral|cohere|ollama):.+$",
-                "description": "Override judge model for this assertion."
-              }
-            },
-            "required": ["type", "criteria"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "no_pii" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "no_pii" },
-              "patterns": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "required": ["name", "pattern"],
-                  "additionalProperties": false,
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Human-readable name of the PII pattern (e.g., 'US Phone')."
-                    },
-                    "pattern": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Regex pattern that should NOT appear in output."
-                    }
-                  }
-                },
-                "description": "Custom PII patterns to detect in addition to built-in patterns (SSN, credit card, email, phone, IBAN)."
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "keywords_present" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "keywords_present" },
-              "keywords": {
-                "type": "array",
-                "items": { "type": "string", "minLength": 1 },
-                "minItems": 1,
-                "description": "Phrases that MUST appear in the agent output (case-insensitive)."
-              }
-            },
-            "required": ["type", "keywords"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "keywords_absent" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "keywords_absent" },
-              "keywords": {
-                "type": "array",
-                "items": { "type": "string", "minLength": 1 },
-                "minItems": 1,
-                "description": "Phrases that must NOT appear in the agent output (case-insensitive)."
-              }
-            },
-            "required": ["type", "keywords"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "drift" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "drift" },
-              "max_score": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "default": 0.15,
-                "description": "Maximum drift score (0-1). Higher = more drift allowed. Fail if exceeded."
-              },
-              "method": {
-                "type": "string",
-                "enum": ["judge", "embedding", "field-diff"],
-                "default": "judge",
-                "description": "Drift detection method."
-              },
-              "fields": {
-                "type": "array",
-                "items": { "type": "string" },
-                "description": "For field-diff method: JSON paths to compare (e.g., 'response.action')."
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "latency" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "latency" },
-              "max_ms": {
-                "type": "integer",
-                "minimum": 1,
-                "description": "Maximum response latency in milliseconds."
-              }
-            },
-            "required": ["type", "max_ms"],
-            "additionalProperties": false
-          }
-        },
-        {
-          "if": {
-            "properties": { "type": { "const": "cost" } },
-            "required": ["type"]
-          },
-          "then": {
-            "properties": {
-              "type": { "const": "cost" },
-              "max_usd": {
-                "type": "number",
-                "exclusiveMinimum": 0,
-                "description": "Maximum token cost in USD for this test case."
-              }
-            },
-            "required": ["type", "max_usd"],
-            "additionalProperties": false
-          }
-        }
-      ]
-    },
-    "gates": {
-      "type": "object",
-      "description": "Pass/fail gates for the suite. If any gate fails, the suite fails.",
-      "additionalProperties": false,
-      "properties": {
-        "pass_rate": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "default": 0.95,
-          "description": "Minimum overall pass rate (0-1). Computed after repeats and aggregation."
-        },
-        "max_cost": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "description": "Maximum total cost in USD for the entire suite run."
-        },
-        "max_latency": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Maximum average latency in ms. Fails gate if exceeded."
-        },
-        "schema_failures_max": {
-          "type": "integer",
-          "minimum": 0,
-          "default": 0,
-          "description": "Maximum allowed schema validation failures."
-        },
-        "judge_avg_min": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Minimum average LLM-as-judge score across all criteria."
-        },
-        "drift_score_max": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Maximum allowed drift score against active baseline."
-        },
-        "pii_failures_max": {
-          "type": "integer",
-          "minimum": 0,
-          "default": 0,
-          "description": "Maximum allowed PII detection failures."
-        },
-        "keyword_failures_max": {
-          "type": "integer",
-          "minimum": 0,
-          "default": 0,
-          "description": "Maximum allowed keyword guardrail failures."
         }
       }
     }

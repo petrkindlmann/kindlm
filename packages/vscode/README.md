@@ -8,24 +8,27 @@ First-class editor support for [KindLM](https://kindlm.com) config files (`kindl
 
 Real-time diagnostics as you type:
 
-- Flags missing required fields (`version`, `suites`)
-- Validates provider format — must be `provider:model` (e.g., `openai:gpt-4o`, `anthropic:claude-sonnet-4-5`)
-- Catches unknown assertion types with a helpful list of valid values
+- Flags missing required fields (`kindlm`, `project`, `suite`, `providers`, `models`, `prompts`, `tests`)
+- Validates `provider` is a known value (`openai`, `anthropic`, `gemini`, `mistral`, `cohere`, `ollama`, `http`)
 - Validates `temperature` is in range 0–2
-- Validates `threshold` is in range 0.0–1.0
+- Validates `minScore` and `maxScore` are in range 0.0–1.0
+- Catches unknown keys with helpful messages
 
 ### Autocomplete
 
 Context-aware completions inside `kindlm.yaml`:
 
-- Top-level fields: `version`, `defaults`, `suites`
-- Assertion types: `tool_called`, `tool_not_called`, `tool_order`, `schema`, `judge`, `no_pii`, `keywords_present`, `keywords_absent`, `drift`, `latency`, `cost`
-- Provider names: `openai`, `anthropic`, `ollama`
-- Common field names: `name`, `input`, `assert`, `system_prompt_file`, `temperature`, `runs`, `threshold`
+- **Top-level fields:** `kindlm`, `project`, `suite`, `providers`, `models`, `prompts`, `tests`, `gates`, `defaults`
+- **`expect` sub-keys:** `output`, `toolCalls`, `judge`, `guardrails`, `baseline`, `latency`, `cost`
+- **`expect.toolCalls[]` fields:** `tool`, `argsMatch`, `shouldNotCall`, `argsSchema`, `order`
+- **`expect.judge[]` fields:** `criteria`, `minScore`, `model`, `rubric`
+- **`expect.guardrails` fields:** `pii`, `keywords`, `deny`, `allow`
+- **Model names:** `gpt-4o`, `claude-sonnet-4-5-20250929`, `gemini-2.0-flash`, and more
+- **Provider names:** `openai`, `anthropic`, `gemini`, `mistral`, `cohere`, `ollama`, `http`
 
 ### Hover Documentation
 
-Hover over any KindLM field to get inline documentation explaining what it does, expected values, and examples.
+Hover over any KindLM field to get inline documentation with expected values and examples.
 
 ### JSON Schema
 
@@ -35,10 +38,16 @@ Full JSON Schema for `kindlm.yaml` is bundled. If you have the [YAML extension](
 
 Starter snippets to scaffold new config files and test blocks:
 
-- `kindlm-suite` — a full suite with one test
-- `kindlm-test` — a single test with assertions
-- `kindlm-assert-tool` — `tool_called` assertion
-- `kindlm-assert-judge` — `judge` assertion with threshold
+- `kindlm-init` — full config file skeleton (kindlm v1)
+- `kindlm-test` — single test case
+- `kindlm-model` — model configuration entry
+- `kindlm-prompt` — named prompt template
+- `kindlm-expect-tool` — `toolCalls` assertion
+- `kindlm-expect-judge` — `judge` assertion with minScore
+- `kindlm-expect-pii` — PII guardrail
+- `kindlm-expect-keywords` — keyword guardrail
+- `kindlm-expect-output` — output content assertion
+- `kindlm-expect-drift` — baseline drift assertion
 
 ## Quick Start
 
@@ -49,27 +58,49 @@ Starter snippets to scaffold new config files and test blocks:
 ## Example Config
 
 ```yaml
-version: "1"
-defaults:
-  provider: openai:gpt-4o
-  temperature: 0
-  runs: 3
+kindlm: 1
+project: my-agent
 
-suites:
-  - name: "refund-agent"
-    system_prompt_file: ./prompts/refund.md
-    tests:
-      - name: "happy-path-refund"
-        input: "I want to return order #12345"
-        assert:
-          - type: tool_called
-            value: lookup_order
-            args:
-              order_id: "12345"
-          - type: no_pii
-          - type: judge
-            criteria: "Response is empathetic and professional"
-            threshold: 0.8
+suite:
+  name: refund-agent
+  description: Behavioral tests for the refund agent
+
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
+    params:
+      temperature: 0
+      maxTokens: 1024
+
+prompts:
+  refund:
+    system: You are a helpful refund agent. Be empathetic and professional.
+    user: "{{message}}"
+
+tests:
+  - name: happy-path-refund
+    prompt: refund
+    vars:
+      message: "I want to return order #12345"
+    expect:
+      toolCalls:
+        - tool: lookup_order
+          argsMatch:
+            order_id: "12345"
+      guardrails:
+        pii:
+          enabled: true
+      judge:
+        - criteria: Response is empathetic and professional
+          minScore: 0.8
+
+gates:
+  passRateMin: 0.95
 ```
 
 ## Requirements
@@ -82,8 +113,8 @@ For YAML schema-based completions, install the [YAML extension by Red Hat](https
 ## Links
 
 - [KindLM Documentation](https://kindlm.com)
-- [GitHub](https://github.com/kindlm/kindlm)
-- [Report an Issue](https://github.com/kindlm/kindlm/issues)
+- [GitHub](https://github.com/petrkindlmann/kindlm)
+- [Report an Issue](https://github.com/petrkindlmann/kindlm/issues)
 
 ## License
 

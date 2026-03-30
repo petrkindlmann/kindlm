@@ -1,103 +1,141 @@
 {
   "kindlm-init": {
     "prefix": "kindlm-init",
-    "description": "Full KindLM config file skeleton with version, defaults, suites, and tests",
+    "description": "Full KindLM v2 config file skeleton",
     "body": [
-      "version: \"1\"",
+      "kindlm: 1",
+      "project: \"${1:my-project}\"",
       "",
-      "defaults:",
-      "  provider: ${1:openai:gpt-4o}",
-      "  temperature: ${2:0}",
-      "  runs: ${3:3}",
-      "  max_tokens: ${4:1024}",
+      "suite:",
+      "  name: \"${2:my-suite}\"",
+      "  description: \"${3:Behavioral tests for my AI agent}\"",
       "",
-      "suites:",
-      "  - name: \"${5:my-agent}\"",
-      "    system_prompt: |",
-      "      ${6:You are a helpful assistant.}",
-      "    tests:",
-      "      - name: \"${7:happy-path}\"",
-      "        input: \"${8:Hello, how can you help me?}\"",
-      "        assert:",
-      "          - type: ${9|tool_called,tool_not_called,tool_order,schema,judge,no_pii,keywords_present,keywords_absent,drift,latency,cost|}",
-      "            ${10:value: example}",
-      "$0"
+      "providers:",
+      "  ${4:openai}:",
+      "    apiKeyEnv: ${5:OPENAI_API_KEY}",
+      "",
+      "models:",
+      "  - id: ${6:gpt-4o}",
+      "    provider: ${4:openai}",
+      "    model: ${6:gpt-4o}",
+      "    params:",
+      "      temperature: 0",
+      "      maxTokens: 1024",
+      "",
+      "prompts:",
+      "  ${7:main}:",
+      "    system: \"${8:You are a helpful assistant.}\"",
+      "    user: \"${9:{{message}}}\"",
+      "",
+      "tests:",
+      "  - name: \"${10:happy-path}\"",
+      "    prompt: ${7:main}",
+      "    vars:",
+      "      ${11:message}: \"${12:Hello, how can you help me?}\"",
+      "    expect:",
+      "      $0",
+      "",
+      "gates:",
+      "  passRateMin: 0.95"
     ]
   },
   "kindlm-test": {
     "prefix": "kindlm-test",
-    "description": "Single KindLM test case with name, input, and assertions",
+    "description": "Single KindLM v2 test case",
     "body": [
       "- name: \"${1:test-name}\"",
-      "  input: \"${2:User message to the agent}\"",
-      "  assert:",
-      "    - type: ${3|tool_called,tool_not_called,tool_order,schema,judge,no_pii,keywords_present,keywords_absent,drift,latency,cost|}",
-      "      ${4:value: example}",
+      "  prompt: ${2:my-prompt}",
+      "  vars:",
+      "    ${3:message}: \"${4:User message to the agent}\"",
+      "  expect:",
+      "    $0"
+    ]
+  },
+  "kindlm-expect-tool": {
+    "prefix": "kindlm-expect-tool",
+    "description": "toolCalls assertion — assert a tool was called with specific arguments",
+    "body": [
+      "toolCalls:",
+      "  - tool: ${1:tool_name}",
+      "    argsMatch:",
+      "      ${2:param_name}: \"${3:expected_value}\"",
       "$0"
     ]
   },
-  "kindlm-tool-assert": {
-    "prefix": "kindlm-tool-assert",
-    "description": "tool_called assertion with value and args",
+  "kindlm-expect-judge": {
+    "prefix": "kindlm-expect-judge",
+    "description": "judge assertion — LLM-as-judge evaluation with minScore",
     "body": [
-      "- type: tool_called",
-      "  value: ${1:tool_name}",
-      "  args:",
-      "    ${2:param_name}: \"${3:expected_value}\"",
+      "judge:",
+      "  - criteria: \"${1:Response is helpful, accurate, and professional}\"",
+      "    minScore: ${2:0.8}",
       "$0"
     ]
   },
-  "kindlm-judge": {
-    "prefix": "kindlm-judge",
-    "description": "judge assertion with criteria and threshold",
+  "kindlm-expect-pii": {
+    "prefix": "kindlm-expect-pii",
+    "description": "PII guardrail — fail if SSN, credit card, email, or phone appears in output",
     "body": [
-      "- type: judge",
-      "  criteria: \"${1:Response is helpful, accurate, and professional}\"",
-      "  threshold: ${2:0.8}",
+      "guardrails:",
+      "  pii:",
+      "    enabled: true",
       "$0"
     ]
   },
-  "kindlm-pii": {
-    "prefix": "kindlm-pii",
-    "description": "no_pii assertion (detects SSN, credit card, email, phone, IBAN)",
+  "kindlm-expect-keywords": {
+    "prefix": "kindlm-expect-keywords",
+    "description": "Keyword guardrail — deny forbidden phrases from output",
     "body": [
-      "- type: no_pii",
+      "guardrails:",
+      "  keywords:",
+      "    deny:",
+      "      - \"${1:forbidden phrase}\"",
       "$0"
     ]
   },
-  "kindlm-schema": {
-    "prefix": "kindlm-schema",
-    "description": "schema assertion with inline JSON Schema",
+  "kindlm-expect-output": {
+    "prefix": "kindlm-expect-output",
+    "description": "Output content assertion — required/forbidden substrings",
     "body": [
-      "- type: schema",
-      "  value:",
-      "    type: object",
-      "    required:",
-      "      - ${1:action}",
-      "      - ${2:reason}",
-      "    properties:",
-      "      ${1:action}:",
-      "        type: string",
-      "        ${3:enum: [approve, deny]}",
-      "      ${2:reason}:",
-      "        type: string",
+      "output:",
+      "  contains:",
+      "    - \"${1:expected phrase}\"",
+      "  notContains:",
+      "    - \"${2:forbidden phrase}\"",
       "$0"
     ]
   },
-  "kindlm-suite": {
-    "prefix": "kindlm-suite",
-    "description": "Suite definition with name, system prompt, and tests array",
+  "kindlm-expect-drift": {
+    "prefix": "kindlm-expect-drift",
+    "description": "Baseline drift assertion — detect behavioral regression",
     "body": [
-      "- name: \"${1:suite-name}\"",
-      "  description: \"${2:Description of what this suite tests}\"",
-      "  system_prompt: |",
-      "    ${3:You are a helpful assistant.}",
-      "  tests:",
-      "    - name: \"${4:test-name}\"",
-      "      input: \"${5:User input}\"",
-      "      assert:",
-      "        - type: ${6|tool_called,tool_not_called,tool_order,schema,judge,no_pii,keywords_present,keywords_absent,drift,latency,cost|}",
-      "          ${7:value: example}",
+      "baseline:",
+      "  drift:",
+      "    maxScore: ${1:0.15}",
+      "    method: ${2|judge,embedding,field-diff|}",
+      "$0"
+    ]
+  },
+  "kindlm-model": {
+    "prefix": "kindlm-model",
+    "description": "Model configuration entry",
+    "body": [
+      "- id: ${1:model-id}",
+      "  provider: ${2|openai,anthropic,gemini,mistral,cohere,ollama,http|}",
+      "  model: ${3:model-name}",
+      "  params:",
+      "    temperature: ${4:0}",
+      "    maxTokens: ${5:1024}",
+      "$0"
+    ]
+  },
+  "kindlm-prompt": {
+    "prefix": "kindlm-prompt",
+    "description": "Named prompt template with system and user messages",
+    "body": [
+      "${1:prompt-name}:",
+      "  system: \"${2:You are a helpful assistant.}\"",
+      "  user: \"${3:{{message}}}\"",
       "$0"
     ]
   }
