@@ -225,7 +225,7 @@ describe("createHttpProviderAdapter", () => {
     expect(result.usage.outputTokens).toBe(5);
     expect(result.modelId).toBe("test-model");
 
-    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(fetchCall[0]).toBe("https://api.example.com/v1/chat");
     expect(fetchCall[1].method).toBe("POST");
   });
@@ -252,7 +252,7 @@ describe("createHttpProviderAdapter", () => {
 
     expect(result.text).toBe("Generated text");
 
-    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     const body = JSON.parse(fetchCall[1].body as string) as Record<string, unknown>;
     expect(body["prompt"]).toBe("Hello");
     expect(body["model"]).toBe("test-model");
@@ -280,7 +280,7 @@ describe("createHttpProviderAdapter", () => {
 
     await adapter.complete(defaultRequest);
 
-    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     const headers = fetchCall[1].headers as Record<string, string>;
     expect(headers["Authorization"]).toBe("Bearer sk-test");
     expect(headers["X-Custom"]).toBe("static-value");
@@ -319,8 +319,8 @@ describe("createHttpProviderAdapter", () => {
     const result = await adapter.complete(defaultRequest);
 
     expect(result.toolCalls).toHaveLength(1);
-    expect(result.toolCalls[0].name).toBe("get_weather");
-    expect(result.toolCalls[0].arguments).toEqual({ city: "London" });
+    expect(result.toolCalls[0]!.name).toBe("get_weather");
+    expect(result.toolCalls[0]!.arguments).toEqual({ city: "London" });
   });
 
   it("extracts tool calls with flat format (no function wrapper)", async () => {
@@ -351,8 +351,8 @@ describe("createHttpProviderAdapter", () => {
     const result = await adapter.complete(defaultRequest);
 
     expect(result.toolCalls).toHaveLength(1);
-    expect(result.toolCalls[0].name).toBe("search");
-    expect(result.toolCalls[0].arguments).toEqual({ query: "test" });
+    expect(result.toolCalls[0]!.name).toBe("search");
+    expect(result.toolCalls[0]!.arguments).toEqual({ query: "test" });
   });
 
   it("uses custom usage paths", async () => {
@@ -481,7 +481,7 @@ describe("createHttpProviderAdapter", () => {
 
     await adapter.complete(defaultRequest);
 
-    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (mockClient.fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(fetchCall[1].method).toBe("PUT");
   });
 
