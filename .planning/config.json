@@ -1,6 +1,12 @@
 {
   "version": "1.0",
-  "workflow": { "mode": "yolo", "research_enabled": false, "plan_checker_enabled": false, "auto_advance": true },
+  "workflow": {
+    "mode": "yolo",
+    "research_enabled": false,
+    "plan_checker_enabled": false,
+    "auto_advance": true,
+    "_auto_chain_active": false
+  },
   "parallelization": false,
   "branching_strategy": "none",
   "commit_docs": true,

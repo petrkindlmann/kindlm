@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-03-30T19:29:48.547Z",
+  "phase": "01",
+  "phase_name": "deploy-everything",
+  "phase_dir": ".planning/phases/01-deploy-everything",
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "milestone_status": "complete",
+  "completed_tasks": [
+    {"id": "01-01", "name": "CI Blockers — typecheck and lint pass", "status": "done", "commit": "476fc82"},
+    {"id": "01-02", "name": "Worker live, all 13 D1 migrations applied, v2.0.0 confirmed", "status": "done", "commit": "d69f7c9"},
+    {"id": "01-03", "name": "Manual deployment steps complete", "status": "done", "commit": "6c06a18"},
+    {"id": "quick-260330-jxl", "name": "VS Code Extension docs page + missing docs", "status": "done", "commit": "e1f58b4"}
+  ],
+  "remaining_tasks": [],
+  "blockers": [
+    {
+      "description": "CF_API_TOKEN not set as GitHub Actions secret — Worker auto-deploy via CI not wired up",
+      "type": "human_action",
+      "workaround": "Manual deploy works fine via `npx wrangler deploy` locally"
+    },
+    {
+      "description": "Stripe live mode sk_live_ key not yet configured — billing in test mode only",
+      "type": "human_action",
+      "workaround": "Stripe test mode fully functional; live mode pending key with full permissions"
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Add CF_API_TOKEN to GitHub Actions secrets with Workers Edit permissions",
+      "context": "Required to enable automated CI/CD deploy on push to main",
+      "blocking": false
+    },
+    {
+      "action": "Provide Stripe sk_live_ key with full permissions to enable live billing",
+      "context": "Test mode is active and verified; live mode waiting on key",
+      "blocking": false
+    }
+  ],
+  "decisions": [
+    {"decision": "Use ! non-null assertion in test files for .mock.calls[0]", "rationale": "Acceptable in test context where preceding setup guarantees the call", "phase": "01"},
+    {"decision": "Prefix unused cloud helpers with _ instead of deleting", "rationale": "ECDSA/XML SAML helpers are valid implementations worth retaining", "phase": "01"},
+    {"decision": "Deploy order: D1 migrations before Worker", "rationale": "Schema-first rollout avoids runtime errors on deploy", "phase": "01"},
+    {"decision": "D1 migration tracker recovery via manual INSERT", "rationale": "Partial apply left schema ahead of tracker; INSERT into d1_migrations resolves mismatch", "phase": "01"},
+    {"decision": "Stripe test mode products created first", "rationale": "Billing flow verified before committing to live keys", "phase": "01"}
+  ],
+  "uncommitted_files": [
+    ".planning/config.json"
+  ],
+  "next_action": "Milestone v2.0.0 is complete. Start /gsd:new-milestone for v2.1 or work from backlog. Pending human actions: set CF_API_TOKEN in GitHub Actions, provide sk_live_ Stripe key.",
+  "context_notes": "v2.0.0 milestone complete. All 3 plans in phase 01-deploy-everything done. Cloud Worker live at kindlm.com, 13 D1 migrations applied, VS Code extension published. Two non-blocking human actions deferred."
+}
