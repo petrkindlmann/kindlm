@@ -197,6 +197,7 @@ Visit [kindlm.com/docs](https://kindlm.com/docs) for the full documentation, inc
 - [Assertion Engine](/docs/assertions) — all assertion types
 - [Provider Interface](/docs/providers) — OpenAI, Anthropic, Gemini, Mistral, Cohere, Ollama
 - [Troubleshooting](/docs/troubleshooting) — common errors and fixes
+- [VS Code Extension](/docs/vscode-extension) — autocomplete, validation, hover docs, snippets
 
 ## License
 
