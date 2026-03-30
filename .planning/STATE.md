@@ -3,22 +3,22 @@ gsd_state_version: 1.0
 milestone: v2.0.0
 milestone_name: milestone
 status: Executing Phase 01
-stopped_at: Completed 01-deploy-everything-01-02-PLAN.md
-last_updated: "2026-03-30T11:08:56.925Z"
+stopped_at: Completed 01-deploy-everything-01-03-PLAN.md
+last_updated: "2026-03-30T11:28:03.098Z"
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 ## Status: Active
 
 **Current focus:** Phase 01 — deploy-everything
-**Progress:** [███████░░░] 67%
-**Last session:** 2026-03-30T11:08:56.922Z
-**Stopped at:** Completed 01-deploy-everything-01-02-PLAN.md
+**Progress:** [██████████] 100%
+**Last session:** 2026-03-30T11:27:57.837Z
+**Stopped at:** Completed 01-deploy-everything-01-03-PLAN.md
 
 ## Current Phase
 
@@ -35,6 +35,8 @@ progress:
 - (01-01) Use nullish coalescing `?? 0` for Uint8Array element access in helpers.ts — semantically correct
 - [Phase 01-deploy-everything]: Deploy order: D1 migrations before Worker deploy for safe schema-first rollout
 - [Phase 01-deploy-everything]: D1 migration tracker recovery: manually INSERT into d1_migrations when partial apply leaves schema ahead of tracker
+- [Phase 01-deploy-everything]: Stripe test mode products created first — live mode pending sk_live_ key with full permissions
+- [Phase 01-deploy-everything]: CF_API_TOKEN deferred (non-blocking) — requires Cloudflare token with Workers Edit permissions set as GitHub Actions secret
 
 ## Performance Metrics
 
