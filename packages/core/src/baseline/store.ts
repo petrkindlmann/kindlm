@@ -37,6 +37,7 @@ export interface BaselineData {
   version: string;
   suiteName: string;
   createdAt: string;
+  savedAt?: string;       // ISO timestamp stamped on write (immutability marker)
   results: Record<string, BaselineTestEntry>;
 }
 
@@ -197,6 +198,33 @@ export function readBaseline(suiteName: string, io: BaselineIO): Result<Baseline
 export function writeBaseline(data: BaselineData, io: BaselineIO): Result<void> {
   const content = serializeBaseline(data);
   return io.write(data.suiteName, content);
+}
+
+/**
+ * Writes an immutable versioned baseline and updates a `-latest` pointer file.
+ *
+ * Two writes per call:
+ *   1. `{suiteName}-{YYYYMMDDHHMMSS}.json` — the permanent historical record
+ *   2. `{suiteName}-latest.json` — pointer containing only the filename reference
+ *
+ * The pointer contains only a filename reference (latestFile), never a content
+ * copy. This preserves the single source of truth and keeps pointer files small.
+ * Callers wanting to read the latest baseline should resolve via the pointer.
+ */
+export function writeBaselineVersioned(data: BaselineData, io: BaselineIO): Result<void> {
+  const stamped: BaselineData = { ...data, savedAt: new Date().toISOString() };
+  // Produce a compact sortable timestamp: YYYYMMDDHHMMSS
+  const timestamp = stamped.savedAt!.replace(/[-:T.Z]/g, "").slice(0, 14);
+  const versionedName = `${data.suiteName}-${timestamp}`;
+
+  const writeVersioned = io.write(versionedName, serializeBaseline(stamped));
+  if (!writeVersioned.success) {
+    return writeVersioned;
+  }
+
+  // Pointer file contains only the filename reference — never a content copy
+  const pointer = JSON.stringify({ latestFile: `${versionedName}.json` });
+  return io.write(`${data.suiteName}-latest`, pointer);
 }
 
 export function listBaselines(io: BaselineIO): Result<string[]> {

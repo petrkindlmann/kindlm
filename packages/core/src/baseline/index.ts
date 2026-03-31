@@ -1,6 +1,7 @@
 export {
   readBaseline,
   writeBaseline,
+  writeBaselineVersioned,
   listBaselines,
   serializeBaseline,
   deserializeBaseline,

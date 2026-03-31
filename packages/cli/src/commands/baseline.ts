@@ -6,7 +6,7 @@ import chalk from "chalk";
 import {
   parseConfig,
   readBaseline,
-  writeBaseline,
+  writeBaselineVersioned,
   listBaselines,
   buildBaselineData,
   compareBaseline,
@@ -77,7 +77,7 @@ export function registerBaselineCommand(program: Command): void {
           new Date().toISOString(),
         );
 
-        const writeResult = writeBaseline(baselineData, io);
+        const writeResult = writeBaselineVersioned(baselineData, io);
         if (!writeResult.success) {
           console.error(chalk.red(`Failed to save baseline: ${writeResult.error.message}`));
           process.exit(1);

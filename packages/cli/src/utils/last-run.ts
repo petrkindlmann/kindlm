@@ -10,6 +10,8 @@ export interface LastRunData {
   timestamp: string;
   complianceReport?: string;
   complianceHash?: string;
+  runId?: string;
+  artifactDir?: string;
 }
 
 function getLastRunPath(): string {

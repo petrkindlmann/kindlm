@@ -13,6 +13,7 @@ import {
 import type { KindlmError, ComplianceRunMetadata } from "@kindlm/core";
 import { runTests } from "../utils/run-tests.js";
 import { saveLastRun, computeConfigHash } from "../utils/last-run.js";
+import type { RunArtifactPaths } from "../utils/artifacts.js";
 import { renderCompliancePdf } from "../utils/pdf-renderer.js";
 import { selectReporter } from "../utils/select-reporter.js";
 import { getGitInfo } from "../utils/git.js";
@@ -170,6 +171,23 @@ export function registerTestCommand(program: Command): void {
         }
       }
 
+      // Write run artifacts (non-fatal)
+      let artifactPaths: RunArtifactPaths | undefined;
+      try {
+        const { writeRunArtifacts } = await import("../utils/artifacts.js");
+        const gitInfo = getGitInfo();
+        const configHash = computeConfigHash(yamlContent);
+        artifactPaths = writeRunArtifacts(
+          runnerResult,
+          config.suite.name,
+          configHash,
+          gitInfo.commitSha ?? null,
+          yamlContent,
+        );
+      } catch {
+        console.warn(chalk.yellow("Warning: failed to write run artifacts (non-fatal)"));
+      }
+
       // Cache last run for upload
       try {
         saveLastRun({
@@ -179,6 +197,8 @@ export function registerTestCommand(program: Command): void {
           timestamp: new Date().toISOString(),
           complianceReport: complianceContent,
           complianceHash,
+          runId: artifactPaths?.runId,
+          artifactDir: artifactPaths?.artifactDir,
         });
       } catch {
         // Non-fatal — don't block exit on cache failure
