@@ -35,13 +35,13 @@ Plans:
 
 ### Phase 4: MCP provider adapter — passthrough adapter letting users point kindlm at an MCP server as a provider source
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Add MCP as a first-class provider type — users configure serverUrl + toolName, kindlm sends prompts to the MCP server via HTTP POST and maps the tool result to ProviderResponse for all existing assertion types
+**Requirements**: MCP-01
 **Depends on:** Phase 3
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 4 to break down)
+- [ ] 04-01-PLAN.md — MCP adapter (mcp.ts), schema + registry + CLI wiring
 
 ### Phase 5: Worktree isolation for test runs — run each test suite in an isolated git worktree, slug validation, fail-closed exit
 
