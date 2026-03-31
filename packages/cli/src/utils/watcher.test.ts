@@ -38,7 +38,7 @@ describe("watchFile", () => {
     watchFile("/path/to/kindlm.yaml", onChange, { debounceMs: 200 });
 
     // Get the callback that was passed to fs.watch
-    const watchCallback = mockWatch.mock.calls[0]![1] as () => void;
+    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
 
     // Simulate rapid file changes
     watchCallback();
@@ -59,7 +59,7 @@ describe("watchFile", () => {
     const onChange = vi.fn();
     watchFile("/path/to/kindlm.yaml", onChange);
 
-    const watchCallback = mockWatch.mock.calls[0]![1] as () => void;
+    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
     watchCallback();
 
     // At 299ms, not fired yet
@@ -75,7 +75,7 @@ describe("watchFile", () => {
     const onChange = vi.fn();
     watchFile("/path/to/kindlm.yaml", onChange, { debounceMs: 100 });
 
-    const watchCallback = mockWatch.mock.calls[0]![1] as () => void;
+    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
 
     // First change
     watchCallback();
@@ -103,7 +103,7 @@ describe("watchFile", () => {
       debounceMs: 500,
     });
 
-    const watchCallback = mockWatch.mock.calls[0]![1] as () => void;
+    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
     watchCallback();
 
     // Close before debounce fires

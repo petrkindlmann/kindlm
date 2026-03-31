@@ -14,8 +14,8 @@ import { computeCacheKey, readCacheEntry, writeCacheEntry } from "./cache.js";
  * Uses factory function pattern (no classes).
  */
 export function createCachingAdapter(inner: ProviderAdapter): ProviderAdapter {
-  let cacheHits = 0;
-  let cacheMisses = 0;
+  let _cacheHits = 0;
+  let _cacheMisses = 0;
 
   return {
     get name() {
@@ -31,7 +31,7 @@ export function createCachingAdapter(inner: ProviderAdapter): ProviderAdapter {
       const cached = readCacheEntry(key);
 
       if (cached) {
-        cacheHits++;
+        _cacheHits++;
         // Return cached response with zeroed latency to indicate cache hit
         return {
           ...cached.response,
@@ -39,7 +39,7 @@ export function createCachingAdapter(inner: ProviderAdapter): ProviderAdapter {
         };
       }
 
-      cacheMisses++;
+      _cacheMisses++;
       const response = await inner.complete(request);
 
       // Write to cache — non-fatal on failure
@@ -64,7 +64,7 @@ export function createCachingAdapter(inner: ProviderAdapter): ProviderAdapter {
     },
 
     embed: inner.embed
-      ? (text: string, model?: string) => inner.embed!(text, model)
+      ? (text: string, model?: string) => inner.embed?.(text, model) ?? Promise.resolve([])
       : undefined,
   };
 }
@@ -72,7 +72,7 @@ export function createCachingAdapter(inner: ProviderAdapter): ProviderAdapter {
 /**
  * Returns cache statistics for logging/reporting.
  */
-export function getCacheStats(adapter: ProviderAdapter): {
+export function getCacheStats(_adapter: ProviderAdapter): {
   hits: number;
   misses: number;
 } | null {
