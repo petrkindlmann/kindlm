@@ -8,6 +8,7 @@ import { createAssertionsFromExpect } from "../assertions/registry.js";
 import type { AssertionOverrides } from "../assertions/registry.js";
 import { interpolate } from "../config/interpolation.js";
 import { runConversation } from "../providers/conversation.js";
+import type { ConversationResult } from "../types/provider.js";
 import type { TestCaseRunResult, AggregatedTestResult } from "./aggregator.js";
 import { aggregateRuns } from "./aggregator.js";
 import type { BaselineData } from "../baseline/store.js";
@@ -18,18 +19,26 @@ import { parseCommandOutput } from "./command.js";
 // Public Types
 // ============================================================
 
+export type RunEvent =
+  | { type: "run.started"; totalUnits: number }
+  | { type: "test.started"; test: string; model: string; run: number }
+  | { type: "test.completed"; test: string; model: string; run: number; passed: boolean; durationMs: number; costUsd: number | null }
+  | { type: "test.errored"; test: string; model: string; run: number; error: string }
+  | { type: "run.completed"; passed: number; failed: number; errored: number; durationMs: number };
+
+/** @deprecated Use RunEvent */
+export type ProgressEvent = RunEvent;
+
 export interface RunnerDeps {
   adapters: Map<string, ProviderAdapter>;
   configDir: string;
   fileReader: FileReader;
-  onProgress?: (event: ProgressEvent) => void;
+  onEvent?: (event: RunEvent) => void;
+  /** @deprecated Use onEvent */
+  onProgress?: (event: RunEvent) => void;
   baselineData?: BaselineData;
   commandExecutor?: CommandExecutor;
 }
-
-export type ProgressEvent =
-  | { type: "test_start"; test: string; model: string; run: number }
-  | { type: "test_complete"; test: string; model: string; run: number; passed: boolean };
 
 export interface RunResult {
   suites: SuiteRunResult[];
@@ -85,6 +94,7 @@ export function createRunner(
   return {
     async run(): Promise<Result<RunnerResult>> {
       const startTime = Date.now();
+      const emit = deps.onEvent ?? deps.onProgress ?? (() => {});
 
       // 1. Pre-load schema files
       const schemaCache = new Map<string, Record<string, unknown>>();
@@ -142,6 +152,8 @@ export function createRunner(
         }
       }
 
+      try { emit({ type: "run.started", totalUnits: units.length }); } catch { /* fire-and-forget */ }
+
       // 3. Execute with concurrency pool, tracking cumulative cost for mid-run budget enforcement.
       // With concurrency, there may be bounded overshoot — tests already in-flight when
       // the budget is exceeded will still complete. Since JS is single-threaded, the
@@ -162,7 +174,7 @@ export function createRunner(
             );
           }
 
-          const result = await executeUnit(config, deps, unit, schemaCache);
+          const result = await executeUnit(config, deps, emit, unit, schemaCache);
 
           if (result.costEstimateUsd !== null && result.costEstimateUsd !== undefined) {
             cumulativeCostUsd += result.costEstimateUsd;
@@ -279,9 +291,128 @@ export function createRunner(
         durationMs: Date.now() - startTime,
       };
 
+      try { emit({ type: "run.completed", passed, failed, errored, durationMs: Date.now() - startTime }); } catch { /* fire-and-forget */ }
+
       return ok({ runResult, aggregated });
     },
   };
+}
+
+// ============================================================
+// Pure helper types and functions
+// ============================================================
+
+interface PromptBuildResult {
+  messages: ProviderMessage[];
+  tools: ProviderToolDefinition[];
+  request: ProviderRequest;
+}
+
+function buildPromptMessages(
+  promptDef: { system?: string; user: string; assistant?: string },
+  test: TestCase,
+  modelConfig: ModelConfig,
+): Result<PromptBuildResult, KindlmError> {
+  const userResult = interpolate(promptDef.user, test.vars);
+  if (!userResult.success) {
+    return err({ code: "CONFIG_VALIDATION_ERROR", message: userResult.error.message });
+  }
+
+  const messages: ProviderMessage[] = [];
+  if (promptDef.system) {
+    const sysResult = interpolate(promptDef.system, test.vars);
+    if (!sysResult.success) {
+      return err({ code: "CONFIG_VALIDATION_ERROR", message: sysResult.error.message });
+    }
+    messages.push({ role: "system", content: sysResult.data });
+  }
+  messages.push({ role: "user", content: userResult.data });
+
+  // Add assistant prefill if configured (Anthropic-style prefill)
+  if (promptDef.assistant) {
+    const assistantResult = interpolate(promptDef.assistant, test.vars);
+    if (!assistantResult.success) {
+      return err({ code: "CONFIG_VALIDATION_ERROR", message: assistantResult.error.message });
+    }
+    messages.push({ role: "assistant", content: assistantResult.data });
+  }
+
+  // Build tool definitions from simulations
+  const tools: ProviderToolDefinition[] = (test.tools ?? []).map((t) => ({
+    name: t.name,
+    description: t.description,
+    parameters: t.parameters,
+  }));
+
+  const request: ProviderRequest = {
+    model: modelConfig.model,
+    messages,
+    params: {
+      temperature: modelConfig.params.temperature,
+      maxTokens: modelConfig.params.maxTokens,
+      topP: modelConfig.params.topP,
+      stopSequences: modelConfig.params.stopSequences,
+      seed: modelConfig.params.seed,
+    },
+    tools: tools.length > 0 ? tools : undefined,
+  };
+
+  return ok({ messages, tools, request });
+}
+
+function buildAssertionContext(
+  conversation: ConversationResult,
+  test: TestCase,
+  modelConfig: ModelConfig,
+  deps: RunnerDeps,
+  schemaCache: Map<string, Record<string, unknown>>,
+  config: KindLMConfig,
+  costEstimate: number | null,
+  adapter: ProviderAdapter,
+): { assertions: ReturnType<typeof createAssertionsFromExpect>; context: AssertionContext } {
+  const overrides: AssertionOverrides = {};
+  if (test.expect.output?.schemaFile && schemaCache.has(test.name)) {
+    overrides.schemaContent = schemaCache.get(test.name);
+  }
+  const assertions = createAssertionsFromExpect(test.expect, overrides);
+
+  const judgeModelId = config.defaults.judgeModel ?? config.models[0]?.id;
+  const judgeModelConfig = config.models.find((m) => m.id === judgeModelId);
+  const judgeAdapter = judgeModelConfig ? deps.adapters.get(judgeModelConfig.provider) : undefined;
+
+  const context: AssertionContext = {
+    outputText: conversation.finalText,
+    toolCalls: conversation.allToolCalls,
+    configDir: deps.configDir,
+    latencyMs: conversation.totalLatencyMs,
+    costUsd: costEstimate ?? undefined,
+    judgeAdapter,
+    judgeModel: judgeModelConfig?.model,
+    getEmbedding: adapter.embed
+      ? ((fn) => (text: string) => fn(text))(adapter.embed)
+      : undefined,
+  };
+
+  if (deps.baselineData) {
+    const baselineKey = `${test.name}::${modelConfig.id}`;
+    const baselineEntry = deps.baselineData.results[baselineKey];
+    if (baselineEntry) {
+      context.baselineText = baselineEntry.outputText;
+    }
+  }
+
+  return { assertions, context };
+}
+
+async function runAssertions(
+  assertions: ReturnType<typeof createAssertionsFromExpect>,
+  context: AssertionContext,
+): Promise<AssertionResult[]> {
+  const results: AssertionResult[] = [];
+  for (const assertion of assertions) {
+    results.push(...await assertion.evaluate(context));
+  }
+  return results;
 }
 
 // ============================================================
@@ -291,27 +422,21 @@ export function createRunner(
 async function executeUnit(
   config: KindLMConfig,
   deps: RunnerDeps,
+  emit: (event: RunEvent) => void,
   unit: ExecutionUnit,
   schemaCache: Map<string, Record<string, unknown>>,
 ): Promise<TestCaseRunResult> {
   const { test, modelConfig, runIndex } = unit;
 
   if (test.command) {
-    return executeCommandUnit(config, deps, test, runIndex, schemaCache);
+    return executeCommandUnit(config, deps, emit, test, runIndex, schemaCache);
   }
 
   if (!modelConfig) {
     return errorResult(test.name, "unknown", runIndex, "No model config for prompt-based test");
   }
 
-  try {
-    deps.onProgress?.({
-      type: "test_start",
-      test: test.name,
-      model: modelConfig.id,
-      run: runIndex,
-    });
-  } catch { /* progress callbacks are fire-and-forget */ }
+  try { emit({ type: "test.started", test: test.name, model: modelConfig.id, run: runIndex }); } catch { /* fire-and-forget */ }
 
   try {
     // Look up adapter
@@ -326,109 +451,35 @@ async function executeUnit(
       return errorResult(test.name, modelConfig.id, runIndex, `Prompt "${test.prompt}" not defined`);
     }
 
-    const userResult = interpolate(promptDef.user, test.vars);
-    if (!userResult.success) {
-      return errorResult(test.name, modelConfig.id, runIndex, userResult.error.message);
+    // 1. Build messages + request
+    const buildResult = buildPromptMessages(promptDef, test, modelConfig);
+    if (!buildResult.success) {
+      return errorResult(test.name, modelConfig.id, runIndex, buildResult.error.message);
     }
+    const { request } = buildResult.data;
 
-    const messages: ProviderMessage[] = [];
-    if (promptDef.system) {
-      const sysResult = interpolate(promptDef.system, test.vars);
-      if (!sysResult.success) {
-        return errorResult(test.name, modelConfig.id, runIndex, sysResult.error.message);
-      }
-      messages.push({ role: "system", content: sysResult.data });
-    }
-    messages.push({ role: "user", content: userResult.data });
-
-    // Add assistant prefill if configured (Anthropic-style prefill)
-    if (promptDef.assistant) {
-      const assistantResult = interpolate(promptDef.assistant, test.vars);
-      if (!assistantResult.success) {
-        return errorResult(test.name, modelConfig.id, runIndex, assistantResult.error.message);
-      }
-      messages.push({ role: "assistant", content: assistantResult.data });
-    }
-
-    // Build tool definitions from simulations
-    const tools: ProviderToolDefinition[] = (test.tools ?? []).map((t) => ({
-      name: t.name,
-      description: t.description,
-      parameters: t.parameters,
-    }));
-
-    const request: ProviderRequest = {
-      model: modelConfig.model,
-      messages,
-      params: {
-        temperature: modelConfig.params.temperature,
-        maxTokens: modelConfig.params.maxTokens,
-        topP: modelConfig.params.topP,
-        stopSequences: modelConfig.params.stopSequences,
-        seed: modelConfig.params.seed,
-      },
-      tools: tools.length > 0 ? tools : undefined,
-    };
-
-    // Run conversation
+    // 2. Run conversation
     const conversation = await runConversation(adapter, request, test.tools ?? []);
-
-    // Compute cost
     const costEstimate = adapter.estimateCost(modelConfig.model, conversation.totalUsage);
 
-    // Build assertions with schema content override
-    const overrides: AssertionOverrides = {};
-    if (test.expect.output?.schemaFile && schemaCache.has(test.name)) {
-      overrides.schemaContent = schemaCache.get(test.name);
-    }
-    const assertions = createAssertionsFromExpect(test.expect, overrides);
+    // 3. Build assertion context
+    const { assertions, context } = buildAssertionContext(conversation, test, modelConfig, deps, schemaCache, config, costEstimate, adapter);
 
-    // Resolve judge adapter if needed
-    const judgeModelId = config.defaults.judgeModel ?? config.models[0]?.id;
-    const judgeModelConfig = config.models.find((m) => m.id === judgeModelId);
-    const judgeAdapter = judgeModelConfig ? deps.adapters.get(judgeModelConfig.provider) : undefined;
-
-    // Build assertion context
-    const context: AssertionContext = {
-      outputText: conversation.finalText,
-      toolCalls: conversation.allToolCalls,
-      configDir: deps.configDir,
-      latencyMs: conversation.totalLatencyMs,
-      costUsd: costEstimate ?? undefined,
-      judgeAdapter,
-      judgeModel: judgeModelConfig?.model,
-      getEmbedding: adapter.embed
-        ? ((fn) => (text: string) => fn(text))(adapter.embed)
-        : undefined,
-    };
-
-    // Inject baseline text for drift assertions
-    if (deps.baselineData) {
-      const baselineKey = `${test.name}::${modelConfig.id}`;
-      const baselineEntry = deps.baselineData.results[baselineKey];
-      if (baselineEntry) {
-        context.baselineText = baselineEntry.outputText;
-      }
-    }
-
-    // Evaluate all assertions
-    const allResults = [];
-    for (const assertion of assertions) {
-      const results = await assertion.evaluate(context);
-      allResults.push(...results);
-    }
-
+    // 4. Run assertions
+    const allResults = await runAssertions(assertions, context);
     const allPassed = allResults.every((r) => r.passed);
 
     try {
-      deps.onProgress?.({
-        type: "test_complete",
+      emit({
+        type: "test.completed",
         test: test.name,
         model: modelConfig.id,
         run: runIndex,
         passed: allPassed,
+        durationMs: conversation.totalLatencyMs,
+        costUsd: costEstimate,
       });
-    } catch { /* progress callbacks are fire-and-forget */ }
+    } catch { /* fire-and-forget */ }
 
     return {
       testCaseName: test.name,
@@ -442,14 +493,14 @@ async function executeUnit(
     };
   } catch (e) {
     try {
-      deps.onProgress?.({
-        type: "test_complete",
+      emit({
+        type: "test.errored",
         test: test.name,
         model: modelConfig.id,
         run: runIndex,
-        passed: false,
+        error: e instanceof Error ? e.message : String(e),
       });
-    } catch { /* progress callbacks are fire-and-forget */ }
+    } catch { /* fire-and-forget */ }
 
     return errorResult(
       test.name,
@@ -463,20 +514,14 @@ async function executeUnit(
 async function executeCommandUnit(
   config: KindLMConfig,
   deps: RunnerDeps,
+  emit: (event: RunEvent) => void,
   test: TestCase,
   runIndex: number,
   schemaCache: Map<string, Record<string, unknown>>,
 ): Promise<TestCaseRunResult> {
   const modelId = "command";
 
-  try {
-    deps.onProgress?.({
-      type: "test_start",
-      test: test.name,
-      model: modelId,
-      run: runIndex,
-    });
-  } catch { /* progress callbacks are fire-and-forget */ }
+  try { emit({ type: "test.started", test: test.name, model: modelId, run: runIndex }); } catch { /* fire-and-forget */ }
 
   try {
     if (!deps.commandExecutor) {
@@ -532,7 +577,6 @@ async function executeCommandUnit(
         : undefined,
     };
 
-    // Inject baseline text for drift assertions
     if (deps.baselineData) {
       const baselineKey = `${test.name}::${modelId}`;
       const baselineEntry = deps.baselineData.results[baselineKey];
@@ -542,23 +586,20 @@ async function executeCommandUnit(
     }
 
     // Evaluate all assertions
-    const allResults: AssertionResult[] = [];
-    for (const assertion of assertions) {
-      const results = await assertion.evaluate(context);
-      allResults.push(...results);
-    }
-
+    const allResults = await runAssertions(assertions, context);
     const allPassed = allResults.every((r) => r.passed);
 
     try {
-      deps.onProgress?.({
-        type: "test_complete",
+      emit({
+        type: "test.completed",
         test: test.name,
         model: modelId,
         run: runIndex,
         passed: allPassed,
+        durationMs: latencyMs,
+        costUsd: null,
       });
-    } catch { /* progress callbacks are fire-and-forget */ }
+    } catch { /* fire-and-forget */ }
 
     return {
       testCaseName: test.name,
@@ -572,14 +613,14 @@ async function executeCommandUnit(
     };
   } catch (e) {
     try {
-      deps.onProgress?.({
-        type: "test_complete",
+      emit({
+        type: "test.errored",
         test: test.name,
         model: modelId,
         run: runIndex,
-        passed: false,
+        error: e instanceof Error ? e.message : String(e),
       });
-    } catch { /* progress callbacks are fire-and-forget */ }
+    } catch { /* fire-and-forget */ }
 
     return errorResult(
       test.name,

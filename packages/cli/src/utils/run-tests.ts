@@ -10,7 +10,7 @@ import {
 import type {
   ProviderAdapter,
   KindLMConfig,
-  ProgressEvent,
+  RunEvent,
   RunnerResult,
   BaselineData,
 } from "@kindlm/core";
@@ -209,10 +209,10 @@ async function runTestsInner(
   let completedTests = 0;
   const totalTests = countExecutionUnits(config);
 
-  const onProgress = (event: ProgressEvent) => {
-    if (event.type === "test_start") {
+  const onEvent = (event: RunEvent) => {
+    if (event.type === "test.started") {
       spinner.start(`Running ${event.test} [${event.model}] (${completedTests}/${totalTests})`);
-    } else if (event.type === "test_complete") {
+    } else if (event.type === "test.completed" || event.type === "test.errored") {
       completedTests++;
     }
   };
@@ -225,7 +225,7 @@ async function runTestsInner(
     adapters,
     configDir,
     fileReader,
-    onProgress,
+    onEvent,
     baselineData: options.baselineData,
     commandExecutor,
   });
