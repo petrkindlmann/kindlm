@@ -18,10 +18,10 @@ Plans:
 **Goal:** Persist structured run artifacts to .kindlm/runs/ and enforce immutable baseline history so every test run is queryable and no baseline is ever silently overwritten
 **Requirements**: ARTIFACT-01, ARTIFACT-02, BASELINE-01
 **Depends on:** Phase 1
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 02-01-PLAN.md — Run artifact writer, last-run pointer extension, immutable baseline versioning, wire into test command
+- [x] 02-01-PLAN.md — Run artifact writer, last-run pointer extension, immutable baseline versioning, wire into test command
 
 ### Phase 3: Feature flags via config — boolean flags in .kindlm/config.json, isEnabled helper, gate new assertion types behind flags
 
