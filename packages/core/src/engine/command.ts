@@ -80,6 +80,7 @@ export function parseCommandOutput(raw: RawCommandOutput): CommandResult {
         id: event.id ?? `cmd_tc_${toolCallCounter++}`,
         name: event.name,
         arguments: event.arguments,
+        index: 0,
       });
     } else if (event.kindlm === "output_json") {
       outputJson = event.data;

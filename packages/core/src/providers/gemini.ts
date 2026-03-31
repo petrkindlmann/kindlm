@@ -268,6 +268,7 @@ export function createGeminiAdapter(httpClient: HttpClient): ProviderAdapter {
             id: `gemini_call_${toolCallIndex}`,
             name: part.functionCall.name,
             arguments: part.functionCall.args ?? {},
+            index: 0,
           });
           toolCallIndex++;
         }

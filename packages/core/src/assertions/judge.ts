@@ -8,6 +8,13 @@ export interface JudgeAssertionConfig {
   model?: string;
 }
 
+// ============================================================
+// Static Rubric (cacheable across evaluations)
+// ============================================================
+// This system prompt is identical for every judge invocation.
+// Providers that support prompt caching (Anthropic, OpenAI) can
+// cache this prefix to reduce latency and cost on repeated runs.
+// ============================================================
 const JUDGE_SYSTEM_PROMPT = `You are an impartial AI judge evaluating an AI assistant's response.
 You will be given:
 - The assistant's response
@@ -19,6 +26,12 @@ Score the response from 0.0 to 1.0 based on how well it meets the criteria.
 Respond ONLY with a JSON object in this exact format:
 {"score": <number between 0.0 and 1.0>, "reasoning": "<brief explanation>"}`;
 
+// ============================================================
+// Dynamic Evaluation Payload (changes per test case)
+// ============================================================
+// Contains the actual assistant response and evaluation criteria.
+// This portion MUST NOT be cached — it varies per test invocation.
+// ============================================================
 function buildUserPrompt(
   outputText: string,
   criteria: string,
@@ -76,6 +89,8 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
 
       let response;
       try {
+        // ---- Static boundary: system message above is cacheable ----
+        // ---- Dynamic payload: user message below changes per test ---
         response = await context.judgeAdapter.complete({
           model: config.model ?? context.judgeModel,
           messages: [

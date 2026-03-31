@@ -229,7 +229,7 @@ describe("createOpenAIAdapter", () => {
       const result = await adapter.complete(baseRequest());
       expect(result.text).toBe("");
       expect(result.toolCalls).toEqual([
-        { id: "call_123", name: "get_weather", arguments: { city: "London" } },
+        { id: "call_123", name: "get_weather", arguments: { city: "London" }, index: 0 },
       ]);
       expect(result.finishReason).toBe("tool_calls");
     });

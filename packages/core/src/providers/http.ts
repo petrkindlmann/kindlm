@@ -280,6 +280,7 @@ export function createHttpProviderAdapter(
                 id: String(call["id"] ?? `call_${toolCalls.length}`),
                 name: String(name ?? "unknown"),
                 arguments: args,
+                index: 0,
               });
             }
           }

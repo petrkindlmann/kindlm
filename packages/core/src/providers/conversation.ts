@@ -48,7 +48,9 @@ export async function runConversation(
       };
     }
 
-    allToolCalls.push(...response.toolCalls);
+    for (const tc of response.toolCalls) {
+      allToolCalls.push({ ...tc, index: allToolCalls.length });
+    }
 
     messages = [
       ...messages,

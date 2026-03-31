@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, it, expect, vi } from "vitest";
 import { createRunner } from "./runner.js";
-import type { RunnerDeps, ProgressEvent } from "./runner.js";
+import type { RunnerDeps, RunEvent } from "./runner.js";
 import type { KindLMConfig } from "../types/config.js";
 import type { ProviderAdapter, ProviderResponse, ProviderRequest } from "../types/provider.js";
 import type { FileReader } from "../config/parser.js";
@@ -218,13 +218,13 @@ describe("createRunner", () => {
 
   it("records tool calls from conversation", async () => {
     const adapter = makeAdapter({
-      toolCalls: [{ id: "tc1", name: "lookup_order", arguments: { order_id: "123" } }],
+      toolCalls: [{ id: "tc1", name: "lookup_order", arguments: { order_id: "123" }, index: 0 }],
     });
     // First call returns tool call, second returns final text
     (adapter.complete as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
         text: "",
-        toolCalls: [{ id: "tc1", name: "lookup_order", arguments: { order_id: "123" } }],
+        toolCalls: [{ id: "tc1", name: "lookup_order", arguments: { order_id: "123" }, index: 0 }],
         usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
         raw: {},
         latencyMs: 50,
@@ -295,15 +295,17 @@ describe("createRunner", () => {
   });
 
   it("fires progress callback events", async () => {
-    const events: ProgressEvent[] = [];
+    const events: RunEvent[] = [];
     const config = makeConfig();
-    const deps = makeDeps({ onProgress: (e) => events.push(e) });
+    const deps = makeDeps({ onEvent: (e) => events.push(e) });
     const runner = createRunner(config, deps);
     await runner.run();
 
-    expect(events.length).toBe(2);
-    expect(events[0]!.type).toBe("test_start");
-    expect(events[1]!.type).toBe("test_complete");
+    expect(events.length).toBeGreaterThanOrEqual(2);
+    expect(events.find(e => e.type === "run.started")).toBeDefined();
+    expect(events.find(e => e.type === "test.started")).toBeDefined();
+    expect(events.find(e => e.type === "test.completed" || e.type === "test.errored")).toBeDefined();
+    expect(events.find(e => e.type === "run.completed")).toBeDefined();
   });
 
   it("pre-loads schema files via fileReader", async () => {

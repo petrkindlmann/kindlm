@@ -14,8 +14,8 @@ function ctx(toolCalls: AssertionContext["toolCalls"] = []): AssertionContext {
   };
 }
 
-function tc(name: string, args: Record<string, unknown> = {}) {
-  return { id: `call_${name}`, name, arguments: args };
+function tc(name: string, args: Record<string, unknown> = {}, index = 0) {
+  return { id: `call_${name}`, name, arguments: args, index };
 }
 
 describe("createToolCalledAssertion", () => {

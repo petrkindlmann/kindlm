@@ -253,6 +253,7 @@ describe("createCohereAdapter", () => {
           id: "tc_001",
           name: "search_docs",
           arguments: { query: "climate change" },
+          index: 0,
         },
       ]);
       expect(result.finishReason).toBe("tool_calls");

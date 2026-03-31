@@ -250,6 +250,7 @@ export function createOpenAIAdapter(httpClient: HttpClient): ProviderAdapter {
             id: tc.id,
             name: tc.function.name,
             arguments: args,
+            index: 0,
           };
         },
       );

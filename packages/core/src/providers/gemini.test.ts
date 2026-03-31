@@ -283,6 +283,7 @@ describe("createGeminiAdapter", () => {
           id: "gemini_call_0",
           name: "get_weather",
           arguments: { city: "London" },
+          index: 0,
         },
       ]);
       expect(result.finishReason).toBe("tool_calls");

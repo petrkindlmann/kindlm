@@ -175,6 +175,7 @@ describe("Gemini adapter resilience", () => {
         id: "gemini_call_0",
         name: "get_weather",
         arguments: { city: "London", units: "celsius" },
+        index: 0,
       });
       expect(result.finishReason).toBe("tool_calls");
     });

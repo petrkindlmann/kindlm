@@ -41,6 +41,8 @@ export interface ProviderToolCall {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+  /** 0-based position in the full conversation tool call sequence (across all turns) */
+  index: number;
 }
 
 export interface ProviderRequest {

@@ -61,7 +61,7 @@ describe("runConversation", () => {
       {
         text: "",
         toolCalls: [
-          { id: "call_1", name: "get_weather", arguments: { city: "London" } },
+          { id: "call_1", name: "get_weather", arguments: { city: "London" }, index: 0 },
         ],
         finishReason: "tool_calls",
       },
@@ -87,7 +87,7 @@ describe("runConversation", () => {
       {
         text: "",
         toolCalls: [
-          { id: "call_1", name: "lookup", arguments: { id: "123" } },
+          { id: "call_1", name: "lookup", arguments: { id: "123" }, index: 0 },
         ],
         finishReason: "tool_calls",
       },
@@ -122,7 +122,7 @@ describe("runConversation", () => {
       {
         text: "",
         toolCalls: [
-          { id: "call_1", name: "lookup", arguments: { id: "999" } },
+          { id: "call_1", name: "lookup", arguments: { id: "999" }, index: 0 },
         ],
         finishReason: "tool_calls",
       },
@@ -150,7 +150,7 @@ describe("runConversation", () => {
       {
         text: "",
         toolCalls: [
-          { id: "call_1", name: "unknown_tool", arguments: {} },
+          { id: "call_1", name: "unknown_tool", arguments: {}, index: 0 },
         ],
         finishReason: "tool_calls",
       },
@@ -170,7 +170,7 @@ describe("runConversation", () => {
       Array.from({ length: 5 }, () => ({
         text: "thinking...",
         toolCalls: [
-          { id: "call_x", name: "tool", arguments: {} },
+          { id: "call_x", name: "tool", arguments: {}, index: 0 },
         ],
         finishReason: "tool_calls" as const,
       })),
@@ -193,7 +193,7 @@ describe("runConversation", () => {
       {
         text: "",
         toolCalls: [
-          { id: "call_1", name: "tool", arguments: {} },
+          { id: "call_1", name: "tool", arguments: {}, index: 0 },
         ],
         usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
         latencyMs: 100,
@@ -223,8 +223,8 @@ describe("runConversation", () => {
       {
         text: "",
         toolCalls: [
-          { id: "call_1", name: "tool_a", arguments: {} },
-          { id: "call_2", name: "tool_b", arguments: {} },
+          { id: "call_1", name: "tool_a", arguments: {}, index: 0 },
+          { id: "call_2", name: "tool_b", arguments: {}, index: 0 },
         ],
         finishReason: "tool_calls",
       },

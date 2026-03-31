@@ -120,10 +120,11 @@ export function buildContextFromTrace(
   result: SpanMappingResult,
   options: BuildContextOptions,
 ): AssertionContext {
-  const toolCalls: ProviderToolCall[] = result.toolCalls.map((tc) => ({
+  const toolCalls: ProviderToolCall[] = result.toolCalls.map((tc, i) => ({
     id: tc.id,
     name: tc.name,
     arguments: tc.arguments,
+    index: i,
   }));
 
   return {

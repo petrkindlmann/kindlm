@@ -241,6 +241,7 @@ export function createAnthropicAdapter(
             id: block.id,
             name: block.name,
             arguments: block.input ?? {},
+            index: 0,
           });
         }
       }

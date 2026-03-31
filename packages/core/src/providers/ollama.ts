@@ -183,6 +183,7 @@ export function createOllamaAdapter(httpClient: HttpClient): ProviderAdapter {
         id: `ollama_call_${Date.now()}_${index}`,
         name: tc.function.name,
         arguments: tc.function.arguments ?? {},
+        index: 0,
       }));
 
       return {

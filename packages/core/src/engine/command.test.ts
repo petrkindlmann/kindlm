@@ -35,6 +35,7 @@ describe("parseCommandOutput", () => {
       id: "cmd_tc_0",
       name: "lookup_order",
       arguments: { order_id: "12345" },
+      index: 0,
     });
   });
 
