@@ -17,7 +17,7 @@ progress:
 
 **Current focus:** Phase 01 — deploy-everything
 **Progress:** [██████████] 100%
-**Last session:** 2026-03-30 - Completed quick task 260330-jxl: write the VS Code Extension docs page + any other missing docs
+**Last session:** 2026-03-31 - Completed quick task 260331-ti8: Expand RunEvent union, split executeUnit helpers, add ProviderToolCall index, judge static-dynamic boundary
 **Stopped at:** Completed 01-deploy-everything-01-03-PLAN.md
 
 ## Current Phase
@@ -50,3 +50,4 @@ progress:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260330-jxl | write the VS Code Extension docs page + any other missing docs | 2026-03-30 | 5603cbf | [260330-jxl-write-the-vs-code-extension-docs-page-an](./quick/260330-jxl-write-the-vs-code-extension-docs-page-an/) |
+| 260331-ti8 | Expand RunEvent union, split executeUnit helpers, add ProviderToolCall index, judge static-dynamic boundary | 2026-03-31 | 5182066 | [260331-ti8-expand-runevent-union-split-executeunit-](./quick/260331-ti8-expand-runevent-union-split-executeunit-/) |
