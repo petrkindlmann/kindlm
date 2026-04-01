@@ -8,6 +8,9 @@ dist/
 .kindlm/
 settings.local.json
 .vercel
+node-compile-cache/
+docs/superpowers/
+AGENTS.md
 .next/
 out/
 .open-next/
