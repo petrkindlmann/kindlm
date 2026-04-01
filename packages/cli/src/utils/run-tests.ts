@@ -19,6 +19,8 @@ import { createSpinner } from "./spinner.js";
 import { createNodeFileReader } from "./file-reader.js";
 import { createNodeCommandExecutor } from "./command-executor.js";
 import { createCachingAdapter } from "./caching-adapter.js";
+import { loadFeatureFlags, isEnabled } from "./features.js";
+import type { FeatureFlags } from "./features.js";
 
 export interface RunTestsOptions {
   configPath: string;
@@ -27,6 +29,7 @@ export interface RunTestsOptions {
   suite?: string;
   baselineData?: BaselineData;
   noCache?: boolean;
+  featureFlags?: FeatureFlags;
 }
 
 export interface RunTestsResult {
@@ -34,6 +37,7 @@ export interface RunTestsResult {
   runnerResult: RunnerResult;
   configDir: string;
   yamlContent: string;
+  featureFlags: FeatureFlags;
 }
 
 const MAX_CONFIG_SIZE = 1_048_576; // 1MB
@@ -63,6 +67,8 @@ async function runTestsInner(
   options: RunTestsOptions,
   spinner: ReturnType<typeof createSpinner>,
 ): Promise<RunTestsResult> {
+  const featureFlags = options.featureFlags ?? loadFeatureFlags(process.cwd());
+
   // 1. Read config
   const configPath = resolve(process.cwd(), options.configPath);
   const configDir = dirname(configPath);
@@ -231,6 +237,13 @@ async function runTestsInner(
   });
 
   const runResult = await runner.run();
+
+  // runArtifacts flag: only write run artifacts when explicitly opted in.
+  // Phase 02 wires the actual writer here once that phase ships.
+  if (isEnabled(featureFlags, "runArtifacts")) {
+    // artifact writer will be injected here in phase 02
+  }
+
   spinner.stop();
 
   if (!runResult.success) {
@@ -238,11 +251,15 @@ async function runTestsInner(
     process.exit(1);
   }
 
+  // betaJudge flag: reserved for assertion layer — gates experimental judge scoring in phase 03.
+  // costGating flag: reserved for gate enforcement — gates cost-based pass/fail thresholds.
+
   return {
     config,
     runnerResult: runResult.data,
     configDir,
     yamlContent,
+    featureFlags,
   };
 }
 
