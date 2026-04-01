@@ -5,7 +5,7 @@ import Markdown from "@/components/Markdown";
 import { getDocBySlug, getDocSlugs, getAllDocs } from "@/lib/docs";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
@@ -13,7 +13,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const doc = getDocBySlug(params.slug);
+  const { slug } = await params;
+  const doc = getDocBySlug(slug);
   if (!doc) return {};
   return {
     title: doc.meta.title,
@@ -21,12 +22,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function DocPage({ params }: Props) {
-  const doc = getDocBySlug(params.slug);
+export default async function DocPage({ params }: Props) {
+  const { slug } = await params;
+  const doc = getDocBySlug(slug);
   if (!doc) notFound();
 
   const allDocs = getAllDocs();
-  const idx = allDocs.findIndex((d) => d.slug === params.slug);
+  const idx = allDocs.findIndex((d) => d.slug === slug);
   const prev = idx > 0 ? allDocs[idx - 1] : null;
   const next = idx < allDocs.length - 1 ? allDocs[idx + 1] : null;
 
