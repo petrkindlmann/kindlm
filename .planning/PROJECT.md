@@ -41,10 +41,14 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 ### Active
 
 - JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag
-- COST-01: Pre-emptive cost budget enforcement gated behind `costGating` flag
 - ISOLATE-01: Copy config + referenced schema files into worktree on `--isolate`
 - TEST-01: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts`
-- CLI-01: `--concurrency` and `--timeout` CLI override flags for `kindlm test`
+
+### Validated (v2.1.0)
+
+- ✓ COST-01: `costGating` flag gates `costMaxUsd` enforcement — validated in Phase 6 — v2.1.0
+- ✓ CLI-01: `--concurrency` override for `kindlm test` — validated in Phase 6 — v2.1.0
+- ✓ CLI-02: `--timeout` override for `kindlm test` — validated in Phase 6 — v2.1.0
 
 ### Out of Scope
 
