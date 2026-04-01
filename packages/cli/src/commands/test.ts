@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
+import { randomUUID } from "node:crypto";
 import type { Command } from "commander";
 import chalk from "chalk";
 import {
@@ -19,6 +20,7 @@ import { getGitInfo } from "../utils/git.js";
 import { formatTestPlan } from "../utils/dry-run.js";
 import { watchFile } from "../utils/watcher.js";
 import { createNodeFileReader } from "../utils/file-reader.js";
+import { createWorktree, WorktreeError } from "../utils/worktree.js";
 
 declare const KINDLM_VERSION: string;
 
@@ -33,6 +35,7 @@ interface TestOptions {
   dryRun?: boolean;
   watch?: boolean;
   noCache?: boolean;
+  isolate?: boolean;
 }
 
 export function registerTestCommand(program: Command): void {
@@ -49,6 +52,7 @@ export function registerTestCommand(program: Command): void {
     .option("--dry-run", "Validate config and print test plan without executing")
     .option("--watch", "Re-run tests when kindlm.yaml changes")
     .option("--no-cache", "Disable response caching")
+    .option("--isolate", "Run tests in an isolated git worktree (requires git)")
     .action(async (options: TestOptions) => {
       if (options.pdf && !options.compliance) {
         console.error(chalk.red("--pdf requires --compliance"));
@@ -115,6 +119,25 @@ export function registerTestCommand(program: Command): void {
   async function executeTestRun(options: TestOptions): Promise<void> {
     // P-02: Validate reporter before running tests to fail fast
     const reporter = selectReporter(options.reporter);
+
+    // Set up optional worktree isolation before running tests
+    let worktreeCleanup: (() => Promise<void>) | undefined;
+
+    if (options.isolate) {
+      const suiteName = options.suite ?? "default";
+      const runId = randomUUID().slice(0, 8);
+      const slug = toWorktreeSlug(suiteName, runId);
+
+      try {
+        const wt = await createWorktree(slug);
+        worktreeCleanup = wt.cleanup;
+        console.log(chalk.dim(`Worktree: ${wt.path}`));
+      } catch (e) {
+        // Degrade gracefully — run without isolation if worktree creation fails
+        const msg = e instanceof WorktreeError ? e.message : String(e);
+        console.warn(chalk.yellow(`Warning: could not create worktree (${msg}). Running without isolation.`));
+      }
+    }
 
     try {
       const { runnerResult, config, yamlContent } = await runTests({
@@ -216,8 +239,27 @@ export function registerTestCommand(program: Command): void {
       if (!options.watch) {
         process.exit(1);
       }
+    } finally {
+      // Clean up the worktree after tests complete (or fail), regardless of outcome
+      if (worktreeCleanup) {
+        await worktreeCleanup();
+      }
     }
   }
+}
+
+/**
+ * Converts a suite name + run ID into a valid worktree slug.
+ * Sanitizes non-allowed characters and caps total length at 64.
+ */
+function toWorktreeSlug(suite: string, runId: string): string {
+  // Replace non-[a-zA-Z0-9._-] chars with "-", collapse runs of "-", strip leading/trailing "-"
+  const sanitized = suite
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 55);
+  return `${sanitized || "run"}-${runId}`;
 }
 
 function isKindlmError(e: unknown): e is KindlmError {
