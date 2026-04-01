@@ -64,7 +64,7 @@ Plans:
   3. A `schemaFile` path containing `../` that resolves outside the repo root is rejected with an error before any files are copied (path escape guard)
 **Plans**: 1 plan
 Plans:
-- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
+- [ ] 08-01-PLAN.md — Implement extractConfigFilePaths + copyFilesToWorktree and wire into test.ts isolate block
 
 ### Phase 9: CLI Utility Unit Tests
 **Goal**: The three previously-untested CLI utilities have verifiable unit test coverage
@@ -76,7 +76,7 @@ Plans:
   3. `spinner.ts` start/stop/update behavior is tested via `vi.mock("ora")` mocked at the wrapper level, with no dependency on real terminal I/O
 **Plans**: 1 plan
 Plans:
-- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
+- [ ] 09-01-PLAN.md — Unit tests for dry-run.ts, select-reporter.ts, and spinner.ts
 
 ## Progress
 
@@ -89,5 +89,5 @@ Plans:
 | 5. Worktree Isolation for Test Runs | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 6. Cost Gating + CLI Overrides | v2.1.0 | 1/1 | Complete    | 2026-04-01 |
 | 7. betaJudge Multi-Pass Scoring | v2.1.0 | 1/1 | Complete   | 2026-04-01 |
-| 8. Worktree File Copy | v2.1.0 | 0/? | Not started | - |
-| 9. CLI Utility Unit Tests | v2.1.0 | 0/? | Not started | - |
+| 8. Worktree File Copy | v2.1.0 | 0/1 | Not started | - |
+| 9. CLI Utility Unit Tests | v2.1.0 | 0/1 | Not started | - |
