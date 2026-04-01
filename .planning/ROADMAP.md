@@ -40,7 +40,7 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
   4. When `costGating` is disabled (default), `config.gates.costMaxUsd` is ignored and runs proceed regardless of cost
 **Plans**: 1 plan
 Plans:
-- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
+- [x] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
 
 ### Phase 7: betaJudge Multi-Pass Scoring
 **Goal**: Users running judge assertions get stable, variance-reduced scores when betaJudge is enabled

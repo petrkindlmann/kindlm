@@ -8,7 +8,7 @@
 ### Feature Flags
 
 - [ ] **JUDGE-01**: `betaJudge` flag enables 3-pass median judge scoring; errored passes are excluded from median (minimum 1 successful pass required)
-- [ ] **COST-01**: `costGating` flag gates whether `config.gates.costMaxUsd` is forwarded to the runner (runner logic already exists; flag controls activation)
+- [x] **COST-01**: `costGating` flag gates whether `config.gates.costMaxUsd` is forwarded to the runner (runner logic already exists; flag controls activation)
 
 ### Worktree Isolation
 
@@ -16,8 +16,8 @@
 
 ### CLI Overrides
 
-- [ ] **CLI-01**: `kindlm test --concurrency N` overrides `config.defaults.concurrency` (validated ≥ 1, exits with error otherwise)
-- [ ] **CLI-02**: `kindlm test --timeout MS` overrides `config.defaults.timeoutMs` (validated ≥ 0; controls execution timeout only, not provider HTTP timeout)
+- [x] **CLI-01**: `kindlm test --concurrency N` overrides `config.defaults.concurrency` (validated ≥ 1, exits with error otherwise)
+- [x] **CLI-02**: `kindlm test --timeout MS` overrides `config.defaults.timeoutMs` (validated ≥ 0; controls execution timeout only, not provider HTTP timeout)
 
 ### Test Coverage
 
@@ -43,10 +43,10 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | JUDGE-01 | Phase 7 | Pending |
-| COST-01 | Phase 6 | Pending |
+| COST-01 | Phase 6 | Complete |
 | ISOLATE-01 | Phase 8 | Pending |
-| CLI-01 | Phase 6 | Pending |
-| CLI-02 | Phase 6 | Pending |
+| CLI-01 | Phase 6 | Complete |
+| CLI-02 | Phase 6 | Complete |
 | TEST-01 | Phase 9 | Pending |
 | TEST-02 | Phase 9 | Pending |
 | TEST-03 | Phase 9 | Pending |
