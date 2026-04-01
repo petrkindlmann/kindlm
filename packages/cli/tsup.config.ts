@@ -19,7 +19,10 @@ export default defineConfig([
   {
     entry: ["src/bin/kindlm.ts"],
     format: ["esm"],
-    banner: { js: "#!/usr/bin/env node" },
+    platform: "node",
+    banner: {
+      js: "#!/usr/bin/env node\nimport { createRequire } from 'module';\nconst require = createRequire(import.meta.url);",
+    },
     splitting: false,
     sourcemap: true,
     minify: true,
