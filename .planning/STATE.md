@@ -1,32 +1,37 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0.0
-milestone_name: milestone
-status: Milestone complete
-stopped_at: Completed 05-worktree-isolation-05-01-PLAN.md
-last_updated: "2026-04-01T03:33:41.113Z"
+milestone_name: Launch Ops
+status: Milestone complete — archived
+stopped_at: gsd:complete-milestone v2.0.0
+last_updated: "2026-04-01T06:45:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 7
   completed_plans: 7
-  percent: 86
+  percent: 100
 ---
 
-## Status: Active
+## Status: Milestone Complete
 
-**Current focus:** Phase 05 — worktree-isolation
-**Progress:** [█████████░] 86%
-**Last session:** 2026-04-01T03:30:34.691Z
-**Stopped at:** Completed 05-worktree-isolation-05-01-PLAN.md
+**Milestone:** v2.0.0 Launch Ops — SHIPPED 2026-04-01
+**Progress:** [██████████] 100%
 
-## Current Phase
+## Project Reference
 
-**Phase 02: append-only-run-artifacts-and-versioned-baselines**
+See: `.planning/PROJECT.md` (updated 2026-04-01)
 
-- Plan 01: Append-only run artifacts + versioned baselines — COMPLETE (commits 8c5b826, de8567d)
+**Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
+**Current focus:** Planning next milestone
 
-## Decisions
+## Tech Debt (from v2.0.0 audit)
+
+- `runArtifacts` feature flag has no effect — stub in `run-tests.ts`, write in `test.ts` is unconditional
+- `--isolate` worktree path created but not used as test cwd
+- Stripe live-mode products need sk_live_ key (user action required)
+
+## Decisions (archived to PROJECT.md Key Decisions table)
 
 - (01-01) Use `!` non-null assertion in test files for `.mock.calls[0]` — acceptable in test context where preceding setup guarantees the call
 - (01-01) Prefix unused cloud helpers with `_` instead of deleting (ECDSA/XML SAML helpers are valid implementations worth retaining)
