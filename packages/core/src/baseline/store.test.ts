@@ -182,7 +182,7 @@ describe("writeBaselineVersioned", () => {
     expect(latestContent).toBeDefined();
     const pointer = JSON.parse(latestContent!) as { latestFile: string };
     expect(pointer).toHaveProperty("latestFile");
-    expect(pointer.latestFile).toMatch(/refund-agent-\d{14}\.json/);
+    expect(pointer.latestFile).toMatch(/refund-agent-\d{14}-[0-9a-f]{6}\.json/);
   });
 
   it("pointer file contains only latestFile reference, not content copy", () => {

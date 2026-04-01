@@ -215,7 +215,9 @@ export function writeBaselineVersioned(data: BaselineData, io: BaselineIO): Resu
   const stamped: BaselineData = { ...data, savedAt: new Date().toISOString() };
   // Produce a compact sortable timestamp: YYYYMMDDHHMMSS
   const timestamp = stamped.savedAt!.replace(/[-:T.Z]/g, "").slice(0, 14);
-  const versionedName = `${data.suiteName}-${timestamp}`;
+  // Append a random hex nonce so two calls within the same second never collide
+  const nonce = Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0");
+  const versionedName = `${data.suiteName}-${timestamp}-${nonce}`;
 
   const writeVersioned = io.write(versionedName, serializeBaseline(stamped));
   if (!writeVersioned.success) {
