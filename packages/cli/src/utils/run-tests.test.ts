@@ -230,6 +230,65 @@ describe("runTests", () => {
     expect(result.yamlContent).toBe(VALID_YAML);
   });
 
+  it("exits 1 for invalid --concurrency value (zero)", async () => {
+    try { await runTests({ configPath: "kindlm.yaml", concurrency: 0 }); } catch { /* exit throws */ }
+    expect(exitCode).toBe(1);
+    expect(errors.join("\n")).toContain("Invalid --concurrency value");
+  });
+
+  it("exits 1 for invalid --concurrency value (negative)", async () => {
+    try { await runTests({ configPath: "kindlm.yaml", concurrency: -5 }); } catch { /* exit throws */ }
+    expect(exitCode).toBe(1);
+    expect(errors.join("\n")).toContain("Invalid --concurrency value");
+  });
+
+  it("applies --concurrency override to config.defaults.concurrency", async () => {
+    const result = await runTests({ configPath: "kindlm.yaml", concurrency: 8 });
+    expect(result.config.defaults.concurrency).toBe(8);
+  });
+
+  it("exits 1 for invalid --timeout value (negative)", async () => {
+    try { await runTests({ configPath: "kindlm.yaml", timeout: -1 }); } catch { /* exit throws */ }
+    expect(exitCode).toBe(1);
+    expect(errors.join("\n")).toContain("Invalid --timeout value");
+  });
+
+  it("accepts --timeout 0 as valid (immediate timeout)", async () => {
+    const result = await runTests({ configPath: "kindlm.yaml", timeout: 0 });
+    expect(result.config.defaults.timeoutMs).toBe(0);
+  });
+
+  it("applies --timeout override to config.defaults.timeoutMs", async () => {
+    const result = await runTests({ configPath: "kindlm.yaml", timeout: 5000 });
+    expect(result.config.defaults.timeoutMs).toBe(5000);
+  });
+
+  it("strips costMaxUsd from config.gates when costGating flag is disabled", async () => {
+    mockParseConfig.mockReturnValue({
+      success: true,
+      data: { ...structuredClone(minimalConfig), gates: { passRateMin: 0.95, costMaxUsd: 0.50 } },
+    } as never);
+    const result = await runTests({
+      configPath: "kindlm.yaml",
+      featureFlags: { runArtifacts: false, betaJudge: false, costGating: false },
+    });
+    expect(result.config.gates?.costMaxUsd).toBeUndefined();
+    expect(result.config.gates?.passRateMin).toBe(0.95);
+  });
+
+  it("preserves costMaxUsd in config.gates when costGating flag is enabled", async () => {
+    mockParseConfig.mockReturnValue({
+      success: true,
+      data: { ...structuredClone(minimalConfig), gates: { passRateMin: 0.95, costMaxUsd: 0.50 } },
+    } as never);
+    mockIsEnabled.mockImplementation((_flags: Record<string, boolean>, key: string) => key === "costGating");
+    const result = await runTests({
+      configPath: "kindlm.yaml",
+      featureFlags: { runArtifacts: false, betaJudge: false, costGating: true },
+    });
+    expect(result.config.gates?.costMaxUsd).toBe(0.50);
+  });
+
   it("resolves env: headers for mcp provider", async () => {
     mockParseConfig.mockReturnValue({
       success: true,

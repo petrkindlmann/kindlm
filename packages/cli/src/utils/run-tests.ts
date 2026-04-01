@@ -34,6 +34,8 @@ export interface RunTestsOptions {
   baselineData?: BaselineData;
   noCache?: boolean;
   featureFlags?: FeatureFlags;
+  concurrency?: number;
+  timeout?: number;
 }
 
 export interface RunTestsResult {
@@ -145,6 +147,24 @@ async function runTestsInner(
     } else {
       config.gates.passRateMin = options.gate / 100;
     }
+  }
+
+  if (options.concurrency !== undefined) {
+    if (!Number.isInteger(options.concurrency) || options.concurrency < 1) {
+      console.error(chalk.red(`Invalid --concurrency value: ${options.concurrency}. Must be a positive integer (>= 1).`));
+      process.exit(1);
+    }
+    config.defaults.concurrency = options.concurrency;
+  }
+  if (options.timeout !== undefined) {
+    if (!Number.isInteger(options.timeout) || options.timeout < 0) {
+      console.error(chalk.red(`Invalid --timeout value: ${options.timeout}. Must be a non-negative integer (>= 0).`));
+      process.exit(1);
+    }
+    config.defaults.timeoutMs = options.timeout;
+  }
+  if (!isEnabled(featureFlags, "costGating") && config.gates) {
+    config.gates = { ...config.gates, costMaxUsd: undefined };
   }
 
   // 4. Resolve API keys + create provider adapters

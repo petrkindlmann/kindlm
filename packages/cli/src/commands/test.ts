@@ -36,6 +36,8 @@ interface TestOptions {
   watch?: boolean;
   noCache?: boolean;
   isolate?: boolean;
+  concurrency?: string;
+  timeout?: string;
 }
 
 export function registerTestCommand(program: Command): void {
@@ -53,6 +55,8 @@ export function registerTestCommand(program: Command): void {
     .option("--watch", "Re-run tests when kindlm.yaml changes")
     .option("--no-cache", "Disable response caching")
     .option("--isolate", "Run tests in an isolated git worktree (requires git)")
+    .option("--concurrency <count>", "Override default test concurrency (must be >= 1)")
+    .option("--timeout <ms>", "Override test execution timeout in ms (>= 0; does not affect provider HTTP timeout)")
     .action(async (options: TestOptions) => {
       if (options.pdf && !options.compliance) {
         console.error(chalk.red("--pdf requires --compliance"));
@@ -149,6 +153,8 @@ export function registerTestCommand(program: Command): void {
         gate: options.gate !== undefined ? parseFloat(options.gate) : undefined,
         suite: options.suite,
         noCache: options.noCache,
+        concurrency: options.concurrency !== undefined ? parseInt(options.concurrency, 10) : undefined,
+        timeout: options.timeout !== undefined ? parseInt(options.timeout, 10) : undefined,
       });
 
       const { runResult: result, aggregated } = runnerResult;
