@@ -3,19 +3,19 @@ gsd_state_version: 1.0
 milestone: v2.1.0
 milestone_name: Gap Closure
 status: verifying
-last_updated: "2026-04-01T08:25:32.611Z"
+last_updated: "2026-04-01T12:15:57.505Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
 ---
 
 ## Current Position
 
-Phase: 7
-Plan: Not started
+Phase: 07 (betajudge-multi-pass-scoring) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-04-01
 
@@ -24,7 +24,7 @@ Last activity: 2026-04-01
 See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Phase 6 — Cost Gating + CLI Overrides
+**Current focus:** Phase 07 — betajudge-multi-pass-scoring
 
 ## Tech Debt (from v2.0.0 audit)
 
@@ -51,6 +51,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 - [Phase 04-01]: env: header resolution in CLI only — preserves zero-I/O constraint in @kindlm/core
 - [Phase 05-worktree-isolation]: Manual Promise wrapper over promisify(execFile) preserves vi.mock compatibility — promisify.custom is lost when the module is mocked
 - [Phase 05-worktree-isolation]: Detached HEAD worktree (git worktree add --detach) avoids branch name conflicts for concurrent runs
+- [Phase 07-01]: betaJudge uses ceil(3/2)=2 quorum — prevents poisoned median from transient API failures
+- [Phase 07-01]: Median = scores[Math.floor(scores.length/2)] on sorted array — deterministic for both even and odd successful-pass counts
 
 ## Accumulated Context
 
@@ -90,6 +92,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | Phase 04-mcp-provider-adapter P01 | 3min | 2 tasks | 5 files |
 | Phase 05-worktree-isolation P01 | 6min | 2 tasks | 3 files |
 | Phase 06-cost-gating-cli-overrides P01 | 8min | 2 tasks | 3 files |
+| Phase 07-betajudge-multi-pass-scoring P01 | 3min | 2 tasks | 5 files |
 
 ### Quick Tasks Completed
 

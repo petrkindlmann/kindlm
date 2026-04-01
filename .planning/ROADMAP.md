@@ -23,7 +23,7 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
 ### v2.1.0 Gap Closure
 
 - [x] **Phase 6: Cost Gating + CLI Overrides** — Wire costGating flag and add --concurrency/--timeout flags (completed 2026-04-01)
-- [ ] **Phase 7: betaJudge Multi-Pass Scoring** — Implement 3-pass median judge scoring gated behind betaJudge flag
+- [x] **Phase 7: betaJudge Multi-Pass Scoring** — Implement 3-pass median judge scoring gated behind betaJudge flag (completed 2026-04-01)
 - [ ] **Phase 8: Worktree File Copy** — Copy referenced schema files into worktree for complete filesystem isolation
 - [ ] **Phase 9: CLI Utility Unit Tests** — Unit tests for dry-run.ts, select-reporter.ts, and spinner.ts
 
@@ -52,7 +52,7 @@ Plans:
   3. When `betaJudge` is disabled (default), judge assertions run exactly once — no change to existing behavior
 **Plans**: 1 plan
 Plans:
-- [ ] 07-01-PLAN.md — Implement betaJudge multi-pass median scoring + wire feature flag from CLI to runner
+- [x] 07-01-PLAN.md — Implement betaJudge multi-pass median scoring + wire feature flag from CLI to runner
 
 ### Phase 8: Worktree File Copy
 **Goal**: Users running `kindlm test --isolate` get a fully functional isolated environment including all files referenced in kindlm.yaml
@@ -88,6 +88,6 @@ Plans:
 | 4. MCP Provider Adapter | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 5. Worktree Isolation for Test Runs | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 6. Cost Gating + CLI Overrides | v2.1.0 | 1/1 | Complete    | 2026-04-01 |
-| 7. betaJudge Multi-Pass Scoring | v2.1.0 | 0/1 | Not started | - |
+| 7. betaJudge Multi-Pass Scoring | v2.1.0 | 1/1 | Complete   | 2026-04-01 |
 | 8. Worktree File Copy | v2.1.0 | 0/? | Not started | - |
 | 9. CLI Utility Unit Tests | v2.1.0 | 0/? | Not started | - |

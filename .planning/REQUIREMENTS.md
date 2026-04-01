@@ -7,7 +7,7 @@
 
 ### Feature Flags
 
-- [ ] **JUDGE-01**: `betaJudge` flag enables 3-pass median judge scoring; errored passes are excluded from median (minimum 1 successful pass required)
+- [x] **JUDGE-01**: `betaJudge` flag enables 3-pass median judge scoring; errored passes are excluded from median (minimum 1 successful pass required)
 - [x] **COST-01**: `costGating` flag gates whether `config.gates.costMaxUsd` is forwarded to the runner (runner logic already exists; flag controls activation)
 
 ### Worktree Isolation
@@ -42,7 +42,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| JUDGE-01 | Phase 7 | Pending |
+| JUDGE-01 | Phase 7 | Complete |
 | COST-01 | Phase 6 | Complete |
 | ISOLATE-01 | Phase 8 | Pending |
 | CLI-01 | Phase 6 | Complete |
