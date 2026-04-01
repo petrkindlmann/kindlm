@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 04-mcp-provider-adapter-04-01-PLAN.md
-last_updated: "2026-04-01T03:22:03.487Z"
+status: Executing Phase 05
+stopped_at: Completed 05-worktree-isolation-05-01-PLAN.md
+last_updated: "2026-04-01T03:30:54.341Z"
 progress:
   total_phases: 5
   completed_phases: 4
@@ -15,10 +15,10 @@ progress:
 
 ## Status: Active
 
-**Current focus:** Phase 04 — mcp-provider-adapter
+**Current focus:** Phase 05 — worktree-isolation
 **Progress:** [█████████░] 86%
-**Last session:** 2026-04-01T03:13:20.811Z
-**Stopped at:** Completed 04-mcp-provider-adapter-04-01-PLAN.md
+**Last session:** 2026-04-01T03:30:34.691Z
+**Stopped at:** Completed 05-worktree-isolation-05-01-PLAN.md
 
 ## Current Phase
 
@@ -43,6 +43,8 @@ progress:
 - [Phase 03-01]: featureFlags is optional on RunTestsOptions so all existing callers remain unaffected
 - [Phase 04-01]: extractMcpText ordering: content[0].text (MCP protocol) then result then output — matches MCP spec priority
 - [Phase 04-01]: env: header resolution in CLI only — preserves zero-I/O constraint in @kindlm/core
+- [Phase 05-worktree-isolation]: Manual Promise wrapper over promisify(execFile) preserves vi.mock compatibility — promisify.custom is lost when the module is mocked
+- [Phase 05-worktree-isolation]: Detached HEAD worktree (git worktree add --detach) avoids branch name conflicts for concurrent runs
 
 ## Accumulated Context
 
@@ -62,6 +64,7 @@ progress:
 | 02-append-only-run-artifacts-and-versioned-baselines | 01 | 13min | 2 | 8 |
 | Phase 03-feature-flags P01 | 2min | 2 tasks | 3 files |
 | Phase 04-mcp-provider-adapter P01 | 3min | 2 tasks | 5 files |
+| Phase 05-worktree-isolation P01 | 6min | 2 tasks | 3 files |
 
 ### Quick Tasks Completed
 

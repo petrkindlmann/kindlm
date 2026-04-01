@@ -48,7 +48,7 @@ Plans:
 **Goal:** Add opt-in `--isolate` flag to `kindlm test` that runs each suite inside a fresh git worktree, with fail-closed cleanup (warn + leave worktree if dirty) and graceful degradation when git is unavailable
 **Requirements**: WORKTREE-01, WORKTREE-02, WORKTREE-03
 **Depends on:** Phase 4
-**Plans:** 1 plan
+**Plans:** 0/1 plans executed
 
 Plans:
 - [ ] 05-01-PLAN.md — Create worktree.ts utility (slug validation, create/remove/inspect) and wire --isolate into kindlm test
