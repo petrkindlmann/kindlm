@@ -286,6 +286,7 @@ async function runTestsInner(
     onEvent,
     baselineData: options.baselineData,
     commandExecutor,
+    betaJudge: isEnabled(featureFlags, "betaJudge"),
   });
 
   const runResult = await runner.run();
