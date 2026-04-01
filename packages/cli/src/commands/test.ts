@@ -20,7 +20,7 @@ import { getGitInfo } from "../utils/git.js";
 import { formatTestPlan } from "../utils/dry-run.js";
 import { watchFile } from "../utils/watcher.js";
 import { createNodeFileReader } from "../utils/file-reader.js";
-import { createWorktree, WorktreeError } from "../utils/worktree.js";
+import { createWorktree, WorktreeError, copyFilesToWorktree, extractConfigFilePaths } from "../utils/worktree.js";
 
 declare const KINDLM_VERSION: string;
 
@@ -136,7 +136,24 @@ export function registerTestCommand(program: Command): void {
       try {
         const wt = await createWorktree(slug);
         worktreeCleanup = wt.cleanup;
-        originalCwd = process.cwd();
+        const capturedCwd = process.cwd();
+        originalCwd = capturedCwd;
+
+        // Copy config file + referenced schema files into worktree (per ISOLATE-01)
+        // Resolve all paths against original cwd BEFORE chdir to avoid chicken-and-egg
+        const absConfigPath = resolve(capturedCwd, options.config);
+        const yamlContent = readFileSync(absConfigPath, "utf-8");
+        const referencedPaths = extractConfigFilePaths(yamlContent)
+          .map((p) => resolve(capturedCwd, p));
+        referencedPaths.push(absConfigPath); // always copy the config file itself
+        try {
+          await copyFilesToWorktree(wt.path, capturedCwd, referencedPaths);
+        } catch (copyErr) {
+          if (copyErr instanceof WorktreeError) throw copyErr; // path escape — let outer catch handle
+          const copyMsg = copyErr instanceof Error ? copyErr.message : String(copyErr);
+          console.warn(chalk.yellow(`Warning: file copy failed (${copyMsg}). Some files may be missing in worktree.`));
+        }
+
         process.chdir(wt.path);
         console.log(chalk.dim(`Worktree: ${wt.path}`));
       } catch (e) {
