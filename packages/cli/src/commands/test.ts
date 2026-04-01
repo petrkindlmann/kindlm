@@ -14,7 +14,6 @@ import {
 import type { KindlmError, ComplianceRunMetadata } from "@kindlm/core";
 import { runTests } from "../utils/run-tests.js";
 import { saveLastRun, computeConfigHash } from "../utils/last-run.js";
-import type { RunArtifactPaths } from "../utils/artifacts.js";
 import { renderCompliancePdf } from "../utils/pdf-renderer.js";
 import { selectReporter } from "../utils/select-reporter.js";
 import { getGitInfo } from "../utils/git.js";
@@ -123,6 +122,7 @@ export function registerTestCommand(program: Command): void {
 
     // Set up optional worktree isolation before running tests
     let worktreeCleanup: (() => Promise<void>) | undefined;
+    let originalCwd: string | undefined;
 
     if (options.isolate) {
       const suiteName = options.suite ?? "default";
@@ -132,6 +132,8 @@ export function registerTestCommand(program: Command): void {
       try {
         const wt = await createWorktree(slug);
         worktreeCleanup = wt.cleanup;
+        originalCwd = process.cwd();
+        process.chdir(wt.path);
         console.log(chalk.dim(`Worktree: ${wt.path}`));
       } catch (e) {
         // Degrade gracefully — run without isolation if worktree creation fails
@@ -141,7 +143,7 @@ export function registerTestCommand(program: Command): void {
     }
 
     try {
-      const { runnerResult, config, yamlContent } = await runTests({
+      const { runnerResult, config, yamlContent, artifactPaths } = await runTests({
         configPath: options.config,
         runs: options.runs !== undefined ? parseInt(options.runs, 10) : undefined,
         gate: options.gate !== undefined ? parseFloat(options.gate) : undefined,
@@ -194,23 +196,6 @@ export function registerTestCommand(program: Command): void {
         }
       }
 
-      // Write run artifacts (non-fatal)
-      let artifactPaths: RunArtifactPaths | undefined;
-      try {
-        const { writeRunArtifacts } = await import("../utils/artifacts.js");
-        const gitInfo = getGitInfo();
-        const configHash = computeConfigHash(yamlContent);
-        artifactPaths = writeRunArtifacts(
-          runnerResult,
-          config.suite.name,
-          configHash,
-          gitInfo.commitSha ?? null,
-          yamlContent,
-        );
-      } catch {
-        console.warn(chalk.yellow("Warning: failed to write run artifacts (non-fatal)"));
-      }
-
       // Cache last run for upload
       try {
         saveLastRun({
@@ -260,7 +245,9 @@ export function registerTestCommand(program: Command): void {
         process.exit(1);
       }
     } finally {
-      // Clean up the worktree after tests complete (or fail), regardless of outcome
+      if (originalCwd) {
+        process.chdir(originalCwd);
+      }
       if (worktreeCleanup) {
         await worktreeCleanup();
       }

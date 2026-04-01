@@ -21,6 +21,10 @@ import { createNodeCommandExecutor } from "./command-executor.js";
 import { createCachingAdapter } from "./caching-adapter.js";
 import { loadFeatureFlags, isEnabled } from "./features.js";
 import type { FeatureFlags } from "./features.js";
+import { writeRunArtifacts } from "./artifacts.js";
+import type { RunArtifactPaths } from "./artifacts.js";
+import { computeConfigHash } from "./last-run.js";
+import { getGitInfo } from "./git.js";
 
 export interface RunTestsOptions {
   configPath: string;
@@ -38,6 +42,7 @@ export interface RunTestsResult {
   configDir: string;
   yamlContent: string;
   featureFlags: FeatureFlags;
+  artifactPaths?: RunArtifactPaths;
 }
 
 const MAX_CONFIG_SIZE = 1_048_576; // 1MB
@@ -265,12 +270,6 @@ async function runTestsInner(
 
   const runResult = await runner.run();
 
-  // runArtifacts flag: only write run artifacts when explicitly opted in.
-  // Phase 02 wires the actual writer here once that phase ships.
-  if (isEnabled(featureFlags, "runArtifacts")) {
-    // artifact writer will be injected here in phase 02
-  }
-
   spinner.stop();
 
   if (!runResult.success) {
@@ -278,8 +277,22 @@ async function runTestsInner(
     process.exit(1);
   }
 
-  // betaJudge flag: reserved for assertion layer — gates experimental judge scoring in phase 03.
-  // costGating flag: reserved for gate enforcement — gates cost-based pass/fail thresholds.
+  let artifactPaths: RunArtifactPaths | undefined;
+  if (isEnabled(featureFlags, "runArtifacts")) {
+    try {
+      const gitInfo = getGitInfo();
+      const configHash = computeConfigHash(yamlContent);
+      artifactPaths = writeRunArtifacts(
+        runResult.data,
+        config.suite.name,
+        configHash,
+        gitInfo.commitSha ?? null,
+        yamlContent,
+      );
+    } catch {
+      console.warn(chalk.yellow("Warning: failed to write run artifacts (non-fatal)"));
+    }
+  }
 
   return {
     config,
@@ -287,6 +300,7 @@ async function runTestsInner(
     configDir,
     yamlContent,
     featureFlags,
+    artifactPaths,
   };
 }
 
