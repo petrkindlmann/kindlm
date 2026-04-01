@@ -2,23 +2,23 @@
 gsd_state_version: 1.0
 milestone: v2.0.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 03-feature-flags-via-config-03-01-PLAN.md
-last_updated: "2026-04-01T03:08:40.148Z"
+status: Executing Phase 04
+stopped_at: Completed 04-mcp-provider-adapter-04-01-PLAN.md
+last_updated: "2026-04-01T03:14:21.608Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 ## Status: Active
 
-**Current focus:** Phase 03 — feature-flags-via-config
-**Progress:** [███████░░░] 71%
-**Last session:** 2026-04-01T03:06:22.346Z
-**Stopped at:** Completed 03-feature-flags-via-config-03-01-PLAN.md
+**Current focus:** Phase 04 — mcp-provider-adapter
+**Progress:** [█████████░] 86%
+**Last session:** 2026-04-01T03:13:20.811Z
+**Stopped at:** Completed 04-mcp-provider-adapter-04-01-PLAN.md
 
 ## Current Phase
 
@@ -41,6 +41,8 @@ progress:
 - [02-01]: Pre-existing lint errors in caching-adapter.ts + watcher.test.ts deferred (out of scope)
 - [Phase 03-01]: All flags default to false — absent or malformed config.json returns DEFAULTS without throwing
 - [Phase 03-01]: featureFlags is optional on RunTestsOptions so all existing callers remain unaffected
+- [Phase 04-01]: extractMcpText ordering: content[0].text (MCP protocol) then result then output — matches MCP spec priority
+- [Phase 04-01]: env: header resolution in CLI only — preserves zero-I/O constraint in @kindlm/core
 
 ## Accumulated Context
 
@@ -59,6 +61,7 @@ progress:
 | Phase 01-deploy-everything P02 | 5min | 2 tasks | 0 files |
 | 02-append-only-run-artifacts-and-versioned-baselines | 01 | 13min | 2 | 8 |
 | Phase 03-feature-flags P01 | 2min | 2 tasks | 3 files |
+| Phase 04-mcp-provider-adapter P01 | 3min | 2 tasks | 5 files |
 
 ### Quick Tasks Completed
 

@@ -38,10 +38,10 @@ Plans:
 **Goal:** Add MCP as a first-class provider type — users configure serverUrl + toolName, kindlm sends prompts to the MCP server via HTTP POST and maps the tool result to ProviderResponse for all existing assertion types
 **Requirements**: MCP-01
 **Depends on:** Phase 3
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 04-01-PLAN.md — MCP adapter (mcp.ts), schema + registry + CLI wiring
+- [x] 04-01-PLAN.md — MCP adapter (mcp.ts), schema + registry + CLI wiring
 
 ### Phase 5: Worktree isolation for test runs — run each test suite in an isolated git worktree, slug validation, fail-closed exit
 
