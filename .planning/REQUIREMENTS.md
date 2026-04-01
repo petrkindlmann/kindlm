@@ -11,6 +11,6 @@
 
 ## Phase 2: Append-only Run Artifacts and Versioned Baselines
 
-- [ ] **ARTIFACT-01**: After `kindlm test`, a `.kindlm/runs/{runId}/{executionId}/` directory exists containing exactly 5 files: `results.json`, `results.jsonl`, `summary.json`, `metadata.json`, `config.json`; same config+suite+git commit always produces the same `runId` (deterministic hash, retry-safe); each individual attempt produces a unique `executionId` (UUID)
-- [ ] **ARTIFACT-02**: `last-run.json` includes `runId` and `artifactDir` optional fields after a test run; artifact write failure produces a console warning (`chalk.yellow`) but does not change the process exit code
-- [ ] **BASELINE-01**: Running `kindlm baseline set` twice never overwrites the first file — both are kept as timestamped files (`{suite}-{YYYYMMDDHHMMSS}.json`) with a `-latest.json` pointer file containing only the filename reference `{ latestFile: "..." }` (not a content copy)
+- [x] **ARTIFACT-01**: After `kindlm test`, a `.kindlm/runs/{runId}/{executionId}/` directory exists containing exactly 5 files: `results.json`, `results.jsonl`, `summary.json`, `metadata.json`, `config.json`; same config+suite+git commit always produces the same `runId` (deterministic hash, retry-safe); each individual attempt produces a unique `executionId` (UUID)
+- [x] **ARTIFACT-02**: `last-run.json` includes `runId` and `artifactDir` optional fields after a test run; artifact write failure produces a console warning (`chalk.yellow`) but does not change the process exit code
+- [x] **BASELINE-01**: Running `kindlm baseline set` twice never overwrites the first file — both are kept as timestamped files (`{suite}-{YYYYMMDDHHMMSS}.json`) with a `-latest.json` pointer file containing only the filename reference `{ latestFile: "..." }` (not a content copy)
