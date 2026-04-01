@@ -10,6 +10,7 @@ vi.mock("@kindlm/core", () => ({
   parseConfig: vi.fn(),
   readBaseline: vi.fn(),
   writeBaseline: vi.fn(),
+  writeBaselineVersioned: vi.fn(),
   listBaselines: vi.fn(),
   buildBaselineData: vi.fn(),
   compareBaseline: vi.fn(),
@@ -38,6 +39,7 @@ import {
   listBaselines,
   deserializeBaseline,
   writeBaseline,
+  writeBaselineVersioned,
   buildBaselineData,
   readBaseline,
   compareBaseline,
@@ -46,6 +48,7 @@ import {
 const mockListBaselines = vi.mocked(listBaselines);
 const mockDeserializeBaseline = vi.mocked(deserializeBaseline);
 const mockWriteBaseline = vi.mocked(writeBaseline);
+const mockWriteBaselineVersioned = vi.mocked(writeBaselineVersioned);
 const mockBuildBaselineData = vi.mocked(buildBaselineData);
 const mockReadBaseline = vi.mocked(readBaseline);
 const mockCompareBaseline = vi.mocked(compareBaseline);
@@ -255,7 +258,7 @@ describe("baseline set command", () => {
     } as never);
 
     mockBuildBaselineData.mockReturnValue(baselineData as never);
-    mockWriteBaseline.mockReturnValue({ success: true, data: undefined });
+    mockWriteBaselineVersioned.mockReturnValue({ success: true, data: undefined });
 
     try {
       await program.parseAsync(["node", "kindlm", "baseline", "set"]);
@@ -265,7 +268,7 @@ describe("baseline set command", () => {
 
     expect(mockRunTests).toHaveBeenCalled();
     expect(mockBuildBaselineData).toHaveBeenCalled();
-    expect(mockWriteBaseline).toHaveBeenCalled();
+    expect(mockWriteBaselineVersioned).toHaveBeenCalled();
     // Success path should NOT call process.exit
     expect(exitCodes.length).toBe(0);
     const allOutput = logs.join("\n");
@@ -305,7 +308,7 @@ describe("baseline set command", () => {
       results: {},
     } as never);
 
-    mockWriteBaseline.mockReturnValue({
+    mockWriteBaselineVersioned.mockReturnValue({
       success: false,
       error: { code: "UNKNOWN_ERROR", message: "Disk full" },
     });
