@@ -28,10 +28,10 @@ Plans:
 **Goal:** CLI-layer feature flag system: read .kindlm/config.json, expose isEnabled(), gate betaJudge / costGating / runArtifacts flags in run-tests.ts
 **Requirements**: FF-01, FF-02, FF-03
 **Depends on:** Phase 2
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 03-01-PLAN.md — Create features.ts (loadFeatureFlags, isEnabled) and wire into run-tests.ts
+- [x] 03-01-PLAN.md — Create features.ts (loadFeatureFlags, isEnabled) and wire into run-tests.ts
 
 ### Phase 4: MCP provider adapter — passthrough adapter letting users point kindlm at an MCP server as a provider source
 

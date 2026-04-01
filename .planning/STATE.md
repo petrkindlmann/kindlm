@@ -2,23 +2,23 @@
 gsd_state_version: 1.0
 milestone: v2.0.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 02-append-only-run-artifacts-and-versioned-baselines-02-01-PLAN.md
-last_updated: "2026-04-01T03:02:25.234Z"
+status: Executing Phase 03
+stopped_at: Completed 03-feature-flags-via-config-03-01-PLAN.md
+last_updated: "2026-04-01T03:06:22.348Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 4
-  percent: 57
+  completed_plans: 5
+  percent: 71
 ---
 
 ## Status: Active
 
-**Current focus:** Phase 02 — append-only-run-artifacts-and-versioned-baselines
-**Progress:** [█████░░░░░] 57%
-**Last session:** 2026-03-31 - Completed 02-01: append-only run artifacts + immutable baseline versioning
-**Stopped at:** Completed 02-append-only-run-artifacts-and-versioned-baselines-02-01-PLAN.md
+**Current focus:** Phase 03 — feature-flags-via-config
+**Progress:** [███████░░░] 71%
+**Last session:** 2026-04-01T03:06:22.346Z
+**Stopped at:** Completed 03-feature-flags-via-config-03-01-PLAN.md
 
 ## Current Phase
 
@@ -39,6 +39,8 @@ progress:
 - [02-01]: computeRunId uses SHA-256 of suiteName:configHash:gitCommit (40-char slice) for deterministic, retry-safe run IDs
 - [02-01]: writeBaselineVersioned pointer file contains only latestFile reference (no content copy) — single source of truth
 - [02-01]: Pre-existing lint errors in caching-adapter.ts + watcher.test.ts deferred (out of scope)
+- [Phase 03-01]: All flags default to false — absent or malformed config.json returns DEFAULTS without throwing
+- [Phase 03-01]: featureFlags is optional on RunTestsOptions so all existing callers remain unaffected
 
 ## Accumulated Context
 
@@ -56,6 +58,7 @@ progress:
 | 01-deploy-everything | 01 | 2min | 3 | 4 |
 | Phase 01-deploy-everything P02 | 5min | 2 tasks | 0 files |
 | 02-append-only-run-artifacts-and-versioned-baselines | 01 | 13min | 2 | 8 |
+| Phase 03-feature-flags P01 | 2min | 2 tasks | 3 files |
 
 ### Quick Tasks Completed
 
