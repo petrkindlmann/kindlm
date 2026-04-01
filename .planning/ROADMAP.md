@@ -52,7 +52,7 @@ Plans:
   3. When `betaJudge` is disabled (default), judge assertions run exactly once — no change to existing behavior
 **Plans**: 1 plan
 Plans:
-- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
+- [ ] 07-01-PLAN.md — Implement betaJudge multi-pass median scoring + wire feature flag from CLI to runner
 
 ### Phase 8: Worktree File Copy
 **Goal**: Users running `kindlm test --isolate` get a fully functional isolated environment including all files referenced in kindlm.yaml
@@ -87,7 +87,7 @@ Plans:
 | 3. Feature Flags via Config | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 4. MCP Provider Adapter | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 5. Worktree Isolation for Test Runs | v2.0.0 | 1/1 | Complete | 2026-04-01 |
-| 6. Cost Gating + CLI Overrides | v2.1.0 | 0/1 | Complete    | 2026-04-01 |
-| 7. betaJudge Multi-Pass Scoring | v2.1.0 | 0/? | Not started | - |
+| 6. Cost Gating + CLI Overrides | v2.1.0 | 1/1 | Complete    | 2026-04-01 |
+| 7. betaJudge Multi-Pass Scoring | v2.1.0 | 0/1 | Not started | - |
 | 8. Worktree File Copy | v2.1.0 | 0/? | Not started | - |
 | 9. CLI Utility Unit Tests | v2.1.0 | 0/? | Not started | - |
