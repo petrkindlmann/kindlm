@@ -12,7 +12,7 @@
 
 ### Worktree Isolation
 
-- [ ] **ISOLATE-01**: `--isolate` copies gitignored referenced files (schemaFile, argsSchema paths) into the worktree before running; git-tracked files are already present; missing files are non-fatal
+- [x] **ISOLATE-01**: `--isolate` copies gitignored referenced files (schemaFile, argsSchema paths) into the worktree before running; git-tracked files are already present; missing files are non-fatal
 
 ### CLI Overrides
 
@@ -44,7 +44,7 @@
 |-------------|-------|--------|
 | JUDGE-01 | Phase 7 | Complete |
 | COST-01 | Phase 6 | Complete |
-| ISOLATE-01 | Phase 8 | Pending |
+| ISOLATE-01 | Phase 8 | Complete |
 | CLI-01 | Phase 6 | Complete |
 | CLI-02 | Phase 6 | Complete |
 | TEST-01 | Phase 9 | Pending |

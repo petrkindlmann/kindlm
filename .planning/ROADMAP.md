@@ -64,7 +64,7 @@ Plans:
   3. A `schemaFile` path containing `../` that resolves outside the repo root is rejected with an error before any files are copied (path escape guard)
 **Plans**: 1 plan
 Plans:
-- [ ] 08-01-PLAN.md — Implement extractConfigFilePaths + copyFilesToWorktree and wire into test.ts isolate block
+- [x] 08-01-PLAN.md — Implement extractConfigFilePaths + copyFilesToWorktree and wire into test.ts isolate block
 
 ### Phase 9: CLI Utility Unit Tests
 **Goal**: The three previously-untested CLI utilities have verifiable unit test coverage
