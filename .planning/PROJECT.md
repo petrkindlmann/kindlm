@@ -14,5 +14,10 @@ Get everything live so users can install v2.0.0 and all cloud features work in p
 - D1 migrations must run in order
 - Version Packages PR must be merged after push
 
+## Current State
+
+- Phase 1 complete — v2.0.0 deployed, CI fixed, Worker live, D1 migrations applied
+- Phase 2 complete — Append-only run artifacts + versioned baselines implemented and verified
+
 ---
-*Last updated: 2026-03-28*
+*Last updated: 2026-04-01*
