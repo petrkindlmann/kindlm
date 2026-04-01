@@ -1,5 +1,8 @@
 import { execFile } from "node:child_process";
+import { copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { parse as yamlParse } from "yaml";
+import chalk from "chalk";
 
 // Wrap execFile in a promise manually so that vi.mock("node:child_process") works correctly
 // in tests. util.promisify.custom on the real execFile resolves to { stdout, stderr } but
@@ -161,4 +164,94 @@ export async function createWorktree(
   };
 
   return { path: worktreePath, branch: "HEAD", cleanup };
+}
+
+/**
+ * Extracts all file path references (schemaFile, argsSchema) from a raw kindlm.yaml string.
+ * Best-effort: returns [] on parse error rather than throwing.
+ * Used to build the copy list for --isolate mode before chdir().
+ */
+export function extractConfigFilePaths(yamlContent: string): string[] {
+  let raw: Record<string, unknown>;
+  try {
+    raw = yamlParse(yamlContent) as Record<string, unknown>;
+    if (typeof raw !== "object" || raw === null) return [];
+  } catch {
+    return [];
+  }
+
+  const tests = Array.isArray(raw["tests"]) ? (raw["tests"] as unknown[]) : [];
+  const paths: string[] = [];
+
+  for (const test of tests) {
+    if (typeof test !== "object" || test === null) continue;
+    const t = test as Record<string, unknown>;
+    const expect_ = typeof t["expect"] === "object" && t["expect"] !== null
+      ? (t["expect"] as Record<string, unknown>)
+      : null;
+    if (!expect_) continue;
+
+    // expect.output.schemaFile
+    const output = typeof expect_["output"] === "object" && expect_["output"] !== null
+      ? (expect_["output"] as Record<string, unknown>)
+      : null;
+    if (output && typeof output["schemaFile"] === "string") {
+      paths.push(output["schemaFile"]);
+    }
+
+    // expect.toolCalls[].argsSchema
+    if (Array.isArray(expect_["toolCalls"])) {
+      for (const tc of expect_["toolCalls"] as unknown[]) {
+        if (typeof tc === "object" && tc !== null) {
+          const toolCall = tc as Record<string, unknown>;
+          if (typeof toolCall["argsSchema"] === "string") {
+            paths.push(toolCall["argsSchema"]);
+          }
+        }
+      }
+    }
+  }
+
+  // Deduplicate
+  return [...new Set(paths)];
+}
+
+/**
+ * Copies a list of files into a worktree at their relative paths from repoRoot.
+ * Path escape guard runs first — throws WorktreeError if any file resolves outside repoRoot.
+ * Missing files (ENOENT) emit a warning and are skipped. Other errors are re-thrown.
+ * Empty filePaths is a silent no-op.
+ */
+export async function copyFilesToWorktree(
+  worktreePath: string,
+  repoRoot: string,
+  filePaths: string[],
+): Promise<void> {
+  if (filePaths.length === 0) return;
+
+  const resolvedRoot = path.resolve(repoRoot);
+
+  // Path escape guard: validate all paths BEFORE any copy
+  for (const filePath of filePaths) {
+    const resolved = path.resolve(filePath);
+    if (!(resolved + path.sep).startsWith(resolvedRoot + path.sep)) {
+      throw new WorktreeError(`Path escape detected: ${filePath} resolves outside repo root`);
+    }
+  }
+
+  // Copy each file preserving relative path structure
+  for (const filePath of filePaths) {
+    const rel = path.relative(resolvedRoot, path.resolve(filePath));
+    const dest = path.join(worktreePath, rel);
+    try {
+      await mkdir(path.dirname(dest), { recursive: true });
+      await copyFile(filePath, dest);
+    } catch (e) {
+      if (typeof e === "object" && e !== null && (e as NodeJS.ErrnoException).code === "ENOENT") {
+        console.warn(chalk.yellow(`Warning: referenced file not found, skipping: ${filePath}`));
+        continue;
+      }
+      throw e;
+    }
+  }
 }

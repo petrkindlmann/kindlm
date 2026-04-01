@@ -6,6 +6,12 @@ vi.mock("node:child_process", () => ({
   execFile: vi.fn(),
 }));
 
+// Mock node:fs/promises for copyFilesToWorktree tests
+vi.mock("node:fs/promises", () => ({
+  copyFile: vi.fn(),
+  mkdir: vi.fn(),
+}));
+
 // We import the mocked module to control it per-test
 import { execFile as execFileMock } from "node:child_process";
 
@@ -156,6 +162,11 @@ describe("countWorktreeChanges", () => {
   });
 });
 
+// We import the fs/promises mocks to control them per-test
+import { copyFile as copyFileMock, mkdir as mkdirMock } from "node:fs/promises";
+const mockedCopyFile = vi.mocked(copyFileMock);
+const mockedMkdir = vi.mocked(mkdirMock);
+
 describe("removeWorktree", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -185,5 +196,135 @@ describe("removeWorktree", () => {
     const err = Object.assign(new Error("spawn git ENOENT"), { code: "ENOENT" });
     rejectWith(err);
     await expect(removeWorktree("/some/path", false)).rejects.toBeInstanceOf(WorktreeHasChangesError);
+  });
+});
+
+describe("extractConfigFilePaths", () => {
+  it("extracts schemaFile paths from tests array", async () => {
+    const { extractConfigFilePaths } = await import("./worktree.js");
+    const yaml = `
+tests:
+  - name: t1
+    expect:
+      output:
+        schemaFile: schemas/response.json
+`;
+    const result = extractConfigFilePaths(yaml);
+    expect(result).toContain("schemas/response.json");
+  });
+
+  it("extracts argsSchema paths from toolCalls", async () => {
+    const { extractConfigFilePaths } = await import("./worktree.js");
+    const yaml = `
+tests:
+  - name: t1
+    expect:
+      toolCalls:
+        - tool: search
+          argsSchema: schemas/search-args.json
+`;
+    const result = extractConfigFilePaths(yaml);
+    expect(result).toContain("schemas/search-args.json");
+  });
+
+  it("returns empty array when no file path fields exist", async () => {
+    const { extractConfigFilePaths } = await import("./worktree.js");
+    const yaml = `
+tests:
+  - name: t1
+    expect:
+      output:
+        contains:
+          - hello
+`;
+    const result = extractConfigFilePaths(yaml);
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when YAML is malformed (no throw)", async () => {
+    const { extractConfigFilePaths } = await import("./worktree.js");
+    const yaml = `{{{not: valid: yaml`;
+    expect(() => extractConfigFilePaths(yaml)).not.toThrow();
+    const result = extractConfigFilePaths(yaml);
+    expect(result).toEqual([]);
+  });
+
+  it("handles both schemaFile and argsSchema in same config", async () => {
+    const { extractConfigFilePaths } = await import("./worktree.js");
+    const yaml = `
+tests:
+  - name: t1
+    expect:
+      output:
+        schemaFile: schemas/output.json
+      toolCalls:
+        - tool: search
+          argsSchema: schemas/args.json
+`;
+    const result = extractConfigFilePaths(yaml);
+    expect(result).toContain("schemas/output.json");
+    expect(result).toContain("schemas/args.json");
+    expect(result.length).toBe(2);
+  });
+});
+
+describe("copyFilesToWorktree", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedCopyFile.mockResolvedValue(undefined);
+    mockedMkdir.mockResolvedValue(undefined);
+  });
+
+  it("copies files to worktree at same relative path (mkdir + copyFile called)", async () => {
+    const { copyFilesToWorktree } = await import("./worktree.js");
+    const repoRoot = "/repo";
+    const worktreePath = "/repo/.kindlm/worktrees/test-run";
+    const filePaths = ["/repo/schemas/response.json"];
+    await copyFilesToWorktree(worktreePath, repoRoot, filePaths);
+    expect(mockedMkdir).toHaveBeenCalledWith("/repo/.kindlm/worktrees/test-run/schemas", { recursive: true });
+    expect(mockedCopyFile).toHaveBeenCalledWith("/repo/schemas/response.json", "/repo/.kindlm/worktrees/test-run/schemas/response.json");
+  });
+
+  it("rejects path that resolves outside repoRoot with WorktreeError BEFORE any copy", async () => {
+    const { copyFilesToWorktree } = await import("./worktree.js");
+    const repoRoot = "/repo";
+    const worktreePath = "/repo/.kindlm/worktrees/test-run";
+    const filePaths = ["/etc/passwd"];
+    await expect(copyFilesToWorktree(worktreePath, repoRoot, filePaths)).rejects.toBeInstanceOf(WorktreeError);
+    expect(mockedCopyFile).not.toHaveBeenCalled();
+    expect(mockedMkdir).not.toHaveBeenCalled();
+  });
+
+  it("emits console.warn and does not throw when source file is missing (ENOENT)", async () => {
+    const { copyFilesToWorktree } = await import("./worktree.js");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const enoentErr = Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+    mockedCopyFile.mockRejectedValueOnce(enoentErr);
+    const repoRoot = "/repo";
+    const worktreePath = "/repo/.kindlm/worktrees/test-run";
+    const filePaths = ["/repo/schemas/missing.json"];
+    await expect(copyFilesToWorktree(worktreePath, repoRoot, filePaths)).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("not found"));
+    warnSpy.mockRestore();
+  });
+
+  it("is a no-op for empty filePaths array (no mkdir, no copyFile, no warn)", async () => {
+    const { copyFilesToWorktree } = await import("./worktree.js");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await copyFilesToWorktree("/repo/.kindlm/worktrees/test-run", "/repo", []);
+    expect(mockedCopyFile).not.toHaveBeenCalled();
+    expect(mockedMkdir).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("re-throws non-ENOENT errors from copyFile", async () => {
+    const { copyFilesToWorktree } = await import("./worktree.js");
+    const permErr = Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
+    mockedCopyFile.mockRejectedValueOnce(permErr);
+    const repoRoot = "/repo";
+    const worktreePath = "/repo/.kindlm/worktrees/test-run";
+    const filePaths = ["/repo/schemas/response.json"];
+    await expect(copyFilesToWorktree(worktreePath, repoRoot, filePaths)).rejects.toThrow("EACCES");
   });
 });
