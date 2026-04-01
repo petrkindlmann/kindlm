@@ -19,6 +19,7 @@ Get everything live so users can install v2.0.0 and all cloud features work in p
 - Phase 1 complete — v2.0.0 deployed, CI fixed, Worker live, D1 migrations applied
 - Phase 2 complete — Append-only run artifacts + versioned baselines implemented and verified
 - Phase 3 complete — Feature flag system (features.ts + isEnabled()) implemented and wired into run-tests.ts
+- Phase 4 complete — MCP provider adapter (passthrough HTTP POST to MCP server) implemented and verified
 
 ---
 *Last updated: 2026-04-01*
