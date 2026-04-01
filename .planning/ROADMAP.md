@@ -38,7 +38,9 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
   2. `kindlm test --concurrency 1` overrides `config.defaults.concurrency` and runs tests serially; `--concurrency 0` exits with a non-zero error code and a clear message
   3. `kindlm test --timeout 5000` overrides `config.defaults.timeoutMs` for test execution; the help text explicitly states this does not affect provider HTTP timeout
   4. When `costGating` is disabled (default), `config.gates.costMaxUsd` is ignored and runs proceed regardless of cost
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
 
 ### Phase 7: betaJudge Multi-Pass Scoring
 **Goal**: Users running judge assertions get stable, variance-reduced scores when betaJudge is enabled
@@ -48,7 +50,9 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
   1. When `betaJudge` is enabled, each judge assertion runs 3 times and reports the median score; a single slow or slightly different inference no longer flips a border-line pass to fail
   2. When fewer than `ceil(N/2)` judge passes succeed (e.g., provider errors on all but one), the assertion returns `JUDGE_EVAL_ERROR` rather than a poisoned median score
   3. When `betaJudge` is disabled (default), judge assertions run exactly once — no change to existing behavior
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
 
 ### Phase 8: Worktree File Copy
 **Goal**: Users running `kindlm test --isolate` get a fully functional isolated environment including all files referenced in kindlm.yaml
@@ -58,7 +62,9 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
   1. Running `kindlm test --isolate` with a config that references `schemaFile` paths copies those files into the worktree before the run starts, so assertions that validate JSON Schema work correctly in isolation
   2. A referenced file that is missing from disk does not abort the run — the copy is skipped with a warning and the test proceeds (fail-open for missing optional files)
   3. A `schemaFile` path containing `../` that resolves outside the repo root is rejected with an error before any files are copied (path escape guard)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
 
 ### Phase 9: CLI Utility Unit Tests
 **Goal**: The three previously-untested CLI utilities have verifiable unit test coverage
@@ -68,7 +74,9 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
   1. `formatTestPlan` in `dry-run.ts` is tested for correct output format, skipped test filtering, command test rendering, and accurate totals
   2. `select-reporter.ts` is tested to confirm it routes to `pretty`, `json`, and `junit` reporters correctly, and calls `process.exit(1)` with an error message on an unknown reporter type
   3. `spinner.ts` start/stop/update behavior is tested via `vi.mock("ora")` mocked at the wrapper level, with no dependency on real terminal I/O
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 06-01-PLAN.md — Wire costGating flag strip + add --concurrency and --timeout CLI overrides with tests
 
 ## Progress
 
@@ -79,7 +87,7 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
 | 3. Feature Flags via Config | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 4. MCP Provider Adapter | v2.0.0 | 1/1 | Complete | 2026-04-01 |
 | 5. Worktree Isolation for Test Runs | v2.0.0 | 1/1 | Complete | 2026-04-01 |
-| 6. Cost Gating + CLI Overrides | v2.1.0 | 0/? | Not started | - |
+| 6. Cost Gating + CLI Overrides | v2.1.0 | 0/1 | Planning complete | - |
 | 7. betaJudge Multi-Pass Scoring | v2.1.0 | 0/? | Not started | - |
 | 8. Worktree File Copy | v2.1.0 | 0/? | Not started | - |
 | 9. CLI Utility Unit Tests | v2.1.0 | 0/? | Not started | - |
