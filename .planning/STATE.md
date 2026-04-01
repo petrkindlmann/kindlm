@@ -1,22 +1,24 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0.0
-milestone_name: Launch Ops
-status: Milestone complete — archived
-stopped_at: gsd:complete-milestone v2.0.0
-last_updated: "2026-04-01T06:45:00.000Z"
+milestone: v2.1.0
+milestone_name: Gap Closure
+status: In progress
+stopped_at: ~
+last_updated: "2026-04-01T07:00:00.000Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: ~
+  completed_phases: 0
+  total_plans: ~
+  completed_plans: 0
+  percent: 0
 ---
 
-## Status: Milestone Complete
+## Current Position
 
-**Milestone:** v2.0.0 Launch Ops — SHIPPED 2026-04-01
-**Progress:** [██████████] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-01 — Milestone v2.1.0 started
 
 ## Project Reference
 

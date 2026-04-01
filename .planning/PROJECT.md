@@ -8,6 +8,17 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 
 Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
+## Current Milestone: v2.1.0 Gap Closure
+
+**Goal:** Implement all unfinished feature flags, complete worktree filesystem isolation, fill test coverage gaps, and add missing CLI override flags.
+
+**Target features:**
+- `betaJudge`: multi-pass judge scoring (run judge N times, take median — reduces single-inference variance)
+- `costGating`: pre-emptive budget enforcement (stop test execution mid-run if cumulative cost exceeds threshold)
+- `--isolate` completeness: copy config + referenced schema files into worktree before running
+- Tests: unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts`
+- CLI flags: `--concurrency` and `--timeout` overrides for `kindlm test`
+
 ## Requirements
 
 ### Validated
@@ -29,7 +40,11 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ### Active
 
-(None — planning next milestone)
+- JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag
+- COST-01: Pre-emptive cost budget enforcement gated behind `costGating` flag
+- ISOLATE-01: Copy config + referenced schema files into worktree on `--isolate`
+- TEST-01: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts`
+- CLI-01: `--concurrency` and `--timeout` CLI override flags for `kindlm test`
 
 ### Out of Scope
 
@@ -78,5 +93,22 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - **Core:** Zero I/O — no `fs`, `fetch`, `console.log` in `@kindlm/core`
 - **Cloud:** Workers-compatible only — no Node.js built-ins
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-04-01 after v2.0.0 milestone*
+*Last updated: 2026-04-01 — v2.1.0 milestone started*
