@@ -114,6 +114,17 @@ const OllamaProviderConfigSchema = z.object({
     ),
 });
 
+const McpProviderConfigSchema = z.object({
+  serverUrl: z.string().url().describe("MCP server HTTP endpoint URL"),
+  toolName: NonEmptyString.describe("MCP tool name to invoke"),
+  headers: z
+    .record(z.string())
+    .optional()
+    .describe(
+      "Additional headers. Values starting with 'env:' are resolved from environment variables.",
+    ),
+});
+
 const ProvidersSchema = z
   .object({
     openai: ProviderConfigSchema.optional(),
@@ -123,6 +134,7 @@ const ProvidersSchema = z
     mistral: ProviderConfigSchema.optional(),
     cohere: ProviderConfigSchema.optional(),
     http: HttpProviderConfigSchema.optional(),
+    mcp: McpProviderConfigSchema.optional(),
   })
   .refine(
     (providers) =>
@@ -153,7 +165,7 @@ const ModelSchema = z.object({
     "Unique identifier for this model config, referenced in reports",
   ),
   provider: z
-    .enum(["openai", "anthropic", "ollama", "gemini", "mistral", "cohere", "http"])
+    .enum(["openai", "anthropic", "ollama", "gemini", "mistral", "cohere", "http", "mcp"])
     .describe("Must match a key in the providers section"),
   model: NonEmptyString.describe(
     "Model name as the provider expects it (e.g., 'gpt-4o', 'claude-sonnet-4-5-20250929')",
@@ -655,6 +667,7 @@ export type ToolCallExpect = z.infer<typeof ToolCallExpectSchema>;
 export type ToolSimulation = z.infer<typeof ToolSimulationSchema>;
 export type ComplianceConfig = z.infer<typeof ComplianceSchema>;
 export type HttpProviderSchemaConfig = z.infer<typeof HttpProviderConfigSchema>;
+export type McpProviderSchemaConfig = z.infer<typeof McpProviderConfigSchema>;
 
 // ============================================================
 // Validation

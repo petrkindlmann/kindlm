@@ -159,7 +159,7 @@ async function runTestsInner(
         process.exit(1);
       }
       apiKey = key.trim();
-    } else if (name !== "ollama" && name !== "http") {
+    } else if (name !== "ollama" && name !== "http" && name !== "mcp") {
       console.error(chalk.red(`Provider "${name}" requires apiKeyEnv to be configured`));
       process.exit(1);
     }
@@ -185,6 +185,33 @@ async function runTestsInner(
         adapter = createProvider(name, httpClient, {
           httpConfig: httpProviderConfig,
           envLookup: (envName: string) => process.env[envName],
+        });
+      } else if (name === "mcp") {
+        const mcpProviderConfig = providerConfig as {
+          serverUrl: string;
+          toolName: string;
+          headers?: Record<string, string>;
+        };
+        // Resolve env: headers before passing to core (core is I/O-free)
+        const resolvedHeaders: Record<string, string> = {};
+        for (const [k, v] of Object.entries(mcpProviderConfig.headers ?? {})) {
+          if (v.startsWith("env:")) {
+            const envVal = process.env[v.slice(4)];
+            if (!envVal) {
+              console.error(chalk.red(`Missing environment variable for MCP header "${k}": ${v.slice(4)}`));
+              process.exit(1);
+            }
+            resolvedHeaders[k] = envVal;
+          } else {
+            resolvedHeaders[k] = v;
+          }
+        }
+        adapter = createProvider(name, httpClient, {
+          mcpConfig: {
+            serverUrl: mcpProviderConfig.serverUrl,
+            toolName: mcpProviderConfig.toolName,
+            headers: resolvedHeaders,
+          },
         });
       } else {
         adapter = createProvider(name, httpClient);
