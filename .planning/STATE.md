@@ -4,9 +4,9 @@ milestone: v2.1.0
 milestone_name: Gap Closure
 status: In progress
 stopped_at: ~
-last_updated: "2026-04-01T07:00:00.000Z"
+last_updated: "2026-04-01T07:30:00.000Z"
 progress:
-  total_phases: ~
+  total_phases: 4
   completed_phases: 0
   total_plans: ~
   completed_plans: 0
@@ -15,22 +15,22 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 6 (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-01 — Milestone v2.1.0 started
+Status: Roadmap defined, ready for planning
+Last activity: 2026-04-01 — Roadmap created for v2.1.0
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Planning next milestone
+**Current focus:** v2.1.0 Gap Closure — 4 phases, 8 requirements
 
 ## Tech Debt (from v2.0.0 audit)
 
 - `runArtifacts` feature flag has no effect — stub in `run-tests.ts`, write in `test.ts` is unconditional
-- `--isolate` worktree path created but not used as test cwd
+- `--isolate` worktree path created but not used as test cwd (ISOLATE-01 in Phase 8 addresses filesystem isolation)
 - Stripe live-mode products need sk_live_ key (user action required)
 
 ## Decisions (archived to PROJECT.md Key Decisions table)
@@ -61,6 +61,24 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 - Phase 03 added: Feature flags via config
 - Phase 04 added: MCP provider adapter
 - Phase 05 added: Worktree isolation for test runs
+- Phases 06-09 added: v2.1.0 Gap Closure milestone
+
+### v2.1.0 Phase Summary
+
+| Phase | Requirements | Risk |
+|-------|-------------|------|
+| 6. Cost Gating + CLI Overrides | COST-01, CLI-01, CLI-02 | Low — pure CLI mutations |
+| 7. betaJudge Multi-Pass Scoring | JUDGE-01 | Medium — core logic, no I/O |
+| 8. Worktree File Copy | ISOLATE-01 | High — new file, I/O, path guards |
+| 9. CLI Utility Unit Tests | TEST-01, TEST-02, TEST-03 | Low — standard Vitest patterns |
+
+### Key Implementation Notes (from research)
+
+- betaJudge: distinguish `JUDGE_EVAL_ERROR` from genuine low scores before computing median; require `ceil(N/2)` successful passes
+- costGating TOCTOU: reserve estimated cost synchronously before `complete()` call; use microdollar accumulation for float safety
+- ISOLATE-01: `lstat` + `realpath` + boundary check per file; treat missing optional files as non-fatal
+- spinner.ts tests: mock `ora` directly in `spinner.test.ts`; mock `spinner.ts` wrapper in caller tests (ESM hoisting)
+- --concurrency validation: follow existing `--runs` guard pattern — `if (!Number.isInteger(n) || n < 1) → exit(1)`
 
 ## Performance Metrics
 

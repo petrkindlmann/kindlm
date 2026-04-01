@@ -42,20 +42,20 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| JUDGE-01 | TBD | Pending |
-| COST-01 | TBD | Pending |
-| ISOLATE-01 | TBD | Pending |
-| CLI-01 | TBD | Pending |
-| CLI-02 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
+| JUDGE-01 | Phase 7 | Pending |
+| COST-01 | Phase 6 | Pending |
+| ISOLATE-01 | Phase 8 | Pending |
+| CLI-01 | Phase 6 | Pending |
+| CLI-02 | Phase 6 | Pending |
+| TEST-01 | Phase 9 | Pending |
+| TEST-02 | Phase 9 | Pending |
+| TEST-03 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 8 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 8 ⚠️
+- Mapped to phases: 8 (100%)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-01*
-*Last updated: 2026-04-01 after initial definition*
+*Last updated: 2026-04-01 — traceability filled after roadmap creation*
