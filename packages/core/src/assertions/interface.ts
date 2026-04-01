@@ -52,6 +52,7 @@ export interface AssertionContext {
     data: unknown,
   ) => { valid: true } | { valid: false; errors: string[] };
   getEmbedding?: (text: string) => Promise<number[]>;
+  betaJudge?: boolean;
 }
 
 export interface Assertion {

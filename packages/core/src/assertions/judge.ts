@@ -1,4 +1,4 @@
-import type { Assertion, AssertionContext, AssertionResult } from "./interface.js";
+import type { Assertion, AssertionContext, AssertionResult, FailureCode } from "./interface.js";
 import { validateUnitIntervalScore } from "./shared-score.js";
 
 export interface JudgeAssertionConfig {
@@ -85,6 +85,78 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
               "Judge assertion requires judgeAdapter and judgeModel in context",
           },
         ];
+      }
+
+      if (context.betaJudge) {
+        // Multi-pass median scoring: run judge PASSES times, take median of successful passes.
+        // Requires at least MIN_QUORUM successful passes before computing median — prevents
+        // a poisoned result when transient API failures dominate the sample.
+        const PASSES = 3;
+        const MIN_QUORUM = Math.ceil(PASSES / 2); // 2
+
+        type PassResult =
+          | { ok: true; score: number; reasoning: string }
+          | { ok: false; failureCode: FailureCode; failureMessage: string };
+
+        const passResults: PassResult[] = [];
+        for (let i = 0; i < PASSES; i++) {
+          try {
+            const response = await context.judgeAdapter.complete({
+              model: config.model ?? context.judgeModel,
+              messages: [
+                { role: "system", content: JUDGE_SYSTEM_PROMPT },
+                { role: "user", content: buildUserPrompt(context.outputText, config.criteria, config.rubric) },
+              ],
+              params: { temperature: 0, maxTokens: 512 },
+            });
+            const parsed = parseJudgeResponse(response.text);
+            if (parsed.ok) {
+              passResults.push({ ok: true, score: parsed.score, reasoning: parsed.reasoning });
+            } else {
+              passResults.push({ ok: false, failureCode: "JUDGE_PARSE_ERROR", failureMessage: parsed.reason });
+            }
+          } catch (e) {
+            passResults.push({
+              ok: false,
+              failureCode: "JUDGE_EVAL_ERROR",
+              failureMessage: `Judge adapter error (pass ${i + 1}): ${e instanceof Error ? e.message : String(e)}`,
+            });
+          }
+        }
+
+        const successfulPasses = passResults.filter(
+          (r): r is Extract<PassResult, { ok: true }> => r.ok,
+        );
+
+        if (successfulPasses.length < MIN_QUORUM) {
+          const firstError = passResults.find((r) => !r.ok) as Extract<PassResult, { ok: false }>;
+          return [{
+            assertionType: "judge",
+            label: `Judge: ${config.criteria}`,
+            passed: false,
+            score: 0,
+            failureCode: "JUDGE_EVAL_ERROR",
+            failureMessage: `betaJudge: only ${successfulPasses.length}/${PASSES} passes succeeded (need ${MIN_QUORUM}): ${firstError.failureMessage}`,
+          }];
+        }
+
+        const scores = successfulPasses.map((r) => r.score).sort((a, b) => a - b);
+        const median = scores[Math.floor(scores.length / 2)]!;
+        const passed = median >= config.minScore;
+
+        return [{
+          assertionType: "judge",
+          label: `Judge: ${config.criteria}`,
+          passed,
+          score: median,
+          failureCode: passed ? undefined : "JUDGE_BELOW_THRESHOLD",
+          failureMessage: passed ? undefined : `Median score ${median} below threshold ${config.minScore}`,
+          metadata: {
+            reasoning: successfulPasses[Math.floor(successfulPasses.length / 2)]!.reasoning,
+            threshold: config.minScore,
+            betaJudge: { passes: PASSES, successful: successfulPasses.length, scores },
+          },
+        }];
       }
 
       let response;

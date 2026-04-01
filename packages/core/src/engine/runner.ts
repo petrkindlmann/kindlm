@@ -38,6 +38,7 @@ export interface RunnerDeps {
   onProgress?: (event: RunEvent) => void;
   baselineData?: BaselineData;
   commandExecutor?: CommandExecutor;
+  betaJudge?: boolean;
 }
 
 export interface RunResult {
@@ -391,6 +392,7 @@ function buildAssertionContext(
     getEmbedding: adapter.embed
       ? ((fn) => (text: string) => fn(text))(adapter.embed)
       : undefined,
+    betaJudge: deps.betaJudge,
   };
 
   if (deps.baselineData) {
@@ -575,6 +577,7 @@ async function executeCommandUnit(
       getEmbedding: judgeAdapter?.embed
         ? ((fn) => (text: string) => fn(text))(judgeAdapter.embed)
         : undefined,
+      betaJudge: deps.betaJudge,
     };
 
     if (deps.baselineData) {
