@@ -40,7 +40,6 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ### Active
 
-- JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag
 - ISOLATE-01: Copy config + referenced schema files into worktree on `--isolate`
 - TEST-01: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts`
 
@@ -49,6 +48,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ COST-01: `costGating` flag gates `costMaxUsd` enforcement — validated in Phase 6 — v2.1.0
 - ✓ CLI-01: `--concurrency` override for `kindlm test` — validated in Phase 6 — v2.1.0
 - ✓ CLI-02: `--timeout` override for `kindlm test` — validated in Phase 6 — v2.1.0
+- ✓ JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag — validated in Phase 7 — v2.1.0
 
 ### Out of Scope
 
@@ -115,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-01 — v2.1.0 milestone started*
+*Last updated: 2026-04-01 — Phase 7 complete (betaJudge multi-pass scoring)*
