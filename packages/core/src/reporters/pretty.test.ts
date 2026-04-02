@@ -279,6 +279,52 @@ function makeJudgeRunResult(assertion: {
   });
 }
 
+describe("gate icon rendering", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  it("renders ⚠ (yellow) icon for emptyData gates", async () => {
+    const gateEval: GateEvaluation = {
+      passed: true,
+      gates: [
+        {
+          gateName: "judgeAvgMin",
+          passed: true,
+          actual: 1,
+          threshold: 0.8,
+          message: "Judge average N/A meets minimum 80.0% (no judge assertions found — gate trivially passed)",
+          emptyData: true,
+        },
+      ],
+    };
+    const output = await reporter.generate(makeRunResult(), gateEval);
+    expect(output.content).toContain("[yellow]⚠[/yellow]");
+    expect(output.content).toContain("trivially passed");
+  });
+
+  it("renders ✓ (green) icon for normal passing gates", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
+    expect(output.content).toContain("[green]✓[/green]");
+    expect(output.content).not.toContain("[yellow]⚠[/yellow]");
+  });
+
+  it("renders ✗ (red) icon for failing gates", async () => {
+    const gateEval: GateEvaluation = {
+      passed: false,
+      gates: [
+        {
+          gateName: "passRateMin",
+          passed: false,
+          actual: 0.5,
+          threshold: 0.95,
+          message: "Pass rate 50.0% below minimum 95.0%",
+        },
+      ],
+    };
+    const output = await reporter.generate(makeRunResult({ failed: 1 }), gateEval);
+    expect(output.content).toContain("[red]✗[/red]");
+  });
+});
+
 describe("formatAssertion reasoning display", () => {
   const reporter = createPrettyReporter(mockColorize);
 
