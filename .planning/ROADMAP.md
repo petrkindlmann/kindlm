@@ -68,7 +68,9 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   3. Passing tool call assertions display only the tool name and argument count — no argument dump
   4. Tool call arguments longer than 500 characters are truncated with a `...(truncated)` indicator rather than wrapping the terminal
   5. All failure formatting passes through the injected `Colorize` interface so it renders correctly in both terminal and CI environments
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 
 ### Phase 14: Response Caching
 **Goal**: Developers can iterate on assertions and config without burning API credits by serving cached responses for identical requests
@@ -80,7 +82,9 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   3. Running `kindlm cache clear` deletes all cached responses
   4. Error responses and empty responses are never written to cache — only successful completions with text or tool calls
   5. Cache entries are invalidated automatically after 24 hours (or custom TTL from `.kindlm/config.json`)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 
 ### Phase 15: Watch Mode
 **Goal**: Developers can save their config file and immediately see test results without re-running the CLI manually
@@ -92,7 +96,9 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   3. Each re-run is separated by a timestamped separator line — the terminal is not cleared so the user can scroll back
   4. The cumulative API cost across the watch session is displayed after each run
   5. Pressing `Ctrl+C` terminates watch mode cleanly — no zombie test processes remain and the file watcher is closed
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 
 ### Phase 16: Multi-Turn Agent Testing
 **Goal**: Developers can define and assert on multi-turn agent conversations in YAML, including mock tool responses, without live tool backends
@@ -104,7 +110,9 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   3. If the conversation exceeds `maxTurns` (default 10, hard cap 20), the test fails with `MAX_TURNS_EXCEEDED` rather than running forever
   4. Conversation state (message history) is completely isolated between test cases — one test cannot leak messages into another
   5. The pretty reporter groups assertion results by turn label so the developer can see which turn caused a failure
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 
 ### Phase 17: GitHub Action
 **Goal**: Teams can add KindLM to a GitHub Actions workflow in under 5 minutes and get PR comments with test summaries and JUnit artifacts
@@ -116,7 +124,9 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   3. A JUnit XML artifact is uploaded to GitHub so the test summary tab shows a structured breakdown
   4. Setting the `cloud-token` input causes results to be automatically uploaded to KindLM Cloud
   5. The action outputs `pass-rate`, `total`, `passed`, `failed`, and `exit-code` step outputs for downstream workflow steps
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 
 ### Phase 18: Dashboard Team Features
 **Goal**: Team members can view test history, spot regressions in trend charts, compare two runs side-by-side, and drill into individual test results
@@ -128,7 +138,9 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   3. Selecting two runs opens a side-by-side comparison showing which individual tests changed status between runs
   4. Clicking a test result shows its assertion outcomes, tool calls, and model response in a detail view
   5. All chart components load client-side only (no SSR) so the dashboard never crashes on initial page render
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 **UI hint**: yes
 
 ## Progress
