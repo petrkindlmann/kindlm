@@ -4,9 +4,11 @@ import { selectReporter } from "./select-reporter.js";
 describe("selectReporter", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.spyOn(process, "exit").mockImplementation((_code?: number) => {
-      throw new Error("process.exit");
-    });
+    vi.spyOn(process, "exit").mockImplementation(
+      (_code?: string | number | null) => {
+        throw new Error("process.exit");
+      },
+    );
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -26,9 +28,11 @@ describe("selectReporter", () => {
   });
 
   it("calls console.error and process.exit(1) on unknown reporter type", () => {
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation((_code?: number) => {
-      throw new Error("process.exit");
-    });
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(
+      (_code?: string | number | null) => {
+        throw new Error("process.exit");
+      },
+    );
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     expect(() => selectReporter("nope")).toThrow("process.exit");
