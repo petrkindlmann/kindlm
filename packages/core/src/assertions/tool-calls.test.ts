@@ -174,7 +174,8 @@ describe("computeArgDiffs (via metadata)", () => {
   it("TOOL_CALL_MISSING has receivedToolCalls and expectedTool in metadata", async () => {
     const assertion = createToolCalledAssertion("search");
     const results = await assertion.evaluate(ctx([tc("other")]));
-    expect(results[0].metadata).toMatchObject({
+    const r = results[0];
+    expect(r?.metadata).toMatchObject({
       receivedToolCalls: [expect.objectContaining({ name: "other" })],
       expectedTool: "search",
       argDiffs: undefined,
@@ -216,22 +217,25 @@ describe("computeArgDiffs (via metadata)", () => {
   it("passing tool_called result has metadata.argCount", async () => {
     const assertion = createToolCalledAssertion("search");
     const results = await assertion.evaluate(ctx([tc("search", { q: "hello", page: 1, limit: 5 })]));
-    expect(results[0].passed).toBe(true);
-    expect(results[0].metadata).toMatchObject({ argCount: 3 });
+    const r = results[0];
+    expect(r?.passed).toBe(true);
+    expect(r?.metadata).toMatchObject({ argCount: 3 });
   });
 
   it("passing tool_called with zero args has metadata.argCount = 0", async () => {
     const assertion = createToolCalledAssertion("ping");
     const results = await assertion.evaluate(ctx([tc("ping")]));
-    expect(results[0].passed).toBe(true);
-    expect(results[0].metadata).toMatchObject({ argCount: 0 });
+    const r = results[0];
+    expect(r?.passed).toBe(true);
+    expect(r?.metadata).toMatchObject({ argCount: 0 });
   });
 
   it("TOOL_CALL_UNEXPECTED has metadata.receivedToolCalls", async () => {
     const assertion = createToolNotCalledAssertion("forbidden");
     const results = await assertion.evaluate(ctx([tc("forbidden"), tc("other")]));
-    expect(results[0].failureCode).toBe("TOOL_CALL_UNEXPECTED");
-    expect(results[0].metadata).toMatchObject({
+    const r = results[0];
+    expect(r?.failureCode).toBe("TOOL_CALL_UNEXPECTED");
+    expect(r?.metadata).toMatchObject({
       receivedToolCalls: expect.arrayContaining([
         expect.objectContaining({ name: "forbidden" }),
       ]),
@@ -281,8 +285,9 @@ describe("computeArgDiffs (via metadata)", () => {
       { tool: "forbidden", shouldNotCall: true },
     ]);
     const results = await assertion.evaluate(ctx([tc("forbidden")]));
-    expect(results[0].failureCode).toBe("TOOL_CALL_UNEXPECTED");
-    expect(results[0].metadata).toMatchObject({
+    const r = results[0];
+    expect(r?.failureCode).toBe("TOOL_CALL_UNEXPECTED");
+    expect(r?.metadata).toMatchObject({
       receivedToolCalls: expect.any(Array),
       expectedTool: "forbidden",
     });
