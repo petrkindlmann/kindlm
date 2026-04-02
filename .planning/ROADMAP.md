@@ -86,7 +86,11 @@ Plans:
   2. Validation error output includes the exact field path (e.g. `tests[2].expect.judge[0].minScore`)
   3. Referencing an undefined prompt name in a test produces a suggestion showing defined prompt names
   4. Referencing an undefined provider or model produces a suggestion showing defined provider/model names
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Fix Zod error paths to bracket notation (tests[2].expect.judge[0].minScore)
+- [ ] 12-02-PLAN.md — Add "Did you mean?" suggestions to undefined prompt/model/provider errors
 
 ## Progress
 
@@ -103,4 +107,4 @@ Plans:
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
 | 10. Reporter Output + Gate Integrity | v2.2.0 | 2/2 | Complete    | 2026-04-02 |
 | 11. Dry Run | v2.2.0 | 2/2 | Complete    | 2026-04-02 |
-| 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |
+| 12. Validation Diagnostics | v2.2.0 | 0/2 | Not started | - |
