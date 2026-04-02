@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.3.0
 milestone_name: Developer Experience & Depth
-status: defining-requirements
+status: ready-to-plan
 stopped_at: null
 last_updated: "2026-04-02"
 last_activity: 2026-04-02
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -16,17 +16,19 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 13 of 18 (Rich Tool Call Failure Output)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-02 — Milestone v2.3.0 started
+Status: Ready to plan
+Last activity: 2026-04-02 — v2.3.0 roadmap created (Phases 13-18, 46 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Defining v2.3.0 requirements
+**Current focus:** Phase 13 — Rich Tool Call Failure Output
 
 ## Tech Debt
 
@@ -34,7 +36,12 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 ## Decisions
 
-Recent decisions affecting current work: none yet for v2.3.0.
+Recent decisions affecting v2.3.0 work:
+- `Colorize` interface for all formatter output — no direct chalk in core (zero-I/O boundary)
+- Cache key = SHA-256(model + sortedParams + messages + tools) — sorted keys prevent insertion-order collisions
+- Conversation runner in `@kindlm/core` as pure state machine — I/O injected via interfaces
+- GitHub Action as JS action (`node20`), not Docker — works on ubuntu/macos/windows runners
+
 Full decision log: `.planning/PROJECT.md` Key Decisions table.
 
 ## Accumulated Context
@@ -46,5 +53,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-02
-Stopped at: Milestone v2.3.0 started
+Stopped at: Roadmap created — ready to plan Phase 13
 Resume file: None
