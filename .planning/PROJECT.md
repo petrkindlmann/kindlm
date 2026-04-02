@@ -61,9 +61,11 @@ v2.1.0 Gap Closure shipped 2026-04-02. See `.planning/milestones/v2.1.0-ROADMAP.
 - All CLI utilities have unit test coverage (242 passing tests in CLI package)
 
 **Known tech debt:**
-- `runArtifacts` feature flag has no effect — `isEnabled()` stub in `run-tests.ts`, actual write in `test.ts` is unconditional
-- Stripe live-mode products need sk_live_ key to create
-- 48 pre-existing integration test failures in `packages/cli/tests/integration/` (unrelated to v2.1.0 work)
+- Stripe live-mode products need sk_live_ key to create (user action required)
+
+**Verified clean (2026-04-02):**
+- `runArtifacts` is properly gated — `isEnabled(featureFlags, "runArtifacts")` in `run-tests.ts:302` ✓
+- Integration tests: 269 passing, 3 skipped, 0 failures ✓
 
 ## Key Decisions
 

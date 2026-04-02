@@ -26,11 +26,14 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
 **Current focus:** Phase 09 — cli-utility-unit-tests
 
-## Tech Debt (from v2.0.0 audit)
+## Tech Debt
 
-- `runArtifacts` feature flag has no effect — stub in `run-tests.ts`, write in `test.ts` is unconditional
-- `--isolate` worktree path created but not used as test cwd (ISOLATE-01 in Phase 8 addresses filesystem isolation)
 - Stripe live-mode products need sk_live_ key (user action required)
+
+**Verified resolved (2026-04-02):**
+- `runArtifacts` properly gated in `run-tests.ts:302` ✓
+- Integration tests: 269 passing, 0 failures ✓
+- `--isolate` worktree isolation complete (ISOLATE-01 closed in Phase 8) ✓
 
 ## Decisions (archived to PROJECT.md Key Decisions table)
 
