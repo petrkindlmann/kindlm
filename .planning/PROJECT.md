@@ -53,7 +53,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ### Active
 
-- [ ] CACHE-01–08: Response caching with local file cache, TTL, --no-cache, [cached] indicator — v2.3.0
+- ✓ CACHE-01–08: Response caching with local file cache, TTL, --no-cache, [cached] indicator, cache clear — v2.3.0
 - [ ] WATCH-01–07: Watch mode with chokidar, process management, cost tracking — v2.3.0
 - [ ] CONV-01–08: Multi-turn agent testing with labeled turns, per-turn assertions — v2.3.0
 - [ ] ACTION-01–08: GitHub Action kindlm/test@v2 with PR comments, JUnit — v2.3.0
@@ -130,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 13 completion*
+*Last updated: 2026-04-02 after Phase 14 completion*
