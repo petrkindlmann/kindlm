@@ -82,9 +82,10 @@ Plans:
   3. Running `kindlm cache clear` deletes all cached responses
   4. Error responses and empty responses are never written to cache — only successful completions with text or tool calls
   5. Cache entries are invalidated automatically after 24 hours (or custom TTL from `.kindlm/config.json`)
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
+- [ ] 14-01-PLAN.md — Cache key sorting, TTL expiry, error guard, and fromCache type threading
+- [ ] 14-02-PLAN.md — Cache clear command and pretty reporter [cached] indicator
 
 ### Phase 15: Watch Mode
 **Goal**: Developers can save their config file and immediately see test results without re-running the CLI manually
@@ -160,7 +161,7 @@ Plans:
 | 11. Dry Run | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 12. Validation Diagnostics | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete    | 2026-04-02 |
-| 14. Response Caching | v2.3.0 | 0/? | Not started | - |
+| 14. Response Caching | v2.3.0 | 0/2 | Not started | - |
 | 15. Watch Mode | v2.3.0 | 0/? | Not started | - |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 0/? | Not started | - |
 | 17. GitHub Action | v2.3.0 | 0/? | Not started | - |
