@@ -229,3 +229,136 @@ describe("createPrettyReporter", () => {
     expect(output.content).not.toContain("Cost:");
   });
 });
+
+// Mock colorize that wraps text with markers for testability
+const mockColorize = {
+  green: (s: string) => `[green]${s}[/green]`,
+  red: (s: string) => `[red]${s}[/red]`,
+  yellow: (s: string) => `[yellow]${s}[/yellow]`,
+  cyan: (s: string) => `[cyan]${s}[/cyan]`,
+  dim: (s: string) => `[dim]${s}[/dim]`,
+  bold: (s: string) => `[bold]${s}[/bold]`,
+  greenBold: (s: string) => `[greenBold]${s}[/greenBold]`,
+  redBold: (s: string) => `[redBold]${s}[/redBold]`,
+};
+
+function makeJudgeRunResult(assertion: {
+  passed: boolean;
+  score: number;
+  failureMessage?: string;
+  metadata?: Record<string, unknown>;
+}): RunResult {
+  return makeRunResult({
+    passed: assertion.passed ? 1 : 0,
+    failed: assertion.passed ? 0 : 1,
+    suites: [
+      {
+        name: "judge-suite",
+        status: assertion.passed ? "passed" : "failed",
+        tests: [
+          {
+            name: "judge-test",
+            modelId: "gpt-4o",
+            status: assertion.passed ? "passed" : "failed",
+            assertions: [
+              {
+                assertionType: "judge",
+                label: "Judge: Response is helpful",
+                passed: assertion.passed,
+                score: assertion.score,
+                failureMessage: assertion.failureMessage,
+                metadata: assertion.metadata,
+              },
+            ],
+            latencyMs: 500,
+            costUsd: 0.001,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+describe("formatAssertion reasoning display", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  it("shows reasoning in normal text on judge failure", async () => {
+    const run = makeJudgeRunResult({
+      passed: false,
+      score: 0.4,
+      failureMessage: "Score 0.4 below threshold 0.7",
+      metadata: { reasoning: "The response lacked specific details.", threshold: 0.7 },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    // Reasoning line must be present with 8-space indent
+    expect(output.content).toContain("        Reasoning: The response lacked specific details.");
+    // On failure, reasoning text must NOT be wrapped in dim
+    expect(output.content).not.toContain("        Reasoning: [dim]The response lacked specific details.[/dim]");
+  });
+
+  it("shows reasoning in dimmed text on judge pass", async () => {
+    const run = makeJudgeRunResult({
+      passed: true,
+      score: 0.9,
+      metadata: { reasoning: "The response was thorough and accurate.", threshold: 0.7 },
+    });
+    const output = await reporter.generate(run, makeGateEval());
+    // Reasoning line must be present with 8-space indent, text dimmed
+    expect(output.content).toContain("        Reasoning: [dim]The response was thorough and accurate.[/dim]");
+  });
+
+  it("shows reasoning for betaJudge assertions (metadata.betaJudge present)", async () => {
+    const run = makeJudgeRunResult({
+      passed: false,
+      score: 0.5,
+      metadata: {
+        reasoning: "Median judge found the response incomplete.",
+        threshold: 0.7,
+        betaJudge: { passes: 5, successful: 3, scores: [0.4, 0.5, 0.6] },
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("        Reasoning: Median judge found the response incomplete.");
+  });
+
+  it("does not show reasoning for non-judge assertions", async () => {
+    const piiRun = makeRunResult({
+      suites: [
+        {
+          name: "pii-suite",
+          status: "passed",
+          tests: [
+            {
+              name: "pii-test",
+              modelId: "gpt-4o",
+              status: "passed",
+              assertions: [
+                {
+                  assertionType: "pii",
+                  label: "No PII detected",
+                  passed: true,
+                  score: 1,
+                  metadata: { reasoning: "should not appear" },
+                },
+              ],
+              latencyMs: 200,
+              costUsd: 0,
+            },
+          ],
+        },
+      ],
+    });
+    const output = await reporter.generate(piiRun, makeGateEval());
+    expect(output.content).not.toContain("Reasoning:");
+  });
+
+  it("does not show reasoning when judge metadata.reasoning is absent", async () => {
+    const run = makeJudgeRunResult({
+      passed: false,
+      score: 0.4,
+      metadata: { threshold: 0.7 },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).not.toContain("Reasoning:");
+  });
+});
