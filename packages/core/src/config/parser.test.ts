@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseConfig, safePath } from "./parser.js";
+import { parseConfig, safePath, suggestClosest } from "./parser.js";
 import type { FileReader } from "./parser.js";
 import { ok, err } from "../types/result.js";
 
@@ -304,6 +304,100 @@ tests:
     if (!result.success) {
       // Should fail for schema reasons, not size
       expect(result.error.code).not.toBe("CONFIG_TOO_LARGE");
+    }
+  });
+});
+
+describe("suggestClosest", () => {
+  it("returns the closest match for a typo", () => {
+    expect(suggestClosest("greting", ["greeting", "system-prompt"])).toBe("greeting");
+  });
+
+  it("returns close match with hyphen difference", () => {
+    expect(suggestClosest("gpt4o", ["gpt-4o", "claude-3"])).toBe("gpt-4o");
+  });
+
+  it("returns null when no candidate is close enough", () => {
+    expect(suggestClosest("xyz", ["greeting", "system-prompt"])).toBeNull();
+  });
+
+  it("is case-insensitive", () => {
+    expect(suggestClosest("openAI", ["openai", "anthropic"])).toBe("openai");
+  });
+
+  it("returns null for empty input", () => {
+    expect(suggestClosest("", ["greeting"])).toBeNull();
+  });
+
+  it("returns null for empty candidates", () => {
+    expect(suggestClosest("hello", [])).toBeNull();
+  });
+});
+
+describe("parseConfig — Did you mean suggestions", () => {
+  it("suggests closest prompt name when typo is close", () => {
+    const yaml = VALID_YAML.replace('prompt: "greeting"', 'prompt: "greting"');
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      expect(errors[0]).toContain('Did you mean: "greeting"');
+    }
+  });
+
+  it("lists available prompts when no close match exists", () => {
+    const yaml = VALID_YAML.replace('prompt: "greeting"', 'prompt: "zzz-nope"');
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      expect(errors[0]).toContain("Available prompts:");
+    }
+  });
+
+  it("suggests closest model ID when typo is close", () => {
+    const yaml =
+      VALID_YAML.trimEnd() +
+      `
+  - name: "test-typo"
+    prompt: "greeting"
+    models: ["gpt4o"]
+    expect: {}
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      expect(errors[0]).toContain('Did you mean: "gpt-4o"');
+    }
+  });
+
+  it("lists available models when no close match exists", () => {
+    const yaml =
+      VALID_YAML.trimEnd() +
+      `
+  - name: "test-unknown"
+    prompt: "greeting"
+    models: ["zzz-unknown"]
+    expect: {}
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      expect(errors[0]).toContain("Available models:");
+    }
+  });
+
+  it("lists available providers when provider not configured", () => {
+    // "anthropic" is a valid enum value but not in the providers block — triggers cross-ref error
+    const yaml = VALID_YAML.replace('provider: "openai"', 'provider: "anthropic"');
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      // No close match between "anthropic" and ["openai"], so lists available
+      expect(errors[0]).toContain("Available providers:");
     }
   });
 });
