@@ -71,8 +71,11 @@ Plans:
   3. Dry-run output lists assertion types configured per test
   4. Dry-run output shows estimated cost per test and total estimated cost
   5. Dry-run output shows total API call count (tests × models × repeats)
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Add KINDLM_PRICING table and estimateDryRunCost to core; add cost fields to TestPlanEntry/TestPlan
+- [ ] 11-02-PLAN.md — Update formatTestPlan CLI formatter to display per-entry and total cost
 
 ### Phase 12: Validation Diagnostics
 **Goal**: Config errors give users enough context to fix the problem without reading source code
@@ -99,5 +102,5 @@ Plans:
 | 8. Worktree File Copy | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
 | 10. Reporter Output + Gate Integrity | v2.2.0 | 2/2 | Complete    | 2026-04-02 |
-| 11. Dry Run | v2.2.0 | 0/? | Not started | - |
+| 11. Dry Run | v2.2.0 | 0/2 | Not started | - |
 | 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |
