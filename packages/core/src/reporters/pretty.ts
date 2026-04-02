@@ -59,7 +59,11 @@ export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
       if (gateEvaluation.gates.length > 0) {
         lines.push(c.bold("  Quality Gates"));
         for (const gate of gateEvaluation.gates) {
-          const icon = gate.passed ? c.green("✓") : c.red("✗");
+          const icon = gate.emptyData
+            ? c.yellow("⚠")
+            : gate.passed
+              ? c.green("✓")
+              : c.red("✗");
           lines.push(`    ${icon} ${gate.message}`);
         }
         lines.push("");
