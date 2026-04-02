@@ -485,6 +485,61 @@ describe("truncateArgs", () => {
   });
 });
 
+describe("[cached] indicator", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  function makeCachedRunResult(fromCache: boolean | undefined): RunResult {
+    return makeRunResult({
+      suites: [
+        {
+          name: "cache-suite",
+          status: "passed",
+          tests: [
+            {
+              name: "cached-test",
+              modelId: "gpt-4o",
+              status: "passed",
+              assertions: [],
+              latencyMs: 50,
+              costUsd: 0,
+              fromCache,
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("shows [cached] badge when fromCache is true", async () => {
+    const output = await reporter.generate(makeCachedRunResult(true), makeGateEval());
+    expect(output.content).toContain("[cached]");
+  });
+
+  it("does NOT show [cached] badge when fromCache is false", async () => {
+    const output = await reporter.generate(makeCachedRunResult(false), makeGateEval());
+    expect(output.content).not.toContain("[cached]");
+  });
+
+  it("does NOT show [cached] badge when fromCache is undefined", async () => {
+    const output = await reporter.generate(makeCachedRunResult(undefined), makeGateEval());
+    expect(output.content).not.toContain("[cached]");
+  });
+
+  it("uses dim(cyan('[cached]')) via Colorize interface", async () => {
+    const output = await reporter.generate(makeCachedRunResult(true), makeGateEval());
+    // mockColorize wraps: dim → [dim]...[/dim], cyan → [cyan]...[/cyan]
+    expect(output.content).toContain("[dim][cyan][cached][/cyan][/dim]");
+  });
+
+  it("shows [cached] badge after the test name", async () => {
+    const output = await reporter.generate(makeCachedRunResult(true), makeGateEval());
+    const lines = output.content.split("\n");
+    const testLine = lines.find((l) => l.includes("cached-test"));
+    expect(testLine).toBeDefined();
+    expect(testLine).toContain("[cached]");
+  });
+});
+
 describe("formatAssertion tool call rich output", () => {
   const reporter = createPrettyReporter(mockColorize);
 
