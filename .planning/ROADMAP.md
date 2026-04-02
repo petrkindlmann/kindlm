@@ -49,7 +49,7 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
 
 **Milestone Goal:** Make KindLM faster to iterate with, deeper in agent testing capabilities, easier to adopt in CI, and useful as a team dashboard.
 
-- [ ] **Phase 13: Rich Tool Call Failure Output** - Full tool call sequence and arg diffs in pretty reporter on assertion failure
+- [x] **Phase 13: Rich Tool Call Failure Output** - Full tool call sequence and arg diffs in pretty reporter on assertion failure (completed 2026-04-02)
 - [ ] **Phase 14: Response Caching** - Local SHA-256-keyed response cache with TTL, `--no-cache` flag, and `kindlm cache clear`
 - [ ] **Phase 15: Watch Mode** - `kindlm test --watch` re-runs on config file change with cumulative cost tracking
 - [ ] **Phase 16: Multi-Turn Agent Testing** - YAML-defined conversation turns with per-turn assertions and mock tool responses
@@ -70,7 +70,7 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
   5. All failure formatting passes through the injected `Colorize` interface so it renders correctly in both terminal and CI environments
 **Plans**: 1 plan
 Plans:
-- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
+- [x] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
 
 ### Phase 14: Response Caching
 **Goal**: Developers can iterate on assertions and config without burning API credits by serving cached responses for identical requests
@@ -159,7 +159,7 @@ Plans:
 | 10. Reporter Output + Gate Integrity | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 11. Dry Run | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 12. Validation Diagnostics | v2.2.0 | 2/2 | Complete | 2026-04-02 |
-| 13. Rich Tool Call Failure Output | v2.3.0 | 0/? | Not started | - |
+| 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete   | 2026-04-02 |
 | 14. Response Caching | v2.3.0 | 0/? | Not started | - |
 | 15. Watch Mode | v2.3.0 | 0/? | Not started | - |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 0/? | Not started | - |
