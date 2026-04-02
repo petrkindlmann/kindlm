@@ -8,15 +8,9 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 
 Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
-## Current Milestone: v2.2.0 Core Quality
+## Current Milestone: Planning next milestone
 
-**Goal:** Make the existing core deliver on its promise — actionable failures, honest gates, zero-cost validation.
-
-**Target features:**
-- Judge reasoning visible in pretty reporter output (failures tell you *why*)
-- Silent gate passes eliminated (warn/fail when gate checks have no data)
-- Dry-run / test plan preview (see what runs without API calls)
-- Validation errors with context (which test, which field, how to fix)
+v2.2.0 Core Quality shipped 2026-04-02. See `.planning/milestones/v2.2.0-ROADMAP.md` for details.
 
 ## Requirements
 
@@ -50,7 +44,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ### Active
 
-(None — v2.2.0 milestone complete, all 14 requirements shipped)
+(None — awaiting next milestone planning)
 
 ### Out of Scope
 
@@ -60,23 +54,21 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ## Context
 
-**Current state (as of v2.1.0, 2026-04-02):**
-- CLI published: `@kindlm/cli` v2.0.0 on npm (v2.1.0 pending publish)
+**Current state (as of v2.2.0, 2026-04-02):**
+- CLI published: `@kindlm/cli` v2.0.0 on npm (v2.2.0 pending publish)
 - Cloud Worker live at api.kindlm.com (Cloudflare Workers + D1)
 - 13 D1 migrations applied to kindlm-prod
 - Sentry error monitoring active
 - VS Code extension published
 - Stripe billing in test mode
-- `betaJudge` and `costGating` feature flags fully wired
-- `--isolate` now copies config + schema files into worktree (ISOLATE-01 closed)
-- All CLI utilities have unit test coverage (242 passing tests in CLI package)
+- Pretty reporter shows judge reasoning (pass dimmed, fail normal)
+- Gates warn with ⚠ when evaluating against zero assertions
+- `--dry-run` shows test plan with cost estimates (KINDLM_PRICING table)
+- Validation errors include test name, bracket-notation field paths, "Did you mean?" suggestions
+- 617+ core tests passing, TypeScript clean across all packages
 
 **Known tech debt:**
 - Stripe live-mode products need sk_live_ key to create (user action required)
-
-**Verified clean (2026-04-02):**
-- `runArtifacts` is properly gated — `isEnabled(featureFlags, "runArtifacts")` in `run-tests.ts:302` ✓
-- Integration tests: 269 passing, 3 skipped, 0 failures ✓
 
 ## Key Decisions
 
@@ -125,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after v2.2.0 milestone completion*
+*Last updated: 2026-04-02 after v2.2.0 milestone*
