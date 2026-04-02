@@ -37,9 +37,14 @@ export function formatTestPlan(plan: TestPlan): string {
       const assertionLabel = chalk.dim(
         ` -> ${entry.assertionTypes.join(", ") || "none"}`,
       );
+      const costLabel = entry.isCommand
+        ? ""
+        : entry.estimatedCostUsd !== null
+          ? chalk.dim(` ~$${entry.estimatedCostUsd.toFixed(6)}`)
+          : chalk.dim(" ~$?");
 
       lines.push(
-        `  ${chalk.green("\u2713")} ${entry.testName} ${modelLabel}${repeatLabel}${tagsLabel}${assertionLabel}`,
+        `  ${chalk.green("\u2713")} ${entry.testName} ${modelLabel}${repeatLabel}${tagsLabel}${assertionLabel}${costLabel}`,
       );
     }
   }
@@ -58,6 +63,15 @@ export function formatTestPlan(plan: TestPlan): string {
   lines.push(
     `  Total execution units: ${chalk.bold(String(plan.totalExecutionUnits))}`,
   );
+  if (plan.totalEstimatedCostUsd !== null) {
+    lines.push(
+      `  Estimated cost: ${chalk.bold(`~$${plan.totalEstimatedCostUsd.toFixed(6)}`)}`,
+    );
+  } else {
+    lines.push(
+      `  Estimated cost: ${chalk.dim("unknown (model pricing not found)")}`,
+    );
+  }
   lines.push(`  Concurrency: ${plan.concurrency}`);
   lines.push(`  Timeout: ${plan.timeoutMs}ms`);
   lines.push("");

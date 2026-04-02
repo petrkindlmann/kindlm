@@ -120,4 +120,47 @@ describe("formatTestPlan", () => {
     expect(output).toContain("smoke");
     expect(output).toContain("fast");
   });
+
+  // Cost display tests (DRY-04)
+
+  it("shows per-entry cost when estimatedCostUsd is a number", () => {
+    const plan = makePlan({
+      entries: [makeEntry({ estimatedCostUsd: 0.00001024 })],
+    });
+    const output = stripAnsi(formatTestPlan(plan));
+
+    expect(output).toContain("~$0.000010");
+  });
+
+  it("shows ~$? when estimatedCostUsd is null on a non-command entry", () => {
+    const plan = makePlan({
+      entries: [makeEntry({ estimatedCostUsd: null })],
+    });
+    const output = stripAnsi(formatTestPlan(plan));
+
+    expect(output).toContain("~$?");
+  });
+
+  it("does not show cost suffix on command entries", () => {
+    const plan = makePlan({
+      entries: [makeEntry({ isCommand: true, estimatedCostUsd: null })],
+    });
+    const output = stripAnsi(formatTestPlan(plan));
+
+    expect(output).not.toContain("~$");
+  });
+
+  it("shows total estimated cost in summary when totalEstimatedCostUsd is a number", () => {
+    const plan = makePlan({ totalEstimatedCostUsd: 0.00001024 });
+    const output = stripAnsi(formatTestPlan(plan));
+
+    expect(output).toContain("Estimated cost: ~$0.000010");
+  });
+
+  it("shows unknown in summary when totalEstimatedCostUsd is null", () => {
+    const plan = makePlan({ totalEstimatedCostUsd: null });
+    const output = stripAnsi(formatTestPlan(plan));
+
+    expect(output).toContain("Estimated cost: unknown");
+  });
 });
