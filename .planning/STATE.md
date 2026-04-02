@@ -1,30 +1,30 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1.0
-milestone_name: Gap Closure
-status: completed
-last_updated: "2026-04-02T05:27:15.139Z"
+milestone: v2.2.0
+milestone_name: Core Quality
+status: planning
+last_updated: "2026-04-02"
 last_activity: 2026-04-02
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 ## Current Position
 
-Phase: 09 (cli-utility-unit-tests) — COMPLETE
-Plan: 1 of 1 — DONE
-Status: v2.1.0 Gap Closure milestone complete — all 4 phases done
-Last activity: 2026-04-02
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-02 — Milestone v2.2.0 started
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-04-01)
+See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Phase 09 — cli-utility-unit-tests
+**Current focus:** v2.2.0 Core Quality — defining requirements
 
 ## Tech Debt
 
