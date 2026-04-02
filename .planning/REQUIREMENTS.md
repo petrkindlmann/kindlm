@@ -9,8 +9,8 @@ Requirements for Core Quality milestone. Each maps to roadmap phases.
 
 ### Reporting
 
-- [ ] **RPT-01**: User sees judge reasoning text in pretty reporter output when a judge assertion fails
-- [ ] **RPT-02**: User sees judge reasoning text (dimmed) in pretty reporter output when a judge assertion passes
+- [x] **RPT-01**: User sees judge reasoning text in pretty reporter output when a judge assertion fails
+- [x] **RPT-02**: User sees judge reasoning text (dimmed) in pretty reporter output when a judge assertion passes
 
 ### Gate Integrity
 
@@ -50,8 +50,8 @@ None — scope is tight for this milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RPT-01 | Phase 10 | Pending |
-| RPT-02 | Phase 10 | Pending |
+| RPT-01 | Phase 10 | Complete |
+| RPT-02 | Phase 10 | Complete |
 | GATE-01 | Phase 10 | Pending |
 | GATE-02 | Phase 10 | Pending |
 | GATE-03 | Phase 10 | Pending |

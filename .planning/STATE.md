@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v2.2.0
 milestone_name: Core Quality
-status: planning
-stopped_at: Phase 10 context gathered
-last_updated: "2026-04-02T08:17:59.042Z"
-last_activity: 2026-04-02 — Roadmap created for v2.2.0
+status: executing
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-04-02T08:30:14.868Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
   percent: 0
 ---
 
 ## Current Position
 
-Phase: 10 of 12 (Reporter Output + Gate Integrity) — not started
-Plan: —
-Status: Roadmap complete, ready to plan Phase 10
-Last activity: 2026-04-02 — Roadmap created for v2.2.0
+Phase: 10 (reporter-output-gate-integrity) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-02
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -28,7 +28,7 @@ Progress: [░░░░░░░░░░] 0%
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** v2.2.0 Core Quality — Phase 10 ready to plan
+**Current focus:** Phase 10 — reporter-output-gate-integrity
 
 ## Tech Debt
 
@@ -41,8 +41,10 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 ## Decisions
 
-Recent decisions affecting current work: none yet for v2.2.0.
+Recent decisions affecting current work: for v2.2.0.
 Full decision log: `.planning/PROJECT.md` Key Decisions table.
+
+- [Phase 10-reporter-output-gate-integrity]: Reasoning label not dimmed, only reasoning text dimmed on pass — keeps label scannable in both states
 
 ## Accumulated Context
 
@@ -52,6 +54,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02T08:17:59.039Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-reporter-output-gate-integrity/10-CONTEXT.md
+Last session: 2026-04-02T08:30:14.866Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None
