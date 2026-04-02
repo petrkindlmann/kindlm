@@ -9,16 +9,16 @@ Requirements for v2.3.0 Developer Experience & Depth. Each maps to roadmap phase
 
 ### Rich Tool Call Failure Output
 
-- [ ] **TCOUT-01**: When a tool call assertion fails, the pretty reporter shows the full list of actual tool calls with names and arguments
-- [ ] **TCOUT-02**: When `argsMatch` fails, the failure output highlights which specific argument fields differ (expected vs received)
-- [ ] **TCOUT-03**: Tool call failure output includes a numbered call sequence showing all tool calls in execution order
-- [ ] **TCOUT-04**: Tool call arguments longer than 500 characters are truncated with a `...(truncated)` indicator
-- [ ] **TCOUT-05**: Passing tool call assertions show only the tool name and argument count (no full args)
-- [ ] **TCOUT-06**: All rich failure formatting uses the injected `Colorize` interface (no direct chalk calls in core)
+- [x] **TCOUT-01**: When a tool call assertion fails, the pretty reporter shows the full list of actual tool calls with names and arguments
+- [x] **TCOUT-02**: When `argsMatch` fails, the failure output highlights which specific argument fields differ (expected vs received)
+- [x] **TCOUT-03**: Tool call failure output includes a numbered call sequence showing all tool calls in execution order
+- [x] **TCOUT-04**: Tool call arguments longer than 500 characters are truncated with a `...(truncated)` indicator
+- [x] **TCOUT-05**: Passing tool call assertions show only the tool name and argument count (no full args)
+- [x] **TCOUT-06**: All rich failure formatting uses the injected `Colorize` interface (no direct chalk calls in core)
 
 ### Response Caching
 
-- [ ] **CACHE-01**: `CacheStore` interface defined in `@kindlm/core` with `get`, `set`, `clear` methods
+- [x] **CACHE-01**: Response caching architecture with CLI-only implementation (CacheStore interface deferred per CONTEXT D-14 — existing cache.ts + caching-adapter.ts pattern satisfies the architectural need)
 - [ ] **CACHE-02**: File-based cache implementation in CLI stores responses in `.kindlm/cache/` as JSON files
 - [ ] **CACHE-03**: Cache key is SHA-256 of model + sorted params + messages + tools (deterministic regardless of object key order)
 - [ ] **CACHE-04**: Only successful responses are cached (`finishReason !== "error"` AND non-empty text or tool calls)
@@ -107,12 +107,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TCOUT-01 | Phase 13 | Pending |
-| TCOUT-02 | Phase 13 | Pending |
-| TCOUT-03 | Phase 13 | Pending |
-| TCOUT-04 | Phase 13 | Pending |
-| TCOUT-05 | Phase 13 | Pending |
-| TCOUT-06 | Phase 13 | Pending |
+| TCOUT-01 | Phase 13 | Complete |
+| TCOUT-02 | Phase 13 | Complete |
+| TCOUT-03 | Phase 13 | Complete |
+| TCOUT-04 | Phase 13 | Complete |
+| TCOUT-05 | Phase 13 | Complete |
+| TCOUT-06 | Phase 13 | Complete |
 | CACHE-01 | Phase 14 | Pending |
 | CACHE-02 | Phase 14 | Pending |
 | CACHE-03 | Phase 14 | Pending |
