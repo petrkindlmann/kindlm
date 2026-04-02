@@ -55,7 +55,11 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
   3. User sees a warning when `judgeAvgMin` gate has zero judge assertions to evaluate
   4. User sees a warning when `driftScoreMax` gate has zero drift assertions to evaluate
   5. User sees a warning when `deterministicPassRate` or `probabilisticPassRate` gate has zero assertions of that category
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Add judge reasoning display to pretty reporter
+- [ ] 10-02-PLAN.md — Add emptyData warning flag to gate evaluation and reporter
 
 ### Phase 11: Dry Run
 **Goal**: Users can preview exactly what will run — models, tests, assertions, estimated cost — without spending API credits
@@ -94,6 +98,6 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
 | 7. betaJudge Multi-Pass Scoring | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 8. Worktree File Copy | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
-| 10. Reporter Output + Gate Integrity | v2.2.0 | 0/? | Not started | - |
+| 10. Reporter Output + Gate Integrity | v2.2.0 | 0/2 | Not started | - |
 | 11. Dry Run | v2.2.0 | 0/? | Not started | - |
 | 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |
