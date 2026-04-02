@@ -49,10 +49,15 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ DRY-01/02/03/04/05: `--dry-run` shows test plan with models, assertions, cost estimates — v2.2.0
 - ✓ VAL-01/02: Validation errors include test name and bracket-notation field path — v2.2.0
 - ✓ VAL-03/04: "Did you mean?" suggestions for undefined prompt/provider/model refs — v2.2.0
+- ✓ TCOUT-01–06: Rich tool call failure output with numbered call sequences, arg diffs, truncation — v2.3.0
 
 ### Active
 
-(Defining requirements for v2.3.0)
+- [ ] CACHE-01–08: Response caching with local file cache, TTL, --no-cache, [cached] indicator — v2.3.0
+- [ ] WATCH-01–07: Watch mode with chokidar, process management, cost tracking — v2.3.0
+- [ ] CONV-01–08: Multi-turn agent testing with labeled turns, per-turn assertions — v2.3.0
+- [ ] ACTION-01–08: GitHub Action kindlm/test@v2 with PR comments, JUnit — v2.3.0
+- [ ] DASH-01–10: Dashboard team features with trends, comparison, drill-down — v2.3.0
 
 ### Out of Scope
 
@@ -125,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after v2.3.0 milestone start*
+*Last updated: 2026-04-02 after Phase 13 completion*
