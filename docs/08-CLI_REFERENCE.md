@@ -91,6 +91,15 @@ kindlm test \
 | `--gate` | number | from config | Fail if pass rate below threshold (percent) |
 | `--compliance` | boolean | false | Generate EU AI Act compliance report |
 | `--pdf <path>` | string | — | Export compliance report as PDF (requires `--compliance`) |
+| `--isolate` | boolean | false | Run in an isolated git worktree (v2.0.0) |
+| `--concurrency <n>` | int | from config | Override `defaults.concurrency`; must be ≥ 1 (v2.1.0) |
+| `--timeout <ms>` | int | from config | Override `defaults.timeoutMs`; must be ≥ 0 (v2.1.0) |
+
+**`--isolate`** (v2.0.0): Creates a temporary git worktree, copies the config file and any referenced schema files into it, runs the test suite there, then removes the worktree on completion or error (fail-closed). Requires git to be available. If git is not installed or the current directory is not a git repository, the flag is silently ignored and tests run normally.
+
+**`--concurrency <n>`** (v2.1.0): Overrides `defaults.concurrency` from the config file. Must be an integer ≥ 1 — exits with code 1 and an error message otherwise. Does not affect provider HTTP timeouts.
+
+**`--timeout <ms>`** (v2.1.0): Overrides `defaults.timeoutMs` from the config file. Must be ≥ 0 — exits with code 1 and an error message otherwise. Controls test execution timeout only; provider HTTP connection/response timeouts are separate.
 
 **Note:** The config schema supports a `tags` field on test cases and the `--runs` CLI flag overrides the `defaults.repeat` config value. The flag is named `--runs` (not `--repeat`) for brevity.
 
@@ -230,6 +239,30 @@ kindlm upload --token klm_abc123
 Useful when tests are run in a CI step and upload happens in a separate step.
 
 > **Cloud is optional.** The CLI works fully offline with all features. `login` and `upload` are only needed if you want Cloud dashboard features. Free plan: 1 project, 7-day history. Team ($49/mo): 5 projects, 90 days. Enterprise ($299/mo): unlimited.
+
+---
+
+## Feature Flags
+
+Local feature flags are read from `.kindlm/config.json` at startup. This file is optional — if absent, all flags default to `false`.
+
+```json
+{
+  "features": {
+    "betaJudge": true,
+    "costGating": true,
+    "runArtifacts": true
+  }
+}
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `betaJudge` | false | Enables 3-pass median judge scoring. Failed/errored passes are excluded. Requires ceil(N/2) successful passes to produce a score; falls back to single-pass if insufficient passes succeed. |
+| `costGating` | false | Controls whether the `gates.costMaxUsd` field in your config is enforced by the test runner. When disabled, cost assertions still run but the gate does not fail the suite. |
+| `runArtifacts` | false | When enabled, saves full test run artifacts (raw responses, assertion details) to `.kindlm/runs/{runId}/{executionId}/` after each run. Directory is append-only — artifacts are never overwritten. |
+
+The `.kindlm/` directory is gitignored by default. Commit `.kindlm/config.json` deliberately if you want feature flags checked into source control.
 
 ---
 

@@ -22,14 +22,37 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 
 ## Supported Providers
 
-| Provider | Example config |
-|----------|---------------|
-| OpenAI | `openai:gpt-4o` |
-| Anthropic | `anthropic:claude-sonnet-4-5-20250929` |
-| Ollama | `ollama:llama3` |
-| Google Gemini | `google:gemini-2.0-flash` |
-| AWS Bedrock | `bedrock:anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| Azure OpenAI | `azure:my-gpt4o-deployment` |
+| Provider | Example config | Notes |
+|----------|---------------|-------|
+| OpenAI | `openai:gpt-4o` | |
+| Anthropic | `anthropic:claude-sonnet-4-5-20250929` | |
+| Ollama | `ollama:llama3` | Local models |
+| Google Gemini | `google:gemini-2.0-flash` | |
+| AWS Bedrock | `bedrock:anthropic.claude-sonnet-4-5-20250929-v1:0` | |
+| Azure OpenAI | `azure:my-gpt4o-deployment` | |
+| MCP | `mcp:<server-url>` | Passthrough HTTP POST to any MCP server (v2.0.0) |
+
+## Feature Flags
+
+KindLM reads optional feature flags from `.kindlm/config.json`. Use the `isEnabled()` helper (exported from `@kindlm/core`) to gate behavior behind a flag at runtime.
+
+```json
+{
+  "flags": {
+    "betaJudge": true,
+    "costGating": false,
+    "runArtifacts": false
+  }
+}
+```
+
+| Flag | Description |
+|------|-------------|
+| `betaJudge` | Enable experimental LLM-as-judge scoring improvements |
+| `costGating` | Enforce `expect.cost.maxUsd` gates (off by default in v2.x) |
+| `runArtifacts` | Persist raw provider responses alongside test results |
+
+If `.kindlm/config.json` is absent or a flag is omitted, `isEnabled()` returns `false`. Added in v2.0.0.
 
 ## Quick Start
 

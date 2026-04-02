@@ -2,6 +2,36 @@
 
 All notable changes to KindLM are documented here.
 
+## [2.1.0] — 2026-04-02
+
+### Added
+
+- **`--concurrency <n>` flag for `kindlm test`** — overrides `defaults.concurrency` at runtime (integer ≥ 1).
+- **`--timeout <ms>` flag for `kindlm test`** — overrides `defaults.timeoutMs` at runtime (≥ 0, controls per-test execution timeout).
+- **`betaJudge` feature flag** — enables 3-pass median judge scoring; errored passes are excluded from scoring; ceil(N/2) quorum required for a verdict.
+- **`costGating` feature flag** — controls whether `gates.costMaxUsd` is enforced by the runner; disabled by default until flag is enabled.
+- **`--isolate` file copying** — `--isolate` now copies the config file and all referenced `schemaFile`/`argsSchema` files into the worktree before running, so isolated runs are fully self-contained.
+
+---
+
+## [2.0.0] — 2026-04-01
+
+### Added
+
+- **MCP provider adapter** — passthrough HTTP POST adapter; any MCP server can be used as a provider source via the `mcp` provider type.
+- **`--isolate` flag for `kindlm test`** — runs the suite in an isolated git worktree; fail-closed cleanup on error; graceful degradation when git is unavailable.
+- **Feature flags via `.kindlm/config.json`** — `isEnabled()` helper reads flags at runtime; flags default to `false` when the config file is absent or malformed.
+- **Append-only run artifacts** — test run output is written to `.kindlm/runs/{runId}/{executionId}/` with deterministic SHA-256 run IDs.
+- **Versioned baselines with nonce-unique filenames** — baselines are immutable and never overwritten; a pointer file at `-latest.json` tracks the current baseline.
+
+### Fixed
+
+- Cloud Worker deployed to `api.kindlm.com` (13 D1 migrations applied to kindlm-prod).
+- VS Code extension published to the marketplace.
+- Stripe billing wired in test mode.
+
+---
+
 ## Unreleased
 
 ### Fixed

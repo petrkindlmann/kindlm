@@ -20,6 +20,8 @@ KindLM is a CLI tool that runs test suites against your LLM-powered features and
 - **LLM-as-judge** — evaluate subjective quality ("is this response empathetic?") using configurable judge models
 - **Compliance reports** — generate EU AI Act–aligned test documentation for auditors
 - **CI-native** — exit codes, JUnit XML, JSON reports. Drop it into your pipeline in 5 minutes
+- **Worktree isolation** — run tests in isolated git worktrees with `--isolate`
+- **MCP provider** — test agents backed by MCP servers (`mcp:http://...`)
 
 ## Quick Example
 
@@ -153,7 +155,7 @@ Generates a structured markdown document mapping test results to EU AI Act Annex
 
 ```yaml
 # GitHub Actions
-- run: kindlm test kindlm.yaml --junit junit.xml --format json
+- run: kindlm test kindlm.yaml --reporter junit --concurrency 4 --timeout 30000 > junit.xml
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -162,7 +164,7 @@ Exit code 0 = all gates passed. Exit code 1 = gates failed. That's it.
 
 ## Cloud (Optional)
 
-Upload results to KindLM Cloud for history, trends, and team collaboration:
+KindLM Cloud is live at [api.kindlm.com](https://api.kindlm.com). Upload results for history, trends, and team collaboration:
 
 ```bash
 kindlm login
@@ -197,7 +199,7 @@ Visit [kindlm.com/docs](https://kindlm.com/docs) for the full documentation, inc
 - [Assertion Engine](/docs/assertions) — all assertion types
 - [Provider Interface](/docs/providers) — OpenAI, Anthropic, Gemini, Mistral, Cohere, Ollama
 - [Troubleshooting](/docs/troubleshooting) — common errors and fixes
-- [VS Code Extension](/docs/vscode-extension) — autocomplete, validation, hover docs, snippets
+- [VS Code Extension](/docs/vscode-extension) — autocomplete, validation, hover docs, snippets (published on the VS Code Marketplace)
 
 ## License
 

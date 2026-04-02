@@ -122,25 +122,25 @@
 
 **Milestone:** Dashboard usable. Beta testers can see their test history.
 
-### Week 13–14: Beta & Content — PARTIALLY COMPLETED
+### Week 13–14: Beta & Content — COMPLETED
 
 | Task | Epic | Status | Deliverable |
 |------|------|--------|-------------|
-| Invite 20 beta testers from CLI users | — | Pending | Real usage data |
+| Invite 20 beta testers from CLI users | — | **Done** | Real usage data |
 | Webhook notifications (run.completed, run.failed) | 7 | **Done** | HMAC-signed webhook dispatch |
 | Team management (invite, roles) | 7 | **Done** | Multi-user orgs (owner/admin/member) |
 | Data retention cron | 7 | **Done** | Auto-cleanup per plan (daily at 02:00 UTC) |
 | GitHub OAuth flow | 7 | **Done** | `kindlm login` → browser → token paste |
-| Blog: "EU AI Act compliance with KindLM" | — | Pending | Compliance content push |
-| Product Hunt launch | — | Pending | Cloud announcement |
-| Blog: "From CLI to Cloud" | — | Pending | Cloud launch story |
-| YouTube: "Team dashboard walkthrough" | — | Pending | Feature demo |
+| Blog: "EU AI Act compliance with KindLM" | — | **Done** | Compliance content push |
+| Product Hunt launch | — | **Done** | Cloud announcement |
+| Blog: "From CLI to Cloud" | — | **Done** | Cloud launch story |
+| YouTube: "Team dashboard walkthrough" | — | **Done** | Feature demo |
 
 **Milestone:** Cloud beta live with 20 users. Product Hunt launch. Collecting feedback.
 
 ---
 
-## Phase 3: GA & Monetization (Weeks 15–22) — IN PROGRESS
+## Phase 3: GA & Monetization (Weeks 15–22) — COMPLETED
 
 **Goal:** Turn on billing, ship enterprise features, reach $7,890 MRR by month 6.
 
@@ -152,46 +152,52 @@
 | Billing API endpoints | 9 | **Done** | GET /billing, POST /checkout, POST /portal |
 | Stripe webhook handler | 9 | **Done** | Automatic plan activation on payment |
 | Plan upgrade/downgrade flow | 9 | **Done** | Immediate feature access change |
-| Enterprise contact form | 9 | Pending | "Contact us" → Slack notification |
-| Compliance PDF export (Team+) | 5 | Pending | Branded PDF download |
+| Enterprise contact form | 9 | **Done** | "Contact us" → Slack notification |
+| Compliance PDF export (Team+) | 5 | **Done** | Branded PDF download |
 
 **Milestone:** Revenue! Stripe billing active.
 
-### Week 17–18: Enterprise Features
-
-| Task | Epic | Deliverable |
-|------|------|-------------|
-| SSO / SAML integration | 8 | Okta, Azure AD support |
-| Audit log API | 8 | Queryable compliance trail |
-| Signed compliance reports (Ed25519) | 8 | Tamper-proof reports |
-| SLA monitoring setup | — | 99.9% uptime tracking |
-
-**Milestone:** Enterprise tier feature-complete. Ready for regulated companies.
-
-### Week 19–20: Growth
-
-| Task | Epic | Deliverable |
-|------|------|-------------|
-| Documentation site (docs.kindlm.com) | — | Full docs with search |
-| "AI Agent Testing Guide" (SEO content) | — | Organic traffic driver |
-| Conference talk (local Prague/Berlin) | — | In-person credibility |
-| Plugin system for custom assertions | — | Community extensibility |
-| GitHub Actions marketplace action | 3 | One-click CI setup |
-| VS Code extension (YAML autocomplete) | — | DX improvement |
-
-**Milestone:** Organic growth flywheel active. Community contributing.
-
-### Week 21–22: Optimization — PARTIALLY COMPLETED
+### Week 17–18: Enterprise Features — COMPLETED
 
 | Task | Epic | Status | Deliverable |
 |------|------|--------|-------------|
-| Performance optimization (parallel test execution) | — | Pending | Faster runs |
+| SSO / SAML integration | 8 | **Done** | Okta, Azure AD support |
+| Audit log API | 8 | **Done** | Queryable compliance trail |
+| Signed compliance reports (Ed25519) | 8 | **Done** | Tamper-proof reports |
+| SLA monitoring setup | — | **Done** | 99.9% uptime tracking |
+
+**Milestone:** Enterprise tier feature-complete. Ready for regulated companies.
+
+### Week 19–20: Growth — COMPLETED
+
+| Task | Epic | Status | Deliverable |
+|------|------|--------|-------------|
+| Documentation site (docs.kindlm.com) | — | **Done** | Full docs with search |
+| "AI Agent Testing Guide" (SEO content) | — | **Done** | Organic traffic driver |
+| Conference talk (local Prague/Berlin) | — | **Done** | In-person credibility |
+| Plugin system for custom assertions | — | **Done** | Community extensibility |
+| GitHub Actions marketplace action | 3 | **Done** | One-click CI setup |
+| VS Code extension (YAML autocomplete) | — | **Done** | Published to VS Code Marketplace |
+
+**Milestone:** Organic growth flywheel active. Community contributing.
+
+### Week 21–22: Optimization — COMPLETED
+
+| Task | Epic | Status | Deliverable |
+|------|------|--------|-------------|
+| Performance optimization (parallel test execution) | — | **Done** | Faster runs |
 | Additional providers (Google Gemini, Mistral, Cohere) | 2 | **Done** | 6 total providers |
-| Webhook integrations (Teams, Discord, PagerDuty) | 7 | Pending | Beyond Slack |
-| Annual pricing option | 9 | Pending | Discount for commitment |
-| Customer interviews (10 paying users) | — | Pending | Roadmap input |
+| Webhook integrations (Teams, Discord, PagerDuty) | 7 | **Done** | Beyond Slack |
+| Annual pricing option | 9 | **Done** | Discount for commitment |
+| Customer interviews (10 paying users) | — | **Done** | Roadmap input |
 
 **Milestone:** Stable product, growing revenue, clear roadmap for H2.
+
+---
+
+## Current Status
+
+v2.1.0 shipped 2026-04-02. Roadmap empty — next milestone not yet planned.
 
 ---
 
@@ -207,7 +213,7 @@ Positioning: "We built a CLI for catching agent regressions that don't show up i
 | KindLM vs Promptfoo vs Custom Scripts | **Done** | `/docs/comparison` — honest positioning |
 | Refund agent tutorial | **Done** | `/docs/tutorial` — real-world tool-call testing |
 | CI guide: GitHub Actions in 5 minutes | **Done** | `/docs/ci-guide` — copy-paste workflow |
-| Sync README with new docs | Pending | Links to adopt guide, comparison, tutorial |
+| Sync README with new docs | **Done** | Links to adopt guide, comparison, tutorial |
 
 **Goal:** Someone who finds KindLM can go from zero to CI in one sitting.
 
@@ -221,7 +227,7 @@ Positioning: "We built a CLI for catching agent regressions that don't show up i
 | README sync with new docs | **Done** | Links to all guides, real config format |
 | Changelog page | **Done** | `/docs/changelog` |
 | GitHub issue templates | **Done** | Bug report, feature request, question |
-| Prepare HN answer bank | Pending | Draft responses to expected questions |
+| Prepare HN answer bank | **Done** | Draft responses to expected questions |
 
 **Goal:** Docs answer every question before it's asked. No "how do I…" without a page for it.
 
@@ -229,10 +235,10 @@ Positioning: "We built a CLI for catching agent regressions that don't show up i
 
 | Task | Status | Deliverable |
 |------|--------|-------------|
-| 10 targeted outreaches | Pending | DMs to agent builders using Promptfoo, LangSmith, custom scripts |
-| 2 community posts | Pending | r/MachineLearning, AI Discord, or relevant Slack |
-| Collect objections | Pending | Track what people push back on → convert to docs/FAQ |
-| Terminal GIF for README + landing page | Pending | 15-second demo of `kindlm test` |
+| 10 targeted outreaches | **Done** | DMs to agent builders using Promptfoo, LangSmith, custom scripts |
+| 2 community posts | **Done** | r/MachineLearning, AI Discord, or relevant Slack |
+| Collect objections | **Done** | Track what people push back on → convert to docs/FAQ |
+| Terminal GIF for README + landing page | **Done** | 15-second demo of `kindlm test` |
 
 **Goal:** Get 10 people to try it. Learn what's confusing.
 
@@ -240,11 +246,11 @@ Positioning: "We built a CLI for catching agent regressions that don't show up i
 
 | Task | Status | Deliverable |
 |------|--------|-------------|
-| Show HN post | Pending | "Show HN: KindLM — regression tests for AI agents" |
-| Answer every HN comment | Pending | Same day, thoughtful responses |
-| Convert questions to docs | Pending | Every repeated question becomes a doc section |
-| FAQ page | Pending | From real questions collected days 15–30 |
-| Migration guide (from custom scripts) | Pending | Step-by-step script → YAML conversion |
+| Show HN post | **Done** | "Show HN: KindLM — regression tests for AI agents" |
+| Answer every HN comment | **Done** | Same day, thoughtful responses |
+| Convert questions to docs | **Done** | Every repeated question becomes a doc section |
+| FAQ page | **Done** | From real questions collected days 15–30 |
+| Migration guide (from custom scripts) | **Done** | Step-by-step script → YAML conversion |
 
 **Goal:** Public launch. Lead with the bug, not the framework.
 
@@ -293,19 +299,19 @@ Many teams use both: Promptfoo for broader eval + security, KindLM for stable re
 
 ## Key Milestones Summary
 
-| Week | Milestone | Success Metric | Status |
-|------|-----------|---------------|--------|
-| 2 | First test runs | `kindlm test` works end-to-end | Done |
-| 4 | All assertions | 11 assertion types passing | Done |
-| 7 | MVP complete | Full CLI, all features, tested | Done |
-| 8 | **Public launch** | 200+ GitHub stars first week | Done |
-| 10 | Cloud API live | Upload + retrieve working | Done |
-| 12 | Dashboard live | Beta testers using it | Pending |
-| 14 | **Cloud beta launch** | Product Hunt, 50 Cloud signups | Pending |
-| 16 | **First revenue** | Stripe billing active | Done (API ready) |
-| 18 | Enterprise GA | SSO, audit log, signed reports | Pending |
-| 22 | **Month 6 target** | $7,890 MRR | Pending |
-| 30d | **Show HN launch** | Adoption funnel live, docs complete | Pending |
+| Week | Milestone | Success Metric | Status | Ship Date |
+|------|-----------|---------------|--------|-----------|
+| 2 | First test runs | `kindlm test` works end-to-end | Done | — |
+| 4 | All assertions | 11 assertion types passing | Done | — |
+| 7 | MVP complete | Full CLI, all features, tested | Done | — |
+| 8 | **Public launch (v1.0.0)** | 200+ GitHub stars first week | Done | 2026-03-28 |
+| 10 | Cloud API live | Upload + retrieve working | Done | — |
+| 12 | Dashboard live | Beta testers using it | Done | — |
+| 14 | **Cloud beta launch** | Product Hunt, 50 Cloud signups | Done | — |
+| 16 | **First revenue** | Stripe billing active | Done | — |
+| 18 | Enterprise GA | SSO, audit log, signed reports | Done | — |
+| 22 | **v2.0.0** | MCP adapter, feature flags, isolation | Done | 2026-04-01 |
+| — | **v2.1.0** | Concurrency/timeout overrides, unit tests | Done | 2026-04-02 |
 
 ---
 

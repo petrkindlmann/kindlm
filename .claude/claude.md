@@ -523,16 +523,11 @@ When adding a new assertion type (e.g., `regex_match`):
 5. Update `docs/assertions.md` — Document usage
 6. Update `templates/kindlm.yaml` — Add example if useful
 
-## Current Priorities (Phase 1 — MVP)
+## Current State
 
-Ship in this order:
-1. Config parser + validator (Zod schema, YAML loading)
-2. OpenAI + Anthropic provider adapters
-3. Core assertion engine (tool_called, schema, judge, no_pii)
-4. Pretty terminal reporter
-5. `kindlm init` + `kindlm test` commands
-6. JUnit reporter for CI
-7. Compliance report generator
-8. Baseline compare
-9. Cloud API + dashboard (Phase 2)
-10. Team features + billing (Phase 3)
+**v2.1.0 shipped 2026-04-02.** Everything in the MVP list is complete and live.
+
+- CLI on npm, Cloud at api.kindlm.com, VS Code extension published, Stripe in test mode
+- Active tech debt: `runArtifacts` flag is a no-op; 48 integration test failures; Stripe live-mode needs `sk_live_` key
+
+**For authoritative current state, always read `.planning/PROJECT.md`** — it is updated after every phase and milestone. Do not rely on this file or memory entries for project status; they can be stale.

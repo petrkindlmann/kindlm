@@ -21,6 +21,7 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 - **Latency & cost budgets** — fail tests that exceed time or token-cost thresholds
 - **EU AI Act compliance** — generate Annex IV documentation from test results
 - **CI-native** — exit code 0/1, JUnit XML reporter, GitHub Actions ready
+- **Worktree isolation** — run tests in isolated git worktrees with `--isolate`
 
 ## Supported Providers
 
@@ -32,6 +33,7 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 | Mistral | `mistral:mistral-large-latest` |
 | Cohere | `cohere:command-r-plus` |
 | Ollama | `ollama:llama3` |
+| MCP | `mcp:http://localhost:8080` |
 
 ## Quick Start
 
@@ -119,7 +121,7 @@ kindlm test
 ```yaml
 # .github/workflows/kindlm.yml
 - run: npm install -g @kindlm/cli
-- run: kindlm test --reporter junit > junit.xml
+- run: kindlm test --reporter junit --concurrency 4 --timeout 30000 > junit.xml
   env:
     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
@@ -147,6 +149,8 @@ packages/
   core/       @kindlm/core  — Business logic, zero I/O dependencies
   cli/        @kindlm/cli   — CLI entry point
   cloud/      @kindlm/cloud — Cloudflare Workers API + D1 database
+  dashboard/  — Cloud dashboard UI (Next.js + Tailwind)
+  vscode/     — VS Code extension (YAML intellisense)
 docs/         Technical specs and documentation
 site/         Landing page + docs (Next.js)
 ```

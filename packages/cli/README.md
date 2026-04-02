@@ -114,6 +114,21 @@ Output:
   Gates: ✓ PASSED
 ```
 
+## CLI Flags
+
+| Flag | Description | Added |
+|------|-------------|-------|
+| `--reporter <type>` | Output format: `pretty` (default), `json`, `junit` | v1.0.0 |
+| `--output <path>` | Write report to file | v1.0.0 |
+| `--compliance` | Generate EU AI Act Annex IV report | v1.0.0 |
+| `--pdf <path>` | Export compliance report as PDF (requires `--compliance`) | v1.0.0 |
+| `-s <suite>` | Run a specific suite by name | v1.0.0 |
+| `--runs <count>` | Override the `repeat` count from config | v1.0.0 |
+| `--gate <percent>` | Fail if suite pass rate falls below threshold (0–100) | v1.0.0 |
+| `--isolate` | Run in an isolated git worktree (clean environment) | v2.0.0 |
+| `--concurrency <n>` | Override the concurrency setting from config | v2.1.0 |
+| `--timeout <ms>` | Override the per-test timeout from config | v2.1.0 |
+
 ## CI Integration
 
 ```yaml

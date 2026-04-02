@@ -843,6 +843,34 @@ ollama serve
 
 ---
 
+## MCP Provider (`mcp`)
+
+Added in v2.0.0. Passthrough HTTP POST adapter that points kindlm at any MCP (Model Context Protocol) server as a first-class provider source. The adapter forwards requests to the configured endpoint and extracts text from the response using the MCP spec priority order: `content[0].text` → `result` → `output`.
+
+### Configuration
+
+```yaml
+providers:
+  mcp:
+    endpoint: http://localhost:8080
+    headers:
+      Authorization: "Bearer ${env.MCP_TOKEN}"
+
+models:
+  - id: my-mcp-agent
+    provider: mcp
+    model: default
+```
+
+### Notes
+
+- `env:` header values are resolved in the CLI layer (not core) to preserve the zero-I/O constraint in `@kindlm/core`
+- `model` is forwarded as-is to the MCP server; use `default` if the server ignores it
+- Cost estimation always returns `null` (MCP servers do not report token usage in a standard format)
+- `supportsTools()` returns `false` — tool call interception is handled at the MCP server level
+
+---
+
 ## Extensibility
 
 To add a new provider, implement `ProviderAdapter` and register it:

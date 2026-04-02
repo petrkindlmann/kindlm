@@ -1,18 +1,21 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**KindLM v1.0**
+**KindLM v2.1.0** — shipped 2026-04-02
 
-KindLM is an open-source CLI tool that runs behavioral regression tests against AI agents. It tests what agents **do** (tool calls, decisions, structured output) — not just what they say. The paid Cloud tier adds team dashboards, test history, compliance PDF export, and billing. Target: solo developers building AI agents who need CI-friendly behavioral testing.
+KindLM is a shipped open-source CLI tool that runs behavioral regression tests against AI agents. It tests what agents **do** (tool calls, decisions, structured output) — not just what they say. Cloud tier (live at api.kindlm.com) adds team dashboards, test history, compliance PDF export, and billing.
 
-**Core Value:** The CLI must reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
+**Core Value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
+
+**Current state:** Roadmap empty. Awaiting v2.2.0 milestone planning. For authoritative state, read `.planning/PROJECT.md`.
 
 ### Constraints
 
-- **Infra:** Cloudflare ecosystem (Workers, D1, Pages) — already committed, not changing
-- **Budget:** Stripe test mode first, real keys when billing flow is verified
-- **Auth:** GitHub OAuth is the only login method for v1 (SAML is enterprise-only)
-- **npm:** Already published under @kindlm scope — must maintain semver compatibility
+- **Infra:** Cloudflare ecosystem (Workers, D1, Pages) — committed, not changing
+- **Auth:** GitHub OAuth only (SAML is enterprise-only)
+- **npm:** Published under `@kindlm` scope — semver compatibility required
+- **Core:** Zero I/O — no `fs`, `fetch`, `console.log` in `@kindlm/core`
+- **Cloud:** Workers-compatible only — no Node.js built-ins
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:codebase/STACK.md -->

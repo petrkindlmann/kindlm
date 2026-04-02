@@ -15,3 +15,4 @@ AGENTS.md
 out/
 .open-next/
 .playwright-mcp/
+.wrangler/

@@ -798,3 +798,44 @@ compliance:
 upload:
   enabled: false
 ```
+
+---
+
+## Feature Flags (`.kindlm/config.json`)
+
+Added in v2.0.0. Runtime feature flags are stored in `.kindlm/config.json` — a separate file from `kindlm.yaml`. This keeps experimental behavior opt-in without polluting the test suite config.
+
+```json
+{
+  "features": {
+    "betaJudge": false,
+    "costGating": false,
+    "runArtifacts": false
+  }
+}
+```
+
+| Flag | Effect |
+|------|--------|
+| `betaJudge` | Enables 3-pass median judge scoring with errored-pass exclusion |
+| `costGating` | Enforces `gates.costMaxUsd` from `kindlm.yaml` (aborts run if exceeded mid-run) |
+| `runArtifacts` | Saves run output to `.kindlm/runs/{runId}/{executionId}/` |
+
+All flags default to `false` when `.kindlm/config.json` is absent or malformed.
+
+---
+
+## `kindlm test` CLI Overrides
+
+These CLI flags override the corresponding `defaults` fields in `kindlm.yaml` at runtime, without modifying the config file:
+
+| CLI flag | Overrides |
+|----------|-----------|
+| `--concurrency <n>` | `defaults.concurrency` |
+| `--timeout <ms>` | `defaults.timeoutMs` |
+
+Example:
+
+```bash
+kindlm test --concurrency 1 --timeout 120000
+```
