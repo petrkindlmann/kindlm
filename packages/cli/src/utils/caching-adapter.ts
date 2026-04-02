@@ -8,8 +8,9 @@ import { computeCacheKey, readCacheEntry, writeCacheEntry } from "./cache.js";
 
 /**
  * Wraps a ProviderAdapter with response caching.
- * Cache hits return instantly with latencyMs set to 0.
- * Cache misses call through to the real adapter and store the result.
+ * Cache hits return instantly with latencyMs set to 0 and fromCache: true.
+ * Cache misses call through to the real adapter and store the result,
+ * but only when the response is cacheable (not an error, not empty).
  *
  * Uses factory function pattern (no classes).
  */
@@ -32,21 +33,28 @@ export function createCachingAdapter(inner: ProviderAdapter): ProviderAdapter {
 
       if (cached) {
         _cacheHits++;
-        // Return cached response with zeroed latency to indicate cache hit
+        // Return cached response with zeroed latency and fromCache flag
         return {
           ...cached.response,
           latencyMs: 0,
+          fromCache: true,
         };
       }
 
       _cacheMisses++;
       const response = await inner.complete(request);
 
-      // Write to cache — non-fatal on failure
-      try {
-        writeCacheEntry(key, response);
-      } catch {
-        // Cache write failures are silently ignored
+      // Guard: only cache responses that carry real content
+      const isCacheable =
+        response.finishReason !== "error" &&
+        (response.text !== "" || response.toolCalls.length > 0);
+
+      if (isCacheable) {
+        try {
+          writeCacheEntry(key, response);
+        } catch {
+          // Cache write failures are silently ignored
+        }
       }
 
       return response;
