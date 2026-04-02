@@ -1,5 +1,22 @@
 # Milestones
 
+## v2.2.0 Core Quality (Shipped: 2026-04-02)
+
+**Phases completed:** 7 phases, 10 plans, 7 tasks
+
+**Key accomplishments:**
+
+- `packages/cli/src/commands/test.ts`
+- `extractConfigFilePaths(yamlContent: string): string[]`
+- Vitest unit tests for formatTestPlan, selectReporter, and createSpinner — completing v2.1.0 CLI test coverage with 20 new tests across 3 files
+- pretty reporter formatAssertion() now appends an 8-space indented "Reasoning: {text}" line for all judge assertions — dimmed on pass, normal weight on fail
+- KINDLM_PRICING consolidated table and estimateDryRunCost helper wired into buildTestPlan so each TestPlanEntry carries per-entry cost and TestPlan carries a total
+- formatTestPlan wired to display per-entry ~$X.XXXXXX cost and total Estimated cost summary, completing all five DRY requirements
+- One-liner:
+- One-liner:
+
+---
+
 ## v2.1.0 Gap Closure (Shipped: 2026-04-02)
 
 **Phases completed:** 4 phases, 4 plans, 2 tasks
