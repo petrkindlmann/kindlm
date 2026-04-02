@@ -39,7 +39,7 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
 
 ## Phases (v2.2.0)
 
-- [ ] **Phase 10: Reporter Output + Gate Integrity** - Judge reasoning visible in failures/passes; gates warn when they have no data to evaluate
+- [x] **Phase 10: Reporter Output + Gate Integrity** - Judge reasoning visible in failures/passes; gates warn when they have no data to evaluate (completed 2026-04-02)
 - [ ] **Phase 11: Dry Run** - `--dry-run` flag shows execution plan, assertion types, estimated cost, and call count without making API calls
 - [ ] **Phase 12: Validation Diagnostics** - Config errors name the failing test, the exact field path, and suggest fixes for bad references
 
@@ -59,7 +59,7 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
 
 Plans:
 - [x] 10-01-PLAN.md — Add judge reasoning display to pretty reporter
-- [ ] 10-02-PLAN.md — Add emptyData warning flag to gate evaluation and reporter
+- [x] 10-02-PLAN.md — Add emptyData warning flag to gate evaluation and reporter
 
 ### Phase 11: Dry Run
 **Goal**: Users can preview exactly what will run — models, tests, assertions, estimated cost — without spending API credits
@@ -98,6 +98,6 @@ Plans:
 | 7. betaJudge Multi-Pass Scoring | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 8. Worktree File Copy | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
-| 10. Reporter Output + Gate Integrity | v2.2.0 | 1/2 | In Progress|  |
+| 10. Reporter Output + Gate Integrity | v2.2.0 | 2/2 | Complete   | 2026-04-02 |
 | 11. Dry Run | v2.2.0 | 0/? | Not started | - |
 | 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |
