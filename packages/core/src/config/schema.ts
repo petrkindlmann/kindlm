@@ -673,6 +673,13 @@ export type McpProviderSchemaConfig = z.infer<typeof McpProviderConfigSchema>;
 // Validation
 // ============================================================
 
+export function formatZodPath(path: (string | number)[]): string {
+  return path.reduce<string>((acc, segment, i) => {
+    if (typeof segment === "number") return `${acc}[${segment}]`;
+    return i === 0 ? segment : `${acc}.${segment}`;
+  }, "");
+}
+
 export function validateConfig(
   raw: unknown,
 ): Result<KindLMConfig, KindlmError> {
@@ -683,7 +690,7 @@ export function validateConfig(
       message: "Config validation failed",
       details: {
         errors: result.error.issues.map(
-          (issue) => `${issue.path.join(".")}: ${issue.message}`,
+          (issue) => `${formatZodPath(issue.path)}: ${issue.message}`,
         ),
       },
     });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateConfig } from "./schema.js";
+import { validateConfig, formatZodPath } from "./schema.js";
 
 function minimalConfig(overrides: Record<string, unknown> = {}) {
   return {
@@ -243,6 +243,64 @@ describe("validateConfig", () => {
       expect(result.error.details?.errors).toBeDefined();
       const errors = (result.error.details?.errors ?? []) as string[];
       expect(errors.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("formatZodPath", () => {
+  it("returns empty string for empty path", () => {
+    expect(formatZodPath([])).toBe("");
+  });
+
+  it("returns single string segment as-is", () => {
+    expect(formatZodPath(["tests"])).toBe("tests");
+  });
+
+  it("wraps numeric segment in brackets", () => {
+    expect(formatZodPath(["tests", 2])).toBe("tests[2]");
+  });
+
+  it("formats deeply nested path with multiple array indices", () => {
+    expect(
+      formatZodPath(["tests", 2, "expect", "judge", 0, "minScore"]),
+    ).toBe("tests[2].expect.judge[0].minScore");
+  });
+
+  it("formats object-only path with dot notation", () => {
+    expect(formatZodPath(["suite", "name"])).toBe("suite.name");
+  });
+});
+
+describe("validateConfig error path format", () => {
+  it("uses bracket notation for array indices in error paths", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "test-1",
+            prompt: "greeting",
+            expect: {},
+          },
+          {
+            name: "judge-test",
+            prompt: "greeting",
+            expect: {
+              judge: [{ criteria: "Be nice", minScore: 2 }],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = (result.error.details?.errors ?? []) as string[];
+      const judgeError = errors.find((e) => e.includes("minScore"));
+      expect(judgeError).toBeDefined();
+      // Must use bracket notation: tests[1].expect.judge[0].minScore
+      expect(judgeError).toMatch(/tests\[1\]/);
+      expect(judgeError).toMatch(/judge\[0\]/);
+      // Must NOT use dot notation for array indices
+      expect(judgeError).not.toMatch(/tests\.1\./);
     }
   });
 });
