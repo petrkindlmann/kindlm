@@ -8,6 +8,9 @@ export interface GateResult {
   actual: number;
   threshold: number;
   message: string;
+  // Set to true when gate trivially passes due to no matching assertions in the run.
+  // Signals a vacuous pass — the gate configuration isn't exercising anything.
+  emptyData?: true;
 }
 
 export interface GateEvaluation {
@@ -58,20 +61,23 @@ export function evaluateGates(
   // 3. judgeAvgMin (optional)
   if (config.judgeAvgMin !== undefined) {
     const judgeScores = collectScores(results, "judge");
-    const judgeAvg =
-      judgeScores.length > 0
-        ? judgeScores.reduce((a, b) => a + b, 0) / judgeScores.length
-        : 1;
-    gates.push({
+    const isEmpty = judgeScores.length === 0;
+    const judgeAvg = isEmpty
+      ? 1
+      : judgeScores.reduce((a, b) => a + b, 0) / judgeScores.length;
+    const judgeGate: GateResult = {
       gateName: "judgeAvgMin",
       passed: judgeAvg >= config.judgeAvgMin,
       actual: judgeAvg,
       threshold: config.judgeAvgMin,
-      message:
-        judgeAvg >= config.judgeAvgMin
+      message: isEmpty
+        ? `Judge average N/A meets minimum ${fmt(config.judgeAvgMin)} (no judge assertions found — gate trivially passed)`
+        : judgeAvg >= config.judgeAvgMin
           ? `Judge average ${fmt(judgeAvg)} meets minimum ${fmt(config.judgeAvgMin)}`
           : `Judge average ${fmt(judgeAvg)} below minimum ${fmt(config.judgeAvgMin)}`,
-    });
+    };
+    if (isEmpty) judgeGate.emptyData = true;
+    gates.push(judgeGate);
   }
 
   // 4. driftScoreMax (optional)
@@ -79,19 +85,22 @@ export function evaluateGates(
   // Convert back to drift values before comparing against the threshold.
   if (config.driftScoreMax !== undefined) {
     const driftScores = collectScores(results, "drift");
+    const isEmpty = driftScores.length === 0;
     const driftValues = driftScores.map((s) => 1 - s);
-    const maxDrift =
-      driftValues.length > 0 ? Math.max(...driftValues) : 0;
-    gates.push({
+    const maxDrift = isEmpty ? 0 : Math.max(...driftValues);
+    const driftGate: GateResult = {
       gateName: "driftScoreMax",
       passed: maxDrift <= config.driftScoreMax,
       actual: maxDrift,
       threshold: config.driftScoreMax,
-      message:
-        maxDrift <= config.driftScoreMax
+      message: isEmpty
+        ? `Drift score N/A within limit ${fmt(config.driftScoreMax)} (no drift assertions found — gate trivially passed)`
+        : maxDrift <= config.driftScoreMax
           ? `Drift score ${fmt(maxDrift)} within limit ${fmt(config.driftScoreMax)}`
           : `Drift score ${fmt(maxDrift)} exceeds limit ${fmt(config.driftScoreMax)}`,
-    });
+    };
+    if (isEmpty) driftGate.emptyData = true;
+    gates.push(driftGate);
   }
 
   // 5. piiFailuresMax
@@ -158,32 +167,38 @@ export function evaluateGates(
 
   // 9. deterministicPassRate (optional)
   if (config.deterministicPassRate !== undefined) {
-    const rate = computeCategoryPassRate(results, "deterministic");
-    gates.push({
+    const { rate, empty: detEmpty } = computeCategoryPassRate(results, "deterministic");
+    const detGate: GateResult = {
       gateName: "deterministicPassRate",
       passed: rate >= config.deterministicPassRate,
       actual: rate,
       threshold: config.deterministicPassRate,
-      message:
-        rate >= config.deterministicPassRate
+      message: detEmpty
+        ? `Deterministic pass rate N/A meets minimum ${fmt(config.deterministicPassRate)} (no deterministic assertions found — gate trivially passed)`
+        : rate >= config.deterministicPassRate
           ? `Deterministic pass rate ${fmt(rate)} meets minimum ${fmt(config.deterministicPassRate)}`
           : `Deterministic pass rate ${fmt(rate)} below minimum ${fmt(config.deterministicPassRate)}`,
-    });
+    };
+    if (detEmpty) detGate.emptyData = true;
+    gates.push(detGate);
   }
 
   // 10. probabilisticPassRate (optional)
   if (config.probabilisticPassRate !== undefined) {
-    const rate = computeCategoryPassRate(results, "probabilistic");
-    gates.push({
+    const { rate, empty: probEmpty } = computeCategoryPassRate(results, "probabilistic");
+    const probGate: GateResult = {
       gateName: "probabilisticPassRate",
       passed: rate >= config.probabilisticPassRate,
       actual: rate,
       threshold: config.probabilisticPassRate,
-      message:
-        rate >= config.probabilisticPassRate
+      message: probEmpty
+        ? `Probabilistic pass rate N/A meets minimum ${fmt(config.probabilisticPassRate)} (no probabilistic assertions found — gate trivially passed)`
+        : rate >= config.probabilisticPassRate
           ? `Probabilistic pass rate ${fmt(rate)} meets minimum ${fmt(config.probabilisticPassRate)}`
           : `Probabilistic pass rate ${fmt(rate)} below minimum ${fmt(config.probabilisticPassRate)}`,
-    });
+    };
+    if (probEmpty) probGate.emptyData = true;
+    gates.push(probGate);
   }
 
   return {
@@ -195,7 +210,7 @@ export function evaluateGates(
 function computeCategoryPassRate(
   results: AggregatedTestResult[],
   category: "deterministic" | "probabilistic",
-): number {
+): { rate: number; empty: boolean } {
   let total = 0;
   let passed = 0;
   for (const r of results) {
@@ -208,7 +223,7 @@ function computeCategoryPassRate(
       }
     }
   }
-  return total > 0 ? passed / total : 1;
+  return { rate: total > 0 ? passed / total : 1, empty: total === 0 };
 }
 
 function countFailures(

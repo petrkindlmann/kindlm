@@ -175,4 +175,74 @@ describe("evaluateGates", () => {
     expect(gate?.passed).toBe(false);
     expect(gate?.actual).toBe(550);
   });
+
+  describe("emptyData flag for trivially-passed gates", () => {
+    it("sets emptyData on judgeAvgMin when no judge assertions exist", () => {
+      const config = makeGatesConfig({ judgeAvgMin: 0.8 });
+      const results = [makeResult()]; // no assertionScores
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "judgeAvgMin");
+      expect(gate?.emptyData).toBe(true);
+      expect(gate?.passed).toBe(true);
+      expect(gate?.message).toContain("no judge assertions found — gate trivially passed");
+    });
+
+    it("does NOT set emptyData on judgeAvgMin when judge assertions exist", () => {
+      const config = makeGatesConfig({ judgeAvgMin: 0.8 });
+      const results = [
+        makeResult({ assertionScores: { "judge:quality": { mean: 0.9, min: 0.8, max: 1.0 } } }),
+      ];
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "judgeAvgMin");
+      expect(gate?.emptyData).toBeFalsy();
+    });
+
+    it("sets emptyData on driftScoreMax when no drift assertions exist", () => {
+      const config = makeGatesConfig({ driftScoreMax: 0.1 });
+      const results = [makeResult()]; // no drift scores
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "driftScoreMax");
+      expect(gate?.emptyData).toBe(true);
+      expect(gate?.passed).toBe(true);
+      expect(gate?.message).toContain("no drift assertions found — gate trivially passed");
+    });
+
+    it("does NOT set emptyData on driftScoreMax when drift assertions exist", () => {
+      const config = makeGatesConfig({ driftScoreMax: 0.1 });
+      const results = [
+        makeResult({ assertionScores: { "drift:baseline": { mean: 0.95, min: 0.9, max: 1.0 } } }),
+      ];
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "driftScoreMax");
+      expect(gate?.emptyData).toBeFalsy();
+    });
+
+    it("sets emptyData on deterministicPassRate when no deterministic assertions exist", () => {
+      const config = makeGatesConfig({ deterministicPassRate: 0.9 });
+      const results = [makeResult({ runs: [] })];
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "deterministicPassRate");
+      expect(gate?.emptyData).toBe(true);
+      expect(gate?.passed).toBe(true);
+      expect(gate?.message).toContain("no deterministic assertions found — gate trivially passed");
+    });
+
+    it("sets emptyData on probabilisticPassRate when no probabilistic assertions exist", () => {
+      const config = makeGatesConfig({ probabilisticPassRate: 0.9 });
+      const results = [makeResult({ runs: [] })];
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "probabilisticPassRate");
+      expect(gate?.emptyData).toBe(true);
+      expect(gate?.passed).toBe(true);
+      expect(gate?.message).toContain("no probabilistic assertions found — gate trivially passed");
+    });
+
+    it("does NOT set emptyData on passRateMin (always has meaningful data)", () => {
+      const config = makeGatesConfig({ passRateMin: 0.95 });
+      const results = [makeResult()];
+      const evaluation = evaluateGates(config, results);
+      const gate = evaluation.gates.find((g) => g.gateName === "passRateMin");
+      expect(gate?.emptyData).toBeFalsy();
+    });
+  });
 });
