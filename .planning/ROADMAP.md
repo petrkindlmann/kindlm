@@ -50,7 +50,7 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
 **Milestone Goal:** Make KindLM faster to iterate with, deeper in agent testing capabilities, easier to adopt in CI, and useful as a team dashboard.
 
 - [x] **Phase 13: Rich Tool Call Failure Output** - Full tool call sequence and arg diffs in pretty reporter on assertion failure (completed 2026-04-02)
-- [ ] **Phase 14: Response Caching** - Local SHA-256-keyed response cache with TTL, `--no-cache` flag, and `kindlm cache clear`
+- [x] **Phase 14: Response Caching** - Local SHA-256-keyed response cache with TTL, `--no-cache` flag, and `kindlm cache clear` (completed 2026-04-02)
 - [ ] **Phase 15: Watch Mode** - `kindlm test --watch` re-runs on config file change with cumulative cost tracking
 - [ ] **Phase 16: Multi-Turn Agent Testing** - YAML-defined conversation turns with per-turn assertions and mock tool responses
 - [ ] **Phase 17: GitHub Action** - `kindlm/test@v2` JS action with PR comments, JUnit artifacts, and optional cloud upload
@@ -85,7 +85,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 14-01-PLAN.md — Cache key sorting, TTL expiry, error guard, and fromCache type threading
-- [ ] 14-02-PLAN.md — Cache clear command and pretty reporter [cached] indicator
+- [x] 14-02-PLAN.md — Cache clear command and pretty reporter [cached] indicator
 
 ### Phase 15: Watch Mode
 **Goal**: Developers can save their config file and immediately see test results without re-running the CLI manually
@@ -161,7 +161,7 @@ Plans:
 | 11. Dry Run | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 12. Validation Diagnostics | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete    | 2026-04-02 |
-| 14. Response Caching | v2.3.0 | 1/2 | In Progress|  |
+| 14. Response Caching | v2.3.0 | 2/2 | Complete   | 2026-04-02 |
 | 15. Watch Mode | v2.3.0 | 0/? | Not started | - |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 0/? | Not started | - |
 | 17. GitHub Action | v2.3.0 | 0/? | Not started | - |

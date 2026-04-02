@@ -19,13 +19,13 @@ Requirements for v2.3.0 Developer Experience & Depth. Each maps to roadmap phase
 ### Response Caching
 
 - [x] **CACHE-01**: Response caching architecture with CLI-only implementation (CacheStore interface deferred per CONTEXT D-14 — existing cache.ts + caching-adapter.ts pattern satisfies the architectural need)
-- [ ] **CACHE-02**: File-based cache implementation in CLI stores responses in `.kindlm/cache/` as JSON files
-- [ ] **CACHE-03**: Cache key is SHA-256 of model + sorted params + messages + tools (deterministic regardless of object key order)
-- [ ] **CACHE-04**: Only successful responses are cached (`finishReason !== "error"` AND non-empty text or tool calls)
-- [ ] **CACHE-05**: `--no-cache` flag on `kindlm test` bypasses cache entirely (no reads, no writes)
-- [ ] **CACHE-06**: `kindlm cache clear` subcommand deletes all cached responses
-- [ ] **CACHE-07**: Pretty reporter shows `[cached]` indicator next to test name when response was served from cache
-- [ ] **CACHE-08**: Cache entries expire after configurable TTL (default 24 hours, checked on read)
+- [x] **CACHE-02**: File-based cache implementation in CLI stores responses in `.kindlm/cache/` as JSON files
+- [x] **CACHE-03**: Cache key is SHA-256 of model + sorted params + messages + tools (deterministic regardless of object key order)
+- [x] **CACHE-04**: Only successful responses are cached (`finishReason !== "error"` AND non-empty text or tool calls)
+- [x] **CACHE-05**: `--no-cache` flag on `kindlm test` bypasses cache entirely (no reads, no writes)
+- [x] **CACHE-06**: `kindlm cache clear` subcommand deletes all cached responses
+- [x] **CACHE-07**: Pretty reporter shows `[cached]` indicator next to test name when response was served from cache
+- [x] **CACHE-08**: Cache entries expire after configurable TTL (default 24 hours, checked on read)
 
 ### Watch Mode
 
@@ -113,14 +113,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TCOUT-04 | Phase 13 | Complete |
 | TCOUT-05 | Phase 13 | Complete |
 | TCOUT-06 | Phase 13 | Complete |
-| CACHE-01 | Phase 14 | Pending |
-| CACHE-02 | Phase 14 | Pending |
-| CACHE-03 | Phase 14 | Pending |
-| CACHE-04 | Phase 14 | Pending |
-| CACHE-05 | Phase 14 | Pending |
-| CACHE-06 | Phase 14 | Pending |
-| CACHE-07 | Phase 14 | Pending |
-| CACHE-08 | Phase 14 | Pending |
+| CACHE-01 | Phase 14 | Complete |
+| CACHE-02 | Phase 14 | Complete |
+| CACHE-03 | Phase 14 | Complete |
+| CACHE-04 | Phase 14 | Complete |
+| CACHE-05 | Phase 14 | Complete |
+| CACHE-06 | Phase 14 | Complete |
+| CACHE-07 | Phase 14 | Complete |
+| CACHE-08 | Phase 14 | Complete |
 | WATCH-01 | Phase 15 | Pending |
 | WATCH-02 | Phase 15 | Pending |
 | WATCH-03 | Phase 15 | Pending |
