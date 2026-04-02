@@ -6,6 +6,7 @@ import { registerBaselineCommand } from "./commands/baseline.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerUploadCommand } from "./commands/upload.js";
 import { registerTraceCommand } from "./commands/trace.js";
+import { registerCacheCommand } from "./commands/cache.js";
 
 declare const KINDLM_VERSION: string;
 
@@ -24,6 +25,7 @@ export function createProgram(): Command {
   registerLoginCommand(program);
   registerUploadCommand(program);
   registerTraceCommand(program);
+  registerCacheCommand(program);
 
   return program;
 }
