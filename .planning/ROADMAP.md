@@ -25,7 +25,7 @@ See `.planning/milestones/v2.0.0-ROADMAP.md` for full details.
 - [x] **Phase 6: Cost Gating + CLI Overrides** — Wire costGating flag and add --concurrency/--timeout flags (completed 2026-04-01)
 - [x] **Phase 7: betaJudge Multi-Pass Scoring** — Implement 3-pass median judge scoring gated behind betaJudge flag (completed 2026-04-01)
 - [ ] **Phase 8: Worktree File Copy** — Copy referenced schema files into worktree for complete filesystem isolation
-- [ ] **Phase 9: CLI Utility Unit Tests** — Unit tests for dry-run.ts, select-reporter.ts, and spinner.ts
+- [x] **Phase 9: CLI Utility Unit Tests** — Unit tests for dry-run.ts, select-reporter.ts, and spinner.ts (completed 2026-04-02)
 
 ## Phase Details
 
@@ -76,7 +76,7 @@ Plans:
   3. `spinner.ts` start/stop/update behavior is tested via `vi.mock("ora")` mocked at the wrapper level, with no dependency on real terminal I/O
 **Plans**: 1 plan
 Plans:
-- [ ] 09-01-PLAN.md — Unit tests for dry-run.ts, select-reporter.ts, and spinner.ts
+- [x] 09-01-PLAN.md — Unit tests for dry-run.ts, select-reporter.ts, and spinner.ts
 
 ## Progress
 
@@ -90,4 +90,4 @@ Plans:
 | 6. Cost Gating + CLI Overrides | v2.1.0 | 1/1 | Complete    | 2026-04-01 |
 | 7. betaJudge Multi-Pass Scoring | v2.1.0 | 1/1 | Complete   | 2026-04-01 |
 | 8. Worktree File Copy | v2.1.0 | 0/1 | Not started | - |
-| 9. CLI Utility Unit Tests | v2.1.0 | 0/1 | Not started | - |
+| 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete   | 2026-04-02 |

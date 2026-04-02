@@ -3,28 +3,28 @@ gsd_state_version: 1.0
 milestone: v2.1.0
 milestone_name: Gap Closure
 status: verifying
-last_updated: "2026-04-01T17:51:46.863Z"
-last_activity: 2026-04-01
+last_updated: "2026-04-02T01:49:31.909Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 4
+  total_plans: 4
+  completed_plans: 4
 ---
 
 ## Current Position
 
-Phase: 08 (worktree-file-copy) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-04-01
+Phase: 09 (cli-utility-unit-tests) — COMPLETE
+Plan: 1 of 1 — DONE
+Status: v2.1.0 Gap Closure milestone complete — all 4 phases done
+Last activity: 2026-04-02
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Phase 08 — worktree-file-copy
+**Current focus:** Phase 09 — cli-utility-unit-tests
 
 ## Tech Debt (from v2.0.0 audit)
 
@@ -53,6 +53,9 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 - [Phase 05-worktree-isolation]: Detached HEAD worktree (git worktree add --detach) avoids branch name conflicts for concurrent runs
 - [Phase 07-01]: betaJudge uses ceil(3/2)=2 quorum — prevents poisoned median from transient API failures
 - [Phase 07-01]: Median = scores[Math.floor(scores.length/2)] on sorted array — deterministic for both even and odd successful-pass counts
+- [09-01]: No chalk mocking in dry-run tests — strip ANSI with regex helper, use .toContain() for substring assertions
+- [09-01]: process.exit mock throws Error to halt execution at call site; type widened to string|number|null for Node.js overload compatibility
+- [09-01]: ora module-level mock uses shared mockInstance defined outside vi.mock factory; reset via vi.clearAllMocks() in beforeEach
 
 ## Accumulated Context
 
@@ -94,6 +97,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | Phase 06-cost-gating-cli-overrides P01 | 8min | 2 tasks | 3 files |
 | Phase 07-betajudge-multi-pass-scoring P01 | 3min | 2 tasks | 5 files |
 | Phase 08-worktree-file-copy P01 | 4min | 2 tasks | 3 files |
+| Phase 09-cli-utility-unit-tests P01 | 3min | 2 tasks | 3 files |
 
 ### Quick Tasks Completed
 

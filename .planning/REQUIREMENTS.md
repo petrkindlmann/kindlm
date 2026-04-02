@@ -21,9 +21,9 @@
 
 ### Test Coverage
 
-- [ ] **TEST-01**: Unit tests for `dry-run.ts` (`formatTestPlan` — output format, skipped tests, command tests, totals)
-- [ ] **TEST-02**: Unit tests for `select-reporter.ts` (routes to pretty/json/junit, exits on unknown type)
-- [ ] **TEST-03**: Unit tests for `spinner.ts` (start/stop/update, testable via mock)
+- [x] **TEST-01**: Unit tests for `dry-run.ts` (`formatTestPlan` — output format, skipped tests, command tests, totals)
+- [x] **TEST-02**: Unit tests for `select-reporter.ts` (routes to pretty/json/junit, exits on unknown type)
+- [x] **TEST-03**: Unit tests for `spinner.ts` (start/stop/update, testable via mock)
 
 ## Future Requirements
 
@@ -47,9 +47,9 @@
 | ISOLATE-01 | Phase 8 | Complete |
 | CLI-01 | Phase 6 | Complete |
 | CLI-02 | Phase 6 | Complete |
-| TEST-01 | Phase 9 | Pending |
-| TEST-02 | Phase 9 | Pending |
-| TEST-03 | Phase 9 | Pending |
+| TEST-01 | Phase 9 | Complete |
+| TEST-02 | Phase 9 | Complete |
+| TEST-03 | Phase 9 | Complete |
 
 **Coverage:**
 - v1 requirements: 8 total
