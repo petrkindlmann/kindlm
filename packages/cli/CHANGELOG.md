@@ -1,5 +1,16 @@
 # @kindlm/cli
 
+## 2.1.0
+
+### Minor Changes
+
+- 46f961d: KindLM v2.1.0 — `--concurrency` and `--timeout` CLI overrides for `kindlm test`, `betaJudge` multi-pass median scoring flag, `costGating` enforcement flag, `--isolate` now copies config and schema files into worktree.
+
+### Patch Changes
+
+- Updated dependencies [46f961d]
+  - @kindlm/core@2.1.0
+
 ## 2.0.0
 
 ### Major Changes
