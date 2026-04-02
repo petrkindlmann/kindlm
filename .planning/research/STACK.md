@@ -1,233 +1,81 @@
-# Technology Stack
+# Technology Stack — KindLM v2.3.0 Developer Experience & Depth
 
-**Project:** KindLM v2.1.0 Gap Closure
-**Researched:** 2026-04-01
-
----
-
-## Verdict: No new npm packages needed
-
-All five features can be implemented with Node.js built-ins and the packages already
-declared in `packages/cli/package.json`. The existing stack is sufficient.
+**Researched:** 2026-04-02
+**Confidence:** HIGH
 
 ---
 
-## Feature-by-Feature Stack Analysis
+## New Dependencies Needed
 
-### 1. Multi-Pass Judge Scoring (`betaJudge`)
+### 1. File Watching — `chokidar` v4.x
 
-**What's needed:** Run `createJudgeAssertion` N times, collect scores, compute median.
+**Why:** Node.js `fs.watch` is unreliable across platforms (missing events on macOS, no recursive on older Linux). chokidar handles debouncing, atomic writes, and cross-platform edge cases.
 
-**Stack decision:** Implement median in pure TypeScript inside `@kindlm/core`. No library needed.
+**Why this over alternatives:**
+- `fs.watch` — too unreliable for production watch mode
+- `watchpack` (webpack's watcher) — heavier, designed for bundler use
+- `parcel-watcher` — C++ binding, heavier install, overkill for watching 1-2 YAML files
 
-Median of an odd-length sorted array is `arr[Math.floor(n/2)]`. For even-length, average
-the two middle values. The implementation is 4 lines. No statistical library (`lodash`,
-`simple-statistics`, `d3-array`) is justified for a single function.
+**Bundle impact:** ~30KB minified. CLI-only dependency (not in core).
+**Version:** chokidar 4.x (pure ESM, Node 20+ compatible)
 
-```typescript
-// Sufficient — no package needed
-function median(scores: number[]): number {
-  const sorted = [...scores].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
-}
-```
+### 2. Dashboard Charts — `recharts` v2.x
 
-Place this in `packages/core/src/assertions/shared-score.ts` alongside
-`validateUnitIntervalScore`.
+**Why:** Built on React/D3, works with shadcn/ui ecosystem. SSR-safe with `dynamic(() => import(), { ssr: false })`.
 
-**Architecture note:** The N-pass loop belongs in `judge.ts` itself — the assertion runs N
-completions sequentially (respecting core's zero-I/O contract), aggregates scores, then
-returns a single `AssertionResult` with `score = median`. The `passes` count is exposed in
-`metadata` for traceability. The `betaJudge` flag gating happens in the CLI layer when
-constructing `AssertionContext`, not inside core.
+**Why this over alternatives:**
+- `chart.js` + `react-chartjs-2` — more config, less React-native API
+- `visx` — too low-level for dashboard time-series
+- `nivo` — heavy bundle, server-rendering issues
+- `tremor` — good option but adds another component library alongside shadcn
 
-**New imports:** None.
+**Bundle impact:** ~200KB (tree-shakeable). Dashboard-only dependency.
+**Version:** recharts 2.15.x (latest stable)
 
----
+### 3. GitHub Action Bundling — `@vercel/ncc`
 
-### 2. Pre-Emptive Cost Budget Enforcement (`costGating`)
+**Why:** Bundles Node.js action into single `dist/index.js` with all deps. GitHub's official recommendation for JS actions.
 
-**What's needed:** Abort the test run mid-flight if cumulative `costUsd` across completed
-tests exceeds a configured threshold.
+**Why this over alternatives:**
+- `esbuild` — works but needs more config for action bundling (externals, platform)
+- Docker action — fails on macOS/Windows runners
 
-**Stack decision:** Node.js shared mutable state — a simple counter object passed by
-reference into the engine. No new package.
+**Bundle impact:** Dev dependency only (action repo, not main monorepo).
 
-The existing `runner.ts` already aggregates per-test cost via `ProviderResponse.usage` and
-`estimateCost()`. The extension is:
+### 4. No New Core Dependencies
 
-1. Add a `CostBudget` object: `{ spentUsd: number; limitUsd: number }` to `RunTestsOptions`
-   (optional, undefined = no cap).
-2. After each test resolves, increment `spentUsd`. If `spentUsd > limitUsd`, cancel
-   remaining pending promises via an `AbortController` or by setting a `cancelled` flag
-   checked at the start of each test slot.
-
-**Recommended pattern:** A shared `{ cancelled: boolean }` ref is simpler than
-`AbortController` here because `cancelled` is checked at the coroutine boundary (before
-spawning the next provider call), not mid-HTTP-stream. This avoids needing `AbortSignal`
-threading through provider adapters.
-
-**New imports:** None. `node:events` or `AbortController` are available but unnecessary for
-this scope.
+All 6 features can be implemented without adding dependencies to `@kindlm/core`:
+- Multi-turn: pure TypeScript state machine
+- Response caching: core defines interface, CLI implements with `node:fs` + `node:crypto`
+- Rich failure output: extends existing `Colorize` injection pattern
+- Cache key: `node:crypto` SHA-256 (already available pattern from compliance hash)
 
 ---
 
-### 3. Worktree Filesystem Isolation (`--isolate` completeness, ISOLATE-01)
+## Existing Stack (Sufficient)
 
-**What's needed:** Copy `kindlm.yaml` and any files it references (i.e., `schemaFile` and
-`argsSchema` paths from the parsed config) into the worktree directory before tests run.
-
-**Stack decision:** `node:fs/promises` — already available in the CLI layer. No new package.
-
-The two Node.js built-ins needed are `fs.promises.copyFile` and `fs.promises.mkdir`.
-
-**Implementation pattern:**
-
-```typescript
-import { copyFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-
-export async function copyConfigIntoWorktree(
-  configPath: string,        // absolute path to kindlm.yaml
-  referencedFiles: string[], // schemaFile and argsSchema paths (already resolved by parser)
-  worktreePath: string,
-): Promise<void> {
-  const configDir = path.dirname(configPath);
-  const destConfigDir = path.join(worktreePath, path.relative(process.cwd(), configDir));
-
-  await mkdir(destConfigDir, { recursive: true });
-  await copyFile(configPath, path.join(destConfigDir, path.basename(configPath)));
-
-  for (const file of referencedFiles) {
-    const rel = path.relative(configDir, file);
-    const dest = path.join(destConfigDir, rel);
-    await mkdir(path.dirname(dest), { recursive: true });
-    await copyFile(file, dest);
-  }
-}
-```
-
-The config parser (`packages/core/src/config/parser.ts`) already resolves `schemaFile` and
-`argsSchema` to absolute paths before Zod validation. Extract those resolved paths from the
-parsed config by walking `config.tests[*].expect.output.schemaFile` and
-`config.tests[*].expect.toolCalls[*].argsSchema`. This is a CLI-layer concern — add a
-helper `extractReferencedFiles(config: KindlmConfig): string[]` in
-`packages/cli/src/utils/worktree.ts` alongside the existing worktree functions.
-
-**New imports:** `node:fs/promises`, `node:path` — both already used elsewhere in the CLI.
+| Feature | Existing Stack | Notes |
+|---------|---------------|-------|
+| Multi-turn conversation | `conversation.ts`, `ProviderAdapter` | Extend, don't rewrite |
+| Cache key hashing | `node:crypto` (SHA-256) | Same pattern as compliance hash |
+| Cache storage | `node:fs/promises` | CLI-only, `.kindlm/cache/` dir |
+| Watch debouncing | chokidar `awaitWriteFinish` | Better than manual setTimeout |
+| GitHub Action | `@actions/core`, `@actions/exec` | GitHub's official action toolkit |
+| Dashboard API | Hono routes + D1 queries | Add new endpoints to existing cloud |
+| Dashboard UI | Next.js + shadcn/ui + Tailwind | Add recharts for charts |
+| Rich output formatting | chalk + `Colorize` interface | Extend existing reporter pattern |
 
 ---
 
-### 4. Unit Testing Patterns for CLI Utilities
+## Summary
 
-#### `spinner.ts`
+| Feature | New Package | Where |
+|---------|-------------|-------|
+| Watch mode | chokidar 4.x | CLI |
+| Dashboard charts | recharts 2.15.x | Dashboard |
+| GitHub Action | @vercel/ncc, @actions/core | Action repo |
+| Multi-turn testing | None | Core |
+| Response caching | None | Core (interface) + CLI (impl) |
+| Rich failure output | None | Core + CLI |
 
-`ora` is testable with `vi.mock("ora")`. The `createSpinner()` factory wraps `ora` and
-exposes a `Spinner` interface (`start`, `succeed`, `fail`, `stop`). Tests mock the `ora`
-module and verify calls to those methods.
-
-```typescript
-vi.mock("ora", () => ({
-  default: vi.fn(() => ({
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn().mockReturnThis(),
-    fail: vi.fn().mockReturnThis(),
-    stop: vi.fn().mockReturnThis(),
-  })),
-}));
-```
-
-Vitest resolves `vi.mock("ora")` correctly for ESM because `ora` v8 ships as pure ESM and
-Vitest's ESM mock hoisting handles it. The `createSpinner()` interface abstraction means
-tests only need to assert that the returned `Spinner` object delegates to the `Ora` instance
-correctly.
-
-**Confidence:** HIGH — `vi.mock()` for ESM third-party packages is standard Vitest pattern
-(Vitest docs, v2+).
-
-#### `select-reporter.ts`
-
-The `process.exit(1)` call on unknown reporter type makes testing the default branch
-awkward. Two options:
-
-- **Preferred:** Mock `process.exit` via `vi.spyOn(process, "exit").mockImplementation(...)`.
-  This avoids the test process dying and lets you assert on the call.
-- The three valid branches (`json`, `junit`, `pretty`) are straightforward — mock
-  `@kindlm/core` reporter factories with `vi.mock("@kindlm/core")` and assert the right
-  factory is called.
-
-No new packages. `vi.spyOn` is built into Vitest.
-
-#### `dry-run.ts`
-
-`formatTestPlan(plan: TestPlan)` is a pure function — no I/O, no side effects. Tests pass a
-`TestPlan` fixture and assert on the returned string. `chalk` applies ANSI codes; tests
-either:
-
-1. Strip ANSI via a regex (`/\x1B\[[0-9;]*m/g`) before asserting on text content, or
-2. Set `FORCE_COLOR=0` in the test environment (`process.env.FORCE_COLOR = "0"`) to
-   disable chalk output.
-
-**Recommended:** `FORCE_COLOR=0` approach — simpler, no regex stripping utility needed.
-Add to `vitest.config.ts` for the cli package: `env: { FORCE_COLOR: "0" }`. This is a
-Vitest built-in env option, no package needed.
-
----
-
-### 5. CLI Flag Overrides (`--concurrency` and `--timeout`)
-
-**What's needed:** `kindlm test --concurrency <n>` and `kindlm test --timeout <ms>` override
-the values in `kindlm.yaml`.
-
-**Stack decision:** `commander` (already declared) — `.option("--concurrency <n>", ...,
-parseInt)` and `.option("--timeout <ms>", ..., parseInt)`. Parse to `number | undefined`,
-pass into `RunTestsOptions`. The engine already reads `concurrency` and `timeoutMs` from
-config; the CLI layer simply overrides them if the flags are present.
-
-**Validation:** Reject `<= 0` values immediately in the command handler (before test
-execution) with a clear error message. No new library needed — `parseInt` plus a range
-check.
-
-**New imports:** None.
-
----
-
-## Summary: No New Dependencies
-
-| Feature | Implementation | New Packages |
-|---------|---------------|-------------|
-| Multi-pass judge | Inline `median()` in `shared-score.ts` | None |
-| Cost budget | Shared `{ cancelled }` ref in runner | None |
-| Worktree file copy | `node:fs/promises` copyFile + mkdir | None |
-| Spinner tests | `vi.mock("ora")` | None |
-| Reporter tests | `vi.mock("@kindlm/core")` + `vi.spyOn(process, "exit")` | None |
-| Dry-run tests | `FORCE_COLOR=0` + pure function fixture | None |
-| CLI flag overrides | `commander` `.option()` already in deps | None |
-
----
-
-## Existing Stack (unchanged)
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| TypeScript | 5.7.0 | Language (strict, ESM-first) |
-| Vitest | 3.2.4 | Test framework |
-| commander | ^13.0.0 | CLI argument parsing |
-| ora | ^8.1.0 | Terminal spinner |
-| chalk | ^5.4.0 | Terminal color |
-| `node:fs/promises` | built-in | File copy for ISOLATE-01 |
-| `node:child_process` | built-in | Worktree git commands (existing) |
-| `node:path` | built-in | Path manipulation (existing) |
-
----
-
-## Sources
-
-- Vitest ESM mocking docs (vi.mock hoisting): https://vitest.dev/guide/mocking.html
-- ora v8 ESM package: https://github.com/sindresorhus/ora (pure ESM, vi.mock compatible)
-- Node.js `fs/promises` API: https://nodejs.org/api/fs.html#promises-api
-- Confidence: HIGH for all items — patterns verified against existing codebase conventions
-  and official documentation. No claims rely on training data alone.
+Total new runtime deps: 2 (chokidar in CLI, recharts in dashboard)

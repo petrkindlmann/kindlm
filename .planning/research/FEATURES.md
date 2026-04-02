@@ -1,300 +1,195 @@
-# Feature Landscape — KindLM v2.1.0 Gap Closure
+# Feature Landscape — KindLM v2.3.0 Developer Experience & Depth
 
-**Domain:** AI agent behavioral testing CLI — gap-closure milestone
-**Researched:** 2026-04-01
-**Overall confidence:** HIGH (code evidence) / MEDIUM (external patterns)
-
----
-
-## 1. betaJudge — Multi-Pass Judge Scoring
-
-### How many passes?
-
-**Recommendation: 3 passes, median aggregation.**
-
-Research context: SE-Jury (ASE 2025) and the LLMs-as-Judges survey (arXiv 2412.05579) both show that
-3-pass median outperforms single-pass for variance reduction. 5 passes offers diminishing returns at
-2.5x the cost. The practical community consensus for CI-grade eval tools is N=3.
-
-The existing `JudgeAssertionConfig` carries no `passes` field. The config schema should add an optional
-`passes` field (default 3) gated behind the `betaJudge` feature flag. When the flag is off, the
-current single-pass path runs unchanged.
-
-### Aggregation strategy
-
-Use **median** (not mean). LLM scores are not normally distributed — a single aberrant 0.0 from a
-parse failure would drag the mean down hard. Median is robust to one bad pass out of three.
-
-For 3 passes:
-- Sort scores ascending.
-- Median = middle value (index 1).
-
-For N passes generally: `scores.sort(); return scores[Math.floor(scores.length / 2)]`.
-
-### Handling parse/call errors on individual passes
-
-Do not fail the whole assertion if one pass errors. Use a "partial success" approach:
-
-1. Collect all pass results (score or error sentinel).
-2. Filter to successful parses only.
-3. If zero successful passes: return `JUDGE_EVAL_ERROR` (no change from current behavior).
-4. If at least one successful pass: compute median from successful scores, record `passesAttempted`
-   and `passesSucceeded` in `metadata`.
-
-This way a transient API blip on pass 2 of 3 does not fail CI.
-
-### Where to implement
-
-`packages/core/src/assertions/judge.ts` — add internal `runJudgePasses(N, context)` helper.
-`packages/core/src/config/schema.ts` — add `passes?: z.number().int().min(1).max(9).default(3)` to
-judge assertion config.
-
-The multi-pass logic must stay in `@kindlm/core`. The feature flag check (`isEnabled(flags, 'betaJudge')`)
-happens in the CLI layer (`run-tests.ts`) and is passed via `AssertionOverrides` or a flag on
-`AssertionContext`.
-
-**Implementation note:** The current `judge.ts` always uses `temperature: 0`. Keep that for
-multi-pass. Temperature=0 with repeated identical prompts still produces variance on real provider
-deployments (different backends, sampling seeds), which is the whole point of multiple passes.
+**Researched:** 2026-04-02
+**Confidence:** HIGH (codebase-informed) / MEDIUM (competitor patterns)
 
 ---
 
-## 2. costGating — Pre-emptive Budget Enforcement
+## 1. Multi-Turn Agent Testing
 
-### Current state
+### How competitors handle it
 
-The runner (`packages/core/src/engine/runner.ts`) already has the full cost gating implementation:
+**promptfoo:** Linear conversation arrays — each turn is a message with assertions. No branching. Users define `conversation: [{role, content, assert}]`. Simple but can't model "if tool A fails, expect tool B".
 
-```typescript
-let cumulativeCostUsd = 0;
-let budgetExceeded = false;
-const costBudget = config.gates?.costMaxUsd;
-// ... per-unit check before executeUnit
-// ... post-unit accumulation + budgetExceeded flag set
-```
+**deepeval:** `ConversationalMetric` wraps a sequence of exchanges. Assertions are on the full conversation, not per-turn. Good for coherence scoring, weak for tool-call decision trees.
 
-The `budgetExceededResult()` helper is already implemented and returns a proper `BUDGET_EXCEEDED`
-assertion failure.
+**braintrust:** Traces agent execution, maps spans to assertions. Closest to decision-tree testing but requires OpenTelemetry instrumentation (KindLM already has trace support).
 
-**The gap is not in the runner — it is in the feature flag wiring.** `costGating` flag exists in
-`.kindlm/config.json` but `run-tests.ts` does not pass `config.gates.costMaxUsd` conditionally on
-the flag. The runner always reads `config.gates?.costMaxUsd` from the parsed YAML regardless of the
-flag.
+### Table stakes
+- Multi-turn conversations defined in YAML with turn labels
+- Assertions per turn (not just end-of-conversation)
+- `maxTurns` limit to prevent infinite loops
+- Tool call simulation (mock tool responses in config)
 
-### Recommended approach
+### Differentiators
+- **Conditional branching:** Define expected paths based on tool call results. "If agent calls `search`, respond with results and expect `summarize` next. If agent calls `ask_user`, respond with clarification and expect `search` next."
+- **Decision tree assertions:** Assert on the path taken, not just the final state
+- **Turn-scoped assertions:** Each turn can have its own `expect:` block with all 11 assertion types
 
-The `costGating` feature flag should gate whether the `gates.costMaxUsd` field in kindlm.yaml is
-respected at runtime (not whether it appears in config). When the flag is `false`, strip
-`costMaxUsd` from the gates object before passing to the runner, or pass `undefined` for budget.
+### Anti-features
+- Visual flow editor — complexity not justified for YAML-first tool
+- Automatic conversation generation — users should define their test scenarios explicitly
 
-This keeps the runner clean (no flag awareness in `@kindlm/core`) and gates from the CLI layer
-as all other feature flags do.
-
-### Where in the loop does the check happen?
-
-Already correct: the check happens **before each unit executes** (not per-batch, not post-hoc).
-With `runWithConcurrency`, tests already in-flight when budget is exceeded will complete — there is
-bounded overshoot of at most `concurrency - 1` additional tests. This is documented in the runner
-with a comment. This is the correct trade-off; stopping mid-concurrency would require cancellation
-tokens and adds complexity with minimal real-world budget benefit.
+### Complexity: HIGH — touches core config schema, conversation runner, assertion registry, engine, reporters
 
 ---
 
-## 3. --isolate Filesystem Fix (ISOLATE-01)
+## 2. Response Caching
 
-### The gap
+### How competitors handle it
 
-`worktree.ts` creates a detached-HEAD git worktree. The test runner still uses the original
-`configDir` (the source tree). Schema files referenced in test YAML as relative paths
-(`schemaFile: "./schemas/response.json"`) are resolved against `configDir` — which is the original
-tree, not the worktree. So `--isolate` provides git isolation but not filesystem isolation.
+**promptfoo:** Built-in caching with `--no-cache` to bypass. Hash of prompt+model. Stored in `.promptfoo/cache/`. Very effective for iteration.
 
-### What needs to be copied
+**braintrust:** Project-level caching with API-side deduplication.
 
-From the runner code:
-- `test.expect.output?.schemaFile` — JSON Schema files (resolved via `joinPath(configDir, schemaFile)`)
-- Any `$ref` paths within those schema files that point to sibling files (AJV resolves these)
-- The `kindlm.yaml` config file itself
+### Table stakes
+- Local file-based cache in `.kindlm/cache/`
+- Cache key: SHA-256 of full request (model + params + messages + tools)
+- `--no-cache` flag to bypass
+- Only cache successful responses (not errors)
+- `kindlm cache clear` subcommand
 
-All paths are relative to `configDir`. The worktree already contains tracked git files (the YAML,
-any schemas checked into git). The copy is only needed for **untracked/gitignored files** — schema
-files that users may have in `.gitignore` (unlikely but possible) and the `.kindlm/` state directory.
+### Differentiators
+- **[cached]** indicator in pretty reporter output — user always knows what was cached
+- Cache works with `--watch` mode for instant re-runs after config-only changes
+- TTL-based expiry (default 24h, configurable)
 
-### Recommended implementation
+### Anti-features
+- Cloud-side caching — adds complexity, local cache is sufficient for dev workflow
+- Partial cache (cache some tests, run others) — all-or-nothing is simpler
 
-In `worktree.ts` (or a new `isolate.ts` helper), after `git worktree add`:
-
-1. Read the parsed config to enumerate all `schemaFile` paths.
-2. For each path: check if the file exists in the worktree (it is already there if tracked by git).
-   If missing, copy from `configDir` to `worktreePath` preserving the relative path.
-3. Copy `.kindlm/baselines/` into the worktree `.kindlm/` directory (baseline comparison needs it).
-4. Do NOT copy `.kindlm/config.json` (feature flags) — use the source tree's flags, not a stale copy.
-
-Path resolution: use `node:path`'s `path.resolve(configDir, schemaFile)` and
-`path.join(worktreePath, path.relative(configDir, absoluteSchemaPath))` for destination.
-
-**Constraint:** This happens in the CLI layer (`--isolate` flag handling in `test.ts`), not in core.
-Core remains zero-I/O.
-
-### $ref handling
-
-AJV resolves `$ref` relative to the schema file's own location. If the schema being copied has
-`$ref: "./types.json"`, that sibling also needs to be in the worktree. A recursive scan of `$ref`
-paths in copied JSON schemas is the thorough approach, but for v2.1.0 a single-level copy
-(copy all files in the same directory as each `schemaFile`) is simpler and covers 99% of real
-usage. Flag this as a known limitation.
+### Complexity: MEDIUM — core interface + CLI implementation, touches provider adapter wrapping
 
 ---
 
-## 4. Unit Tests — dry-run.ts, select-reporter.ts, spinner.ts
+## 3. Rich Tool Call Failure Output
 
-### dry-run.ts (formatTestPlan)
+### What good failure output looks like (from testing frameworks)
 
-Pure function — no I/O, no mocks needed. Tests verify:
-- Output contains suite name from `TestPlan.suiteName`
-- Active entries rendered with model label `[modelId]`
-- Command entries rendered with `[command]` label
-- Repeat > 1 shows `x{N}` suffix
-- Skipped entries appear in "Skipped:" section
-- Total execution units and concurrency/timeout appear in footer
-- Empty active entries shows "No tests to execute."
+**Jest:** Shows expected vs received with colored diff, indented object trees
+**Vitest:** Same pattern + inline diff for string comparisons
+**promptfoo:** Shows full response including tool calls in failure output
 
-Pattern: construct minimal `TestPlan` objects directly, call `formatTestPlan()`, assert
-`result.includes(expected)`. No chalk stripping needed — the test just checks for substrings that
-are not chalk-colored (the test name, model id strings, numeric values).
+### Table stakes
+- On tool call assertion failure, show:
+  - Expected: tool name + args pattern
+  - Received: full list of actual tool calls with names + args
+  - Diff highlighting (green expected, red actual)
+- Truncate large args (>500 chars) with `...(truncated)` indicator
 
-### select-reporter.ts (selectReporter)
+### Differentiators
+- **Call sequence visualization:** Numbered list showing the order of all tool calls made
+- **Arg diff:** When `argsMatch` fails, show which specific arg fields differ
+- **Passing test brevity:** Only show tool name + arg count for passing assertions
 
-Uses `process.exit(1)` on unknown type — must mock `process.exit` to prevent test process death.
+### Anti-features
+- Full JSON dump of all tool call args on pass — information overload
+- Interactive debugger for tool call inspection — scope creep
 
-Standard pattern:
-
-```typescript
-vi.spyOn(process, 'exit').mockImplementation((_code) => { throw new Error('process.exit'); });
-```
-
-Tests:
-- `selectReporter("pretty")` returns object with `report` function (duck-type check)
-- `selectReporter("json")` returns object with `report` function
-- `selectReporter("junit")` returns object with `report` function
-- `selectReporter("unknown")` calls `process.exit(1)` — assert the spy was called with `1`
-
-Mocking `@kindlm/core` reporters is optional; testing that the right factory was called requires
-mocking them. Since the return types are duck-typed (`Reporter` interface), it is simpler to mock
-`@kindlm/core` and assert `createPrettyReporter` / `createJsonReporter` / `createJunitReporter`
-were each called:
-
-```typescript
-vi.mock("@kindlm/core", () => ({
-  createPrettyReporter: vi.fn().mockReturnValue({ report: vi.fn() }),
-  createJsonReporter:   vi.fn().mockReturnValue({ report: vi.fn() }),
-  createJunitReporter:  vi.fn().mockReturnValue({ report: vi.fn() }),
-}));
-```
-
-### spinner.ts (createSpinner)
-
-The existing `run-tests.test.ts` already demonstrates the standard pattern for this codebase:
-
-```typescript
-vi.mock("./spinner.js", () => ({
-  createSpinner: vi.fn(() => ({
-    start: vi.fn(), stop: vi.fn(), succeed: vi.fn(), fail: vi.fn()
-  })),
-}));
-```
-
-For a unit test of `spinner.ts` itself, mock `ora` at the module level:
-
-```typescript
-vi.mock("ora", () => ({
-  default: vi.fn().mockReturnValue({
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn(),
-    fail: vi.fn(),
-    stop: vi.fn(),
-  }),
-}));
-```
-
-Then import `createSpinner` and verify:
-- `start(text)` calls `ora({ text, stream: process.stderr }).start()`
-- `succeed(text)` calls `instance.succeed(text)` and nulls the instance
-- `fail(text)` calls `instance.fail(text)` and nulls the instance
-- `stop()` calls `instance.stop()` and nulls the instance
-- Calling `succeed` when `start` was never called does not throw (instance is undefined; optional
-  chaining `instance?.succeed` already handles this)
-
-**Key constraint:** `ora` is a default import (`import ora from "ora"`). The mock must use
-`vi.mock("ora", () => ({ default: vi.fn(...) }))` — the `default` key is required for ESM default
-imports mocked via `vi.mock`.
+### Complexity: LOW — extends existing reporter `formatAssertion` + assertion metadata
 
 ---
 
-## 5. CLI Overrides — --concurrency and --timeout
+## 4. GitHub Action
 
-### Expected behavior
+### How popular testing actions work
 
-`--concurrency N` overrides `config.defaults.concurrency` for this run only.
-`--timeout MS` overrides `config.defaults.timeoutMs` for this run only.
+**vitest action:** Composite action that installs, runs, and posts comment. Simple.
+**playwright action:** JS action with bundled dist/. Sets up browser, runs tests, uploads artifacts.
+**jest action:** Third-party, mostly composite. Posts PR comment with results.
 
-These are pure overrides: take the parsed `KindLMConfig`, mutate `defaults.concurrency` /
-`defaults.timeoutMs` after parse and before runner construction. No changes to core required.
+### Table stakes
+- `kindlm/test@v2` usable in any workflow
+- Inputs: `config` (path to kindlm.yaml), `reporter` (default: junit), provider API key env vars
+- Outputs: `pass-rate`, `total`, `passed`, `failed`, exit code
+- JUnit artifact upload for GitHub test summary integration
+- Works on ubuntu, macos, windows runners
 
-**For `--timeout`:** `config.defaults.timeoutMs` is used in two places:
-1. `runner.ts` line 543: `deps.commandExecutor.execute(cmdResult.data, { timeoutMs: config.defaults.timeoutMs, ... })`
-2. Provider-level HTTP timeout (set on adapter init). Note — provider timeout is set during adapter
-   initialization in `run-tests.ts`, before the runner runs. If `--timeout` is to affect HTTP
-   requests (not just command tests), `runTests()` must apply the override before adapter init.
+### Differentiators
+- **PR comment** with test summary (pass/fail count, failing test names)
+- **Cloud upload** if `KINDLM_API_TOKEN` is set (optional, zero-config when token present)
 
-**Recommendation:** `--timeout` overrides `config.defaults.timeoutMs` which flows into command test
-execution. It does not retroactively affect provider adapter HTTP timeout (which is set at init
-time). Document this as the behavior. If users need provider timeout control, that is a separate
-`defaults.providerTimeoutMs` field — out of scope for v2.1.0.
+### Anti-features
+- Auto-installing Node.js — assume it's already set up (users use `actions/setup-node`)
+- Docker-based action — fails on non-Linux runners
 
-### Where to wire
+### Complexity: MEDIUM — separate repo/package, bundling, CI matrix testing
 
-In `packages/cli/src/commands/test.ts`, after calling `parseConfig()`:
+---
 
-```typescript
-if (options.concurrency !== undefined) config.defaults.concurrency = options.concurrency;
-if (options.timeout !== undefined)     config.defaults.timeoutMs = options.timeout;
-```
+## 5. Watch Mode
 
-The `formatTestPlan` function already uses `plan.concurrency` and `plan.timeoutMs` for display —
-these are derived from `config.defaults`, so the dry-run output will reflect the override correctly
-with no additional changes.
+### How dev tools implement watch mode
 
-### Validation
+**vitest:** `--watch` is default. Re-runs on source change. Shows inline results. `q` to quit.
+**jest:** `--watch` with interactive mode (filter by name, re-run failed). 
+**eslint:** `--watch` not built-in (uses external `esw`).
 
-- `--concurrency` must be ≥ 1. Commander `.argParser(parseInt)` + check before assignment.
-- `--timeout` must be ≥ 1. Same approach.
-- Both are optional; omitting them preserves existing behavior exactly.
+### Table stakes
+- `kindlm test --watch` watches `kindlm.yaml` and all referenced files
+- Debounced re-run (300ms stabilization via chokidar `awaitWriteFinish`)
+- Kill previous run before starting new one (no zombie processes)
+- Clear separator between runs (timestamp + line, not full terminal clear)
+- `Ctrl+C` cleanly exits and kills any running test process
+
+### Differentiators
+- **Cost awareness:** Show cumulative cost across watch session
+- **[cached]** indicators — combined with response cache, re-runs after config-only changes are instant and free
+
+### Anti-features
+- Interactive mode (filter tests, re-run failed) — over-engineered for v2.3.0
+- File watching beyond config + referenced files — don't watch source code
+
+### Complexity: MEDIUM — CLI-only, process management, signal handling
+
+---
+
+## 6. Dashboard Team Features
+
+### What testing dashboards provide
+
+**Datadog Test Visibility:** Time-series pass rate, flaky test detection, test duration trends, branch comparison.
+**Grafana Test Analytics:** Configurable dashboards, custom queries, alerting.
+**promptfoo web UI:** Run comparison side-by-side, prompt history, eval scoring visualization.
+
+### Table stakes
+- **Test history:** Paginated list of runs with pass rate, duration, git branch/commit
+- **Run comparison:** Side-by-side diff of two runs (which tests changed status)
+- **Trend chart:** Pass rate over time (line chart, last 30 runs)
+- **Search:** Filter runs by suite name, branch, date range
+
+### Differentiators
+- **Failing test drill-down:** Click a failing test to see assertion details, tool calls, model response
+- **Cost tracking:** Cumulative cost per run, cost trend over time
+- **Branch comparison:** Compare pass rates between branches (CI context)
+
+### Anti-features
+- Real-time collaboration (live cursors, comments) — not a collaboration tool
+- Custom dashboard builder — fixed layouts are fine for v2.3.0
+- Alerting/notifications — Slack webhooks already exist for this
+
+### Complexity: HIGH — new cloud API routes, new dashboard pages, charting, data queries
 
 ---
 
 ## Feature Dependencies
 
 ```
-betaJudge flag on → judge.ts multi-pass path → no changes to runner, config schema, or CLI
-costGating flag on → gates.costMaxUsd forwarded to runner → runner already handles it
---isolate + ISOLATE-01 → worktree created → files copied → test.ts switches cwd to worktree
---concurrency/--timeout → config.defaults mutated → runner reads defaults as usual
+Rich failure output (standalone) — no deps on other features
+Response caching (standalone) — enables watch mode cost savings
+Watch mode — benefits from cache but works without it
+Multi-turn testing (standalone) — independent of other features
+GitHub Action (standalone) — uses existing CLI, no new core deps
+Dashboard features — depends on existing cloud API, independent of CLI features
 ```
 
-## Anti-Features
+## Build Order (by dependency + complexity)
 
-| Anti-Feature | Why Avoid |
-|---|---|
-| Temperature > 0 for multi-pass judge | Defeats caching; temperature=0 already produces variance across real backends |
-| Cancelling in-flight tasks when budget exceeded | Requires cancellation tokens; bounded overshoot is acceptable at concurrency 4 |
-| Recursive $ref scanning for ISOLATE-01 | Overkill for v2.1.0; single-level directory copy covers real usage |
-| `--timeout` affecting provider HTTP timeout | Provider adapter is initialized before runner; retroactive change requires API redesign |
+1. Rich tool call failure output (LOW complexity, no deps, quick win)
+2. Response caching (MEDIUM, enables watch mode value)
+3. Watch mode (MEDIUM, better with cache)
+4. Multi-turn agent testing (HIGH, independent)
+5. GitHub Action (MEDIUM, independent, separate repo)
+6. Dashboard team features (HIGH, independent)
 
-## Sources
-
-- SE-Jury paper (ASE 2025): https://arxiv.org/html/2505.20854v2
-- LLMs-as-Judges survey: https://arxiv.org/html/2412.05579v2
-- LLM-as-a-Judge survey: https://arxiv.org/abs/2411.15594
-- Vitest mocking guide: https://vitest.dev/guide/mocking
-- Existing codebase patterns: `run-tests.test.ts` (ora mock), `worktree.test.ts` (execFile mock)
+Phases 4-6 are independent and could be parallelized or reordered.
