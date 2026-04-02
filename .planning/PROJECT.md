@@ -8,9 +8,17 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 
 Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
-## Current Milestone: Planning next milestone
+## Current Milestone: v2.3.0 Developer Experience & Depth
 
-v2.2.0 Core Quality shipped 2026-04-02. See `.planning/milestones/v2.2.0-ROADMAP.md` for details.
+**Goal:** Make KindLM faster to iterate with, deeper in agent testing capabilities, easier to adopt in CI, and useful as a team dashboard.
+
+**Target features:**
+- Multi-turn agent testing — conditional branching, decision tree assertions
+- Response caching — local cache for free iteration during development
+- Rich tool call failure output — full arguments, call sequence on assertion failure
+- GitHub Action — `kindlm/test@v2` for zero-boilerplate CI adoption
+- Watch mode — `kindlm test --watch` re-runs on config change
+- Dashboard team features — run comparison, trend charts, test history search
 
 ## Requirements
 
@@ -44,7 +52,7 @@ v2.2.0 Core Quality shipped 2026-04-02. See `.planning/milestones/v2.2.0-ROADMAP
 
 ### Active
 
-(None — awaiting next milestone planning)
+(Defining requirements for v2.3.0)
 
 ### Out of Scope
 
@@ -117,4 +125,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after v2.2.0 milestone*
+*Last updated: 2026-04-02 after v2.3.0 milestone start*
