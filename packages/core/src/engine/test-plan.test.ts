@@ -207,4 +207,86 @@ describe("buildTestPlan", () => {
     expect(plan.entries[0]!.modelId).toBe("gpt-4o-mini");
     expect(plan.totalExecutionUnits).toBe(1);
   });
+
+  it("sets estimatedCostUsd on model entries using output price proxy", () => {
+    // gpt-4o: output=$10/1M, maxTokens=1024, repeat=1
+    // cost = (1024/1_000_000) * 10.0 * 1 = 0.01024
+    const config = createMinimalConfig();
+    const plan = buildTestPlan(config);
+    const entry = plan.entries[0]!;
+    expect(entry.estimatedCostUsd).not.toBeNull();
+    expect(entry.estimatedCostUsd).toBeCloseTo(0.01024, 8);
+  });
+
+  it("sets estimatedCostUsd to null for command entries", () => {
+    const config = createMinimalConfig({
+      tests: [
+        {
+          name: "cmd-test",
+          command: "echo hello",
+          vars: {},
+          expect: { output: { format: "text", contains: ["hello"] } },
+          skip: false,
+        },
+      ] as KindLMConfig["tests"],
+    });
+    const plan = buildTestPlan(config);
+    expect(plan.entries[0]!.estimatedCostUsd).toBeNull();
+  });
+
+  it("sets estimatedCostUsd to null for skipped entries", () => {
+    const config = createMinimalConfig({
+      tests: [
+        {
+          name: "skipped-test",
+          prompt: "greeting",
+          vars: {},
+          expect: { output: { format: "text", contains: ["hello"] } },
+          skip: true,
+        },
+      ] as KindLMConfig["tests"],
+    });
+    const plan = buildTestPlan(config);
+    expect(plan.entries[0]!.estimatedCostUsd).toBeNull();
+  });
+
+  it("sets totalEstimatedCostUsd to sum of non-null entry costs", () => {
+    const config = createMinimalConfig({
+      models: [
+        { id: "gpt-4o", provider: "openai", model: "gpt-4o", params: { temperature: 0, maxTokens: 1024 } },
+        { id: "gpt-4o-mini", provider: "openai", model: "gpt-4o-mini", params: { temperature: 0, maxTokens: 1024 } },
+      ],
+    });
+    const plan = buildTestPlan(config);
+    // Both entries have known pricing; total should be sum of both
+    expect(plan.totalEstimatedCostUsd).not.toBeNull();
+    const total = plan.entries.reduce((sum, e) => sum + (e.estimatedCostUsd ?? 0), 0);
+    expect(plan.totalEstimatedCostUsd).toBeCloseTo(total, 10);
+  });
+
+  it("sets totalEstimatedCostUsd to null when all entries are command tests", () => {
+    const config = createMinimalConfig({
+      tests: [
+        {
+          name: "cmd-test",
+          command: "echo hello",
+          vars: {},
+          expect: { output: { format: "text", contains: ["hello"] } },
+          skip: false,
+        },
+      ] as KindLMConfig["tests"],
+    });
+    const plan = buildTestPlan(config);
+    expect(plan.totalEstimatedCostUsd).toBeNull();
+  });
+
+  it("uses repeat multiplier in estimatedCostUsd", () => {
+    const config = createMinimalConfig({
+      defaults: { repeat: 3, concurrency: 4, timeoutMs: 60000 },
+    });
+    const plan = buildTestPlan(config);
+    const entry = plan.entries[0]!;
+    // gpt-4o, 1024 tokens, repeat=3: (1024/1M) * 10 * 3 = 0.03072
+    expect(entry.estimatedCostUsd).toBeCloseTo(0.03072, 8);
+  });
 });

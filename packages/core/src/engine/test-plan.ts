@@ -1,4 +1,5 @@
 import type { KindLMConfig, TestCase, ModelConfig } from "../types/config.js";
+import { estimateDryRunCost } from "../providers/pricing.js";
 
 // ============================================================
 // Test Plan Types
@@ -13,6 +14,7 @@ export interface TestPlanEntry {
   isCommand: boolean;
   skip: boolean;
   tags: string[];
+  estimatedCostUsd: number | null;
 }
 
 export interface TestPlan {
@@ -23,6 +25,7 @@ export interface TestPlan {
   totalExecutionUnits: number;
   concurrency: number;
   timeoutMs: number;
+  totalEstimatedCostUsd: number | null;
 }
 
 // ============================================================
@@ -76,6 +79,7 @@ export function buildTestPlan(
         isCommand: !!test.command,
         skip: true,
         tags,
+        estimatedCostUsd: null,
       });
       continue;
     }
@@ -96,6 +100,7 @@ export function buildTestPlan(
         isCommand: true,
         skip: false,
         tags,
+        estimatedCostUsd: null,
       });
       totalExecutionUnits += repeat;
     } else {
@@ -104,6 +109,7 @@ export function buildTestPlan(
         const modelConfig = config.models.find((m: ModelConfig) => m.id === modelId);
         if (!modelConfig) continue;
 
+        const maxTokens = modelConfig.params.maxTokens ?? 1024;
         entries.push({
           testName: test.name,
           modelId: modelConfig.id,
@@ -113,11 +119,19 @@ export function buildTestPlan(
           isCommand: false,
           skip: false,
           tags,
+          estimatedCostUsd: estimateDryRunCost(modelConfig.id, maxTokens, repeat),
         });
         totalExecutionUnits += repeat;
       }
     }
   }
+
+  const pricedCosts = entries
+    .filter((e) => !e.skip && e.estimatedCostUsd !== null)
+    .map((e) => e.estimatedCostUsd as number);
+
+  const totalEstimatedCostUsd =
+    pricedCosts.length === 0 ? null : pricedCosts.reduce((sum, c) => sum + c, 0);
 
   return {
     suiteName: config.suite.name,
@@ -127,5 +141,6 @@ export function buildTestPlan(
     totalExecutionUnits,
     concurrency: config.defaults.concurrency,
     timeoutMs: config.defaults.timeoutMs,
+    totalEstimatedCostUsd,
   };
 }
