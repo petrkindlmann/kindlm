@@ -50,6 +50,19 @@ function matchArgs(
   return true;
 }
 
+function computeArgDiffs(
+  actual: Record<string, unknown>,
+  expected: Record<string, unknown>,
+): Record<string, { expected: unknown; received: unknown }> {
+  const diffs: Record<string, { expected: unknown; received: unknown }> = {};
+  for (const [key, expectedValue] of Object.entries(expected)) {
+    if (!(key in actual) || !partialDeepMatch(actual[key], expectedValue)) {
+      diffs[key] = { expected: expectedValue, received: actual[key] };
+    }
+  }
+  return diffs;
+}
+
 function evaluateArgsSchema(
   tool: string,
   assertionType: string,
@@ -116,6 +129,12 @@ export function createToolCalledAssertion(
           score: 0,
           failureCode: "TOOL_CALL_MISSING",
           failureMessage: `Expected tool "${tool}" to be called, but got: [${actualNames.join(", ")}]`,
+          metadata: {
+            receivedToolCalls: context.toolCalls,
+            expectedTool: tool,
+            expectedArgs: argsMatch,
+            argDiffs: undefined,
+          },
         });
         return Promise.resolve(results);
       }
@@ -125,12 +144,14 @@ export function createToolCalledAssertion(
         label: `Tool "${tool}" called`,
         passed: true,
         score: 1,
+        metadata: { argCount: Object.keys(matching[0].arguments).length },
       });
 
       if (argsMatch) {
         const anyMatch = matching.some((tc) =>
           matchArgs(tc.arguments, argsMatch),
         );
+        const diffs = anyMatch ? undefined : computeArgDiffs(matching[0].arguments, argsMatch);
         results.push({
           assertionType: "tool_called",
           label: `Tool "${tool}" args match`,
@@ -140,6 +161,14 @@ export function createToolCalledAssertion(
           failureMessage: anyMatch
             ? undefined
             : `Expected args ${JSON.stringify(argsMatch)}, got ${JSON.stringify(matching[0]?.arguments)}`,
+          metadata: anyMatch
+            ? undefined
+            : {
+                receivedToolCalls: context.toolCalls,
+                expectedTool: tool,
+                expectedArgs: argsMatch,
+                argDiffs: diffs,
+              },
         });
       }
 
@@ -172,6 +201,9 @@ export function createToolNotCalledAssertion(tool: string): Assertion {
           failureMessage: found
             ? `Expected tool "${tool}" to NOT be called, but it was`
             : undefined,
+          metadata: found
+            ? { receivedToolCalls: context.toolCalls, expectedTool: tool }
+            : undefined,
         },
       ]);
     },
@@ -201,6 +233,9 @@ export function createToolOrderAssertion(
             failureMessage: found
               ? `Expected tool "${exp.tool}" to NOT be called, but it was`
               : undefined,
+            metadata: found
+              ? { receivedToolCalls: context.toolCalls, expectedTool: exp.tool }
+              : undefined,
           });
           continue;
         }
@@ -216,6 +251,12 @@ export function createToolOrderAssertion(
             score: 0,
             failureCode: "TOOL_CALL_MISSING",
             failureMessage: `Expected tool "${exp.tool}" to be called, but it was not`,
+            metadata: {
+              receivedToolCalls: context.toolCalls,
+              expectedTool: exp.tool,
+              expectedArgs: exp.argsMatch,
+              argDiffs: undefined,
+            },
           });
           continue;
         }
@@ -225,12 +266,16 @@ export function createToolOrderAssertion(
           label: `Tool "${exp.tool}" called`,
           passed: true,
           score: 1,
+          metadata: { argCount: Object.keys(matching[0].arguments).length },
         });
 
         if (exp.argsMatch) {
           const anyMatch = matching.some((tc) =>
             matchArgs(tc.arguments, exp.argsMatch ?? {}),
           );
+          const diffs = anyMatch
+            ? undefined
+            : computeArgDiffs(matching[0].arguments, exp.argsMatch ?? {});
           results.push({
             assertionType: "tool_order",
             label: `Tool "${exp.tool}" args match`,
@@ -240,6 +285,14 @@ export function createToolOrderAssertion(
             failureMessage: anyMatch
               ? undefined
               : `Expected args ${JSON.stringify(exp.argsMatch)}, got ${JSON.stringify(matching[0]?.arguments)}`,
+            metadata: anyMatch
+              ? undefined
+              : {
+                  receivedToolCalls: context.toolCalls,
+                  expectedTool: exp.tool,
+                  expectedArgs: exp.argsMatch,
+                  argDiffs: diffs,
+                },
           });
         }
 
@@ -269,6 +322,9 @@ export function createToolOrderAssertion(
             failureMessage: orderMatch
               ? undefined
               : `Expected "${exp.tool}" at position ${exp.order}, but found at position ${actualIndex}`,
+            metadata: orderMatch
+              ? undefined
+              : { receivedToolCalls: context.toolCalls, expectedTool: exp.tool },
           });
         }
       }
