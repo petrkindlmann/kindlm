@@ -42,10 +42,12 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag — v2.1.0
 - ✓ ISOLATE-01: Copy config + referenced schema files into worktree before `--isolate` run — v2.1.0
 - ✓ TEST-01/02/03: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts` — v2.1.0
+- ✓ RPT-01/02: Judge reasoning visible in pretty reporter (pass dimmed, fail normal) — v2.2.0
+- ✓ GATE-01/02/03: Gate warnings when evaluating against zero assertions (⚠ icon) — v2.2.0
 
 ### Active
 
-(Defining requirements for v2.2.0)
+(Phases 11-12 remaining in v2.2.0)
 
 ### Out of Scope
 
@@ -120,4 +122,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after v2.2.0 milestone start*
+*Last updated: 2026-04-02 after Phase 10 completion*
