@@ -107,59 +107,59 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TCOUT-01 | — | Pending |
-| TCOUT-02 | — | Pending |
-| TCOUT-03 | — | Pending |
-| TCOUT-04 | — | Pending |
-| TCOUT-05 | — | Pending |
-| TCOUT-06 | — | Pending |
-| CACHE-01 | — | Pending |
-| CACHE-02 | — | Pending |
-| CACHE-03 | — | Pending |
-| CACHE-04 | — | Pending |
-| CACHE-05 | — | Pending |
-| CACHE-06 | — | Pending |
-| CACHE-07 | — | Pending |
-| CACHE-08 | — | Pending |
-| WATCH-01 | — | Pending |
-| WATCH-02 | — | Pending |
-| WATCH-03 | — | Pending |
-| WATCH-04 | — | Pending |
-| WATCH-05 | — | Pending |
-| WATCH-06 | — | Pending |
-| WATCH-07 | — | Pending |
-| CONV-01 | — | Pending |
-| CONV-02 | — | Pending |
-| CONV-03 | — | Pending |
-| CONV-04 | — | Pending |
-| CONV-05 | — | Pending |
-| CONV-06 | — | Pending |
-| CONV-07 | — | Pending |
-| CONV-08 | — | Pending |
-| ACTION-01 | — | Pending |
-| ACTION-02 | — | Pending |
-| ACTION-03 | — | Pending |
-| ACTION-04 | — | Pending |
-| ACTION-05 | — | Pending |
-| ACTION-06 | — | Pending |
-| ACTION-07 | — | Pending |
-| ACTION-08 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| DASH-05 | — | Pending |
-| DASH-06 | — | Pending |
-| DASH-07 | — | Pending |
-| DASH-08 | — | Pending |
-| DASH-09 | — | Pending |
-| DASH-10 | — | Pending |
+| TCOUT-01 | Phase 13 | Pending |
+| TCOUT-02 | Phase 13 | Pending |
+| TCOUT-03 | Phase 13 | Pending |
+| TCOUT-04 | Phase 13 | Pending |
+| TCOUT-05 | Phase 13 | Pending |
+| TCOUT-06 | Phase 13 | Pending |
+| CACHE-01 | Phase 14 | Pending |
+| CACHE-02 | Phase 14 | Pending |
+| CACHE-03 | Phase 14 | Pending |
+| CACHE-04 | Phase 14 | Pending |
+| CACHE-05 | Phase 14 | Pending |
+| CACHE-06 | Phase 14 | Pending |
+| CACHE-07 | Phase 14 | Pending |
+| CACHE-08 | Phase 14 | Pending |
+| WATCH-01 | Phase 15 | Pending |
+| WATCH-02 | Phase 15 | Pending |
+| WATCH-03 | Phase 15 | Pending |
+| WATCH-04 | Phase 15 | Pending |
+| WATCH-05 | Phase 15 | Pending |
+| WATCH-06 | Phase 15 | Pending |
+| WATCH-07 | Phase 15 | Pending |
+| CONV-01 | Phase 16 | Pending |
+| CONV-02 | Phase 16 | Pending |
+| CONV-03 | Phase 16 | Pending |
+| CONV-04 | Phase 16 | Pending |
+| CONV-05 | Phase 16 | Pending |
+| CONV-06 | Phase 16 | Pending |
+| CONV-07 | Phase 16 | Pending |
+| CONV-08 | Phase 16 | Pending |
+| ACTION-01 | Phase 17 | Pending |
+| ACTION-02 | Phase 17 | Pending |
+| ACTION-03 | Phase 17 | Pending |
+| ACTION-04 | Phase 17 | Pending |
+| ACTION-05 | Phase 17 | Pending |
+| ACTION-06 | Phase 17 | Pending |
+| ACTION-07 | Phase 17 | Pending |
+| ACTION-08 | Phase 17 | Pending |
+| DASH-01 | Phase 18 | Pending |
+| DASH-02 | Phase 18 | Pending |
+| DASH-03 | Phase 18 | Pending |
+| DASH-04 | Phase 18 | Pending |
+| DASH-05 | Phase 18 | Pending |
+| DASH-06 | Phase 18 | Pending |
+| DASH-07 | Phase 18 | Pending |
+| DASH-08 | Phase 18 | Pending |
+| DASH-09 | Phase 18 | Pending |
+| DASH-10 | Phase 18 | Pending |
 
 **Coverage:**
 - v2.3.0 requirements: 46 total
-- Mapped to phases: 0
-- Unmapped: 46 ⚠️
+- Mapped to phases: 46
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 after roadmap creation*
