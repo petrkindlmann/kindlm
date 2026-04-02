@@ -66,6 +66,8 @@ export interface TestRunResult {
   error?: KindlmError;
   latencyMs: number;
   costUsd: number;
+  /** True when every provider call in this test was served from cache. */
+  fromCache?: boolean;
 }
 
 export interface RunnerResult {
@@ -250,6 +252,7 @@ export function createRunner(
           error,
           latencyMs: agg.latencyAvgMs,
           costUsd: agg.totalCostUsd,
+          fromCache: representativeRun?.fromCache,
         };
       });
 
@@ -462,6 +465,8 @@ async function executeUnit(
 
     // 2. Run conversation
     const conversation = await runConversation(adapter, request, test.tools ?? []);
+    const fromCache = conversation.turns.length > 0 &&
+      conversation.turns.every((t) => t.response.fromCache === true);
     const costEstimate = adapter.estimateCost(modelConfig.model, conversation.totalUsage);
 
     // 3. Build assertion context
@@ -492,6 +497,7 @@ async function executeUnit(
       latencyMs: conversation.totalLatencyMs,
       tokenUsage: conversation.totalUsage,
       costEstimateUsd: costEstimate,
+      fromCache,
     };
   } catch (e) {
     try {
