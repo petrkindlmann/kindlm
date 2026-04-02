@@ -100,7 +100,8 @@ function formatTest(test: TestRunResult, c: Colorize): string {
       : test.status === "skipped"
         ? c.yellow("○")
         : c.red("✗");
-  return `    ${icon} ${test.name}`;
+  const cachedBadge = test.fromCache ? ` ${c.dim(c.cyan("[cached]"))}` : "";
+  return `    ${icon} ${test.name}${cachedBadge}`;
 }
 
 function formatTestMeta(test: TestRunResult, c: Colorize): string | null {
