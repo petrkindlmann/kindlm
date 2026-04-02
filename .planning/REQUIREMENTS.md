@@ -14,9 +14,9 @@ Requirements for Core Quality milestone. Each maps to roadmap phases.
 
 ### Gate Integrity
 
-- [ ] **GATE-01**: User sees a warning when `judgeAvgMin` gate evaluates against zero judge assertions
-- [ ] **GATE-02**: User sees a warning when `driftScoreMax` gate evaluates against zero drift assertions
-- [ ] **GATE-03**: User sees a warning when `deterministicPassRate` or `probabilisticPassRate` gate evaluates against zero assertions of that category
+- [x] **GATE-01**: User sees a warning when `judgeAvgMin` gate evaluates against zero judge assertions
+- [x] **GATE-02**: User sees a warning when `driftScoreMax` gate evaluates against zero drift assertions
+- [x] **GATE-03**: User sees a warning when `deterministicPassRate` or `probabilisticPassRate` gate evaluates against zero assertions of that category
 
 ### Dry Run
 
@@ -52,9 +52,9 @@ None — scope is tight for this milestone.
 |-------------|-------|--------|
 | RPT-01 | Phase 10 | Complete |
 | RPT-02 | Phase 10 | Complete |
-| GATE-01 | Phase 10 | Pending |
-| GATE-02 | Phase 10 | Pending |
-| GATE-03 | Phase 10 | Pending |
+| GATE-01 | Phase 10 | Complete |
+| GATE-02 | Phase 10 | Complete |
+| GATE-03 | Phase 10 | Complete |
 | DRY-01 | Phase 11 | Pending |
 | DRY-02 | Phase 11 | Pending |
 | DRY-03 | Phase 11 | Pending |
