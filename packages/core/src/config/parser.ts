@@ -4,6 +4,41 @@ import { validateConfig } from "./schema.js";
 import type { Result } from "../types/result.js";
 import { ok, err } from "../types/result.js";
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  // Row-based DP — prev holds distance for row i-1, curr for row i
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const curr: number[] = [i];
+    for (let j = 1; j <= n; j++) {
+      const sub = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(
+        (prev[j] ?? 0) + 1,        // deletion
+        (curr[j - 1] ?? 0) + 1,    // insertion
+        (prev[j - 1] ?? 0) + sub,  // substitution
+      );
+    }
+    prev = curr;
+  }
+  return prev[n] ?? 0;
+}
+
+export function suggestClosest(input: string, candidates: string[]): string | null {
+  if (!input || candidates.length === 0) return null;
+  const threshold = Math.max(2, Math.floor(input.length * 0.4));
+  const lower = input.toLowerCase();
+  let best: string | null = null;
+  let bestDist = Infinity;
+  for (const c of candidates) {
+    const dist = levenshtein(lower, c.toLowerCase());
+    if (dist <= threshold && dist < bestDist) {
+      bestDist = dist;
+      best = c;
+    }
+  }
+  return best;
+}
+
 export interface FileReader {
   readFile(path: string): Result<string>;
 }
@@ -89,8 +124,13 @@ export function parseConfig(
   // test.prompt must exist in config.prompts (only for prompt-based tests)
   for (const test of config.tests) {
     if (test.prompt && !(test.prompt in config.prompts)) {
+      const promptNames = Object.keys(config.prompts);
+      const suggestion = suggestClosest(test.prompt, promptNames);
+      const hint = suggestion
+        ? ` Did you mean: "${suggestion}"?`
+        : ` Available prompts: ${promptNames.map((p) => `"${p}"`).join(", ")}`;
       errors.push(
-        `Test "${test.name}" references prompt "${test.prompt}" which is not defined`,
+        `Test "${test.name}" references prompt "${test.prompt}" which is not defined.${hint}`,
       );
     }
   }
@@ -100,8 +140,13 @@ export function parseConfig(
     if (test.models) {
       for (const modelId of test.models) {
         if (!modelIds.has(modelId)) {
+          const allModelIds = [...modelIds];
+          const suggestion = suggestClosest(modelId, allModelIds);
+          const hint = suggestion
+            ? ` Did you mean: "${suggestion}"?`
+            : ` Available models: ${allModelIds.map((m) => `"${m}"`).join(", ")}`;
           errors.push(
-            `Test "${test.name}" references model "${modelId}" which is not configured`,
+            `Test "${test.name}" references model "${modelId}" which is not configured.${hint}`,
           );
         }
       }
@@ -112,8 +157,13 @@ export function parseConfig(
   for (const model of config.models) {
     const providers = config.providers as Record<string, unknown>;
     if (!providers[model.provider]) {
+      const providerNames = Object.keys(providers);
+      const suggestion = suggestClosest(model.provider, providerNames);
+      const hint = suggestion
+        ? ` Did you mean: "${suggestion}"?`
+        : ` Available providers: ${providerNames.map((p) => `"${p}"`).join(", ")}`;
       errors.push(
-        `Model "${model.id}" references provider "${model.provider}" which is not configured`,
+        `Model "${model.id}" references provider "${model.provider}" which is not configured.${hint}`,
       );
     }
   }
@@ -123,8 +173,13 @@ export function parseConfig(
     config.defaults.judgeModel &&
     !modelIds.has(config.defaults.judgeModel)
   ) {
+    const allModelIds2 = [...modelIds];
+    const suggestion = suggestClosest(config.defaults.judgeModel, allModelIds2);
+    const hint = suggestion
+      ? ` Did you mean: "${suggestion}"?`
+      : ` Available models: ${allModelIds2.map((m) => `"${m}"`).join(", ")}`;
     errors.push(
-      `defaults.judgeModel "${config.defaults.judgeModel}" is not a configured model`,
+      `defaults.judgeModel "${config.defaults.judgeModel}" is not a configured model.${hint}`,
     );
   }
 
