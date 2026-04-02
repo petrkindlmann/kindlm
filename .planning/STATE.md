@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.3.0
 milestone_name: Developer Experience & Depth
-status: ready-to-plan
-stopped_at: null
-last_updated: "2026-04-02"
-last_activity: 2026-04-02
+status: planning
+stopped_at: Phase 13 context gathered
+last_updated: "2026-04-02T19:02:10.788Z"
+last_activity: 2026-04-02 — v2.3.0 roadmap created (Phases 13-18, 46 requirements mapped)
 progress:
   total_phases: 6
   completed_phases: 0
@@ -37,6 +37,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-02)
 ## Decisions
 
 Recent decisions affecting v2.3.0 work:
+
 - `Colorize` interface for all formatter output — no direct chalk in core (zero-I/O boundary)
 - Cache key = SHA-256(model + sortedParams + messages + tools) — sorted keys prevent insertion-order collisions
 - Conversation runner in `@kindlm/core` as pure state machine — I/O injected via interfaces
@@ -52,6 +53,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02
-Stopped at: Roadmap created — ready to plan Phase 13
-Resume file: None
+Last session: 2026-04-02T19:02:10.785Z
+Stopped at: Phase 13 context gathered
+Resume file: .planning/phases/13-rich-tool-call-failure-output/13-CONTEXT.md
