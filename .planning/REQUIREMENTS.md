@@ -30,8 +30,8 @@ Requirements for Core Quality milestone. Each maps to roadmap phases.
 
 - [x] **VAL-01**: Config validation errors include the test name where the error occurred
 - [x] **VAL-02**: Config validation errors include the field path (e.g. `tests[2].expect.judge[0].minScore`)
-- [ ] **VAL-03**: Config validation suggests corrections for undefined prompt references
-- [ ] **VAL-04**: Config validation suggests corrections for undefined provider/model references
+- [x] **VAL-03**: Config validation suggests corrections for undefined prompt references
+- [x] **VAL-04**: Config validation suggests corrections for undefined provider/model references
 
 ## Future Requirements
 
@@ -62,8 +62,8 @@ None — scope is tight for this milestone.
 | DRY-05 | Phase 11 | Complete |
 | VAL-01 | Phase 12 | Complete |
 | VAL-02 | Phase 12 | Complete |
-| VAL-03 | Phase 12 | Pending |
-| VAL-04 | Phase 12 | Pending |
+| VAL-03 | Phase 12 | Complete |
+| VAL-04 | Phase 12 | Complete |
 
 **Coverage:**
 - v2.2.0 requirements: 14 total

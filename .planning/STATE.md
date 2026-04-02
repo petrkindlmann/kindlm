@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2.0
 milestone_name: Core Quality
-status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-04-02T09:03:30.546Z"
+status: verifying
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-04-02T09:07:44.107Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -18,7 +18,7 @@ progress:
 
 Phase: 12 (validation-diagnostics) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-02
 
 Progress: [░░░░░░░░░░] 0%
@@ -50,6 +50,8 @@ Full decision log: `.planning/PROJECT.md` Key Decisions table.
 - [Phase 11-dry-run]: toFixed(6) for cost display — consistent 6-decimal format across all cost values
 - [Phase 11-dry-run]: Command entries show no cost suffix — shell commands have no provider cost
 - [Phase 12]: formatZodPath exported for direct unit testability in schema.ts
+- [Phase 12-validation-diagnostics]: Row-based Levenshtein DP chosen over flat array to avoid noUncheckedIndexedAccess type errors
+- [Phase 12-validation-diagnostics]: suggestClosest exported from parser.ts for direct unit testability
 
 ## Accumulated Context
 
@@ -59,6 +61,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02T09:03:30.543Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-04-02T09:07:39.357Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
