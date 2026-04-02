@@ -4,6 +4,7 @@
 
 - ✅ **v2.0.0 Launch Ops** — Phases 1-5 (shipped 2026-04-01)
 - ✅ **v2.1.0 Gap Closure** — Phases 6-9 (shipped 2026-04-02)
+- 🚧 **v2.2.0 Core Quality** — Phases 10-12 (in progress)
 
 ## Phases
 
@@ -32,6 +33,54 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
 
 </details>
 
+### 🚧 v2.2.0 Core Quality (In Progress)
+
+**Milestone Goal:** Make the existing core deliver on its promise — actionable failures, honest gates, zero-cost validation.
+
+## Phases (v2.2.0)
+
+- [ ] **Phase 10: Reporter Output + Gate Integrity** - Judge reasoning visible in failures/passes; gates warn when they have no data to evaluate
+- [ ] **Phase 11: Dry Run** - `--dry-run` flag shows execution plan, assertion types, estimated cost, and call count without making API calls
+- [ ] **Phase 12: Validation Diagnostics** - Config errors name the failing test, the exact field path, and suggest fixes for bad references
+
+## Phase Details
+
+### Phase 10: Reporter Output + Gate Integrity
+**Goal**: Users get honest, actionable feedback — judge failures explain why, and gates never silently pass on empty data
+**Depends on**: Phase 9
+**Requirements**: RPT-01, RPT-02, GATE-01, GATE-02, GATE-03
+**Success Criteria** (what must be TRUE):
+  1. User sees judge reasoning text in pretty output when a judge assertion fails
+  2. User sees judge reasoning text (dimmed) in pretty output when a judge assertion passes
+  3. User sees a warning when `judgeAvgMin` gate has zero judge assertions to evaluate
+  4. User sees a warning when `driftScoreMax` gate has zero drift assertions to evaluate
+  5. User sees a warning when `deterministicPassRate` or `probabilisticPassRate` gate has zero assertions of that category
+**Plans**: TBD
+
+### Phase 11: Dry Run
+**Goal**: Users can preview exactly what will run — models, tests, assertions, estimated cost — without spending API credits
+**Depends on**: Phase 10
+**Requirements**: DRY-01, DRY-02, DRY-03, DRY-04, DRY-05
+**Success Criteria** (what must be TRUE):
+  1. User can run `kindlm test --dry-run` and no provider API calls are made
+  2. Dry-run output lists each test name, target model(s), and repeat count
+  3. Dry-run output lists assertion types configured per test
+  4. Dry-run output shows estimated cost per test and total estimated cost
+  5. Dry-run output shows total API call count (tests × models × repeats)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 12: Validation Diagnostics
+**Goal**: Config errors give users enough context to fix the problem without reading source code
+**Depends on**: Phase 11
+**Requirements**: VAL-01, VAL-02, VAL-03, VAL-04
+**Success Criteria** (what must be TRUE):
+  1. Validation error output names the test where the error occurred
+  2. Validation error output includes the exact field path (e.g. `tests[2].expect.judge[0].minScore`)
+  3. Referencing an undefined prompt name in a test produces a suggestion showing defined prompt names
+  4. Referencing an undefined provider or model produces a suggestion showing defined provider/model names
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -45,3 +94,6 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
 | 7. betaJudge Multi-Pass Scoring | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 8. Worktree File Copy | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
+| 10. Reporter Output + Gate Integrity | v2.2.0 | 0/? | Not started | - |
+| 11. Dry Run | v2.2.0 | 0/? | Not started | - |
+| 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |

@@ -50,26 +50,26 @@ None — scope is tight for this milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RPT-01 | Pending | Pending |
-| RPT-02 | Pending | Pending |
-| GATE-01 | Pending | Pending |
-| GATE-02 | Pending | Pending |
-| GATE-03 | Pending | Pending |
-| DRY-01 | Pending | Pending |
-| DRY-02 | Pending | Pending |
-| DRY-03 | Pending | Pending |
-| DRY-04 | Pending | Pending |
-| DRY-05 | Pending | Pending |
-| VAL-01 | Pending | Pending |
-| VAL-02 | Pending | Pending |
-| VAL-03 | Pending | Pending |
-| VAL-04 | Pending | Pending |
+| RPT-01 | Phase 10 | Pending |
+| RPT-02 | Phase 10 | Pending |
+| GATE-01 | Phase 10 | Pending |
+| GATE-02 | Phase 10 | Pending |
+| GATE-03 | Phase 10 | Pending |
+| DRY-01 | Phase 11 | Pending |
+| DRY-02 | Phase 11 | Pending |
+| DRY-03 | Phase 11 | Pending |
+| DRY-04 | Phase 11 | Pending |
+| DRY-05 | Phase 11 | Pending |
+| VAL-01 | Phase 12 | Pending |
+| VAL-02 | Phase 12 | Pending |
+| VAL-03 | Phase 12 | Pending |
+| VAL-04 | Phase 12 | Pending |
 
 **Coverage:**
 - v2.2.0 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 after roadmap creation*
