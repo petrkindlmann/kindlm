@@ -44,10 +44,11 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ TEST-01/02/03: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts` — v2.1.0
 - ✓ RPT-01/02: Judge reasoning visible in pretty reporter (pass dimmed, fail normal) — v2.2.0
 - ✓ GATE-01/02/03: Gate warnings when evaluating against zero assertions (⚠ icon) — v2.2.0
+- ✓ DRY-01/02/03/04/05: `--dry-run` shows test plan with models, assertions, cost estimates — v2.2.0
 
 ### Active
 
-(Phases 11-12 remaining in v2.2.0)
+(Phase 12 remaining in v2.2.0)
 
 ### Out of Scope
 
@@ -122,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after Phase 10 completion*
+*Last updated: 2026-04-02 after Phase 11 completion*
