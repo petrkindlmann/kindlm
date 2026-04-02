@@ -74,7 +74,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Add KINDLM_PRICING table and estimateDryRunCost to core; add cost fields to TestPlanEntry/TestPlan
+- [x] 11-01-PLAN.md — Add KINDLM_PRICING table and estimateDryRunCost to core; add cost fields to TestPlanEntry/TestPlan
 - [ ] 11-02-PLAN.md — Update formatTestPlan CLI formatter to display per-entry and total cost
 
 ### Phase 12: Validation Diagnostics
@@ -102,5 +102,5 @@ Plans:
 | 8. Worktree File Copy | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
 | 10. Reporter Output + Gate Integrity | v2.2.0 | 2/2 | Complete    | 2026-04-02 |
-| 11. Dry Run | v2.2.0 | 0/2 | Not started | - |
+| 11. Dry Run | v2.2.0 | 1/2 | In Progress|  |
 | 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |
