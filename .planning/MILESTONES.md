@@ -1,5 +1,17 @@
 # Milestones
 
+## v2.1.0 Gap Closure (Shipped: 2026-04-02)
+
+**Phases completed:** 4 phases, 4 plans, 2 tasks
+
+**Key accomplishments:**
+
+- `packages/cli/src/commands/test.ts`
+- `extractConfigFilePaths(yamlContent: string): string[]`
+- Vitest unit tests for formatTestPlan, selectReporter, and createSpinner — completing v2.1.0 CLI test coverage with 20 new tests across 3 files
+
+---
+
 ## v2.0.0 Launch Ops (Shipped: 2026-04-01)
 
 **Phases completed:** 5 phases, 7 plans, 10 tasks

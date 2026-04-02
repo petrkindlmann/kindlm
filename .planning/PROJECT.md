@@ -8,16 +8,9 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 
 Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
-## Current Milestone: v2.1.0 Gap Closure
+## Current Milestone: Planning next milestone
 
-**Goal:** Implement all unfinished feature flags, complete worktree filesystem isolation, fill test coverage gaps, and add missing CLI override flags.
-
-**Target features:**
-- `betaJudge`: multi-pass judge scoring (run judge N times, take median — reduces single-inference variance)
-- `costGating`: pre-emptive budget enforcement (stop test execution mid-run if cumulative cost exceeds threshold)
-- `--isolate` completeness: copy config + referenced schema files into worktree before running
-- Tests: unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts`
-- CLI flags: `--concurrency` and `--timeout` overrides for `kindlm test`
+v2.1.0 Gap Closure shipped 2026-04-02. See `.planning/milestones/v2.1.0-ROADMAP.md` for details.
 
 ## Requirements
 
@@ -37,18 +30,16 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ FF-01/02/03: Feature flags via `.kindlm/config.json`, `isEnabled()` helper — v2.0.0
 - ✓ MCP-01: MCP provider adapter — passthrough HTTP POST to any MCP server — v2.0.0
 - ✓ WORKTREE-01/02/03: `--isolate` flag with git worktree isolation and fail-closed cleanup — v2.0.0
+- ✓ COST-01: `costGating` flag gates `costMaxUsd` enforcement — v2.1.0
+- ✓ CLI-01: `--concurrency` override for `kindlm test` — v2.1.0
+- ✓ CLI-02: `--timeout` override for `kindlm test` — v2.1.0
+- ✓ JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag — v2.1.0
+- ✓ ISOLATE-01: Copy config + referenced schema files into worktree before `--isolate` run — v2.1.0
+- ✓ TEST-01/02/03: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts` — v2.1.0
 
 ### Active
 
-- ISOLATE-01: Copy config + referenced schema files into worktree on `--isolate`
-- TEST-01: Unit tests for `dry-run.ts`, `select-reporter.ts`, `spinner.ts`
-
-### Validated (v2.1.0)
-
-- ✓ COST-01: `costGating` flag gates `costMaxUsd` enforcement — validated in Phase 6 — v2.1.0
-- ✓ CLI-01: `--concurrency` override for `kindlm test` — validated in Phase 6 — v2.1.0
-- ✓ CLI-02: `--timeout` override for `kindlm test` — validated in Phase 6 — v2.1.0
-- ✓ JUDGE-01: Multi-pass judge scoring gated behind `betaJudge` flag — validated in Phase 7 — v2.1.0
+(None — awaiting next milestone planning)
 
 ### Out of Scope
 
@@ -58,19 +49,21 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ## Context
 
-**Current state (as of v2.0.0, 2026-04-01):**
-- CLI published: `@kindlm/cli` v2.0.0 on npm
+**Current state (as of v2.1.0, 2026-04-02):**
+- CLI published: `@kindlm/cli` v2.0.0 on npm (v2.1.0 pending publish)
 - Cloud Worker live at api.kindlm.com (Cloudflare Workers + D1)
 - 13 D1 migrations applied to kindlm-prod
 - Sentry error monitoring active
 - VS Code extension published
 - Stripe billing in test mode
-- ~372k lines TypeScript across monorepo
+- `betaJudge` and `costGating` feature flags fully wired
+- `--isolate` now copies config + schema files into worktree (ISOLATE-01 closed)
+- All CLI utilities have unit test coverage (242 passing tests in CLI package)
 
 **Known tech debt:**
 - `runArtifacts` feature flag has no effect — `isEnabled()` stub in `run-tests.ts`, actual write in `test.ts` is unconditional
-- Worktree path created by `--isolate` is never used as test cwd — git isolation exists, filesystem isolation does not
 - Stripe live-mode products need sk_live_ key to create
+- 48 pre-existing integration test failures in `packages/cli/tests/integration/` (unrelated to v2.1.0 work)
 
 ## Key Decisions
 
@@ -88,6 +81,10 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 | `execFile` manual Promise wrapper (not `promisify`) | Preserves `vi.mock()` compatibility — `promisify.custom` lost on mock | 05 |
 | Detached HEAD worktrees (`--detach`) | No branch name conflicts for concurrent runs | 05 |
 | Prefix unused cloud helpers with `_` (not delete) | ECDSA/XML SAML helpers are valid implementations worth retaining | 01 |
+| `capturedCwd` local const before chdir in test.ts | Narrows `string\|undefined` to `string` at `copyFilesToWorktree` call site | 08 |
+| ANSI strip helper in dry-run tests (no chalk mock) | `.toContain()` on stripped strings is simpler and more resilient than mocking chalk | 09 |
+| `process.exit` spy throws `Error("process.exit")` | Stops test execution at call site, mirrors real behavior, prevents confusing post-exit state | 09 |
+| `vi.mock("ora")` with shared `mockInstance` reset per test | Same reference inspectable across tests; `vi.clearAllMocks()` in `beforeEach` keeps state clean | 09 |
 
 ## Constraints
 
@@ -115,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-01 — Phase 7 complete (betaJudge multi-pass scoring)*
+*Last updated: 2026-04-02 after v2.1.0 milestone*
