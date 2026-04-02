@@ -40,7 +40,7 @@ See `.planning/milestones/v2.1.0-ROADMAP.md` for full details.
 ## Phases (v2.2.0)
 
 - [x] **Phase 10: Reporter Output + Gate Integrity** - Judge reasoning visible in failures/passes; gates warn when they have no data to evaluate (completed 2026-04-02)
-- [ ] **Phase 11: Dry Run** - `--dry-run` flag shows execution plan, assertion types, estimated cost, and call count without making API calls
+- [x] **Phase 11: Dry Run** - `--dry-run` flag shows execution plan, assertion types, estimated cost, and call count without making API calls (completed 2026-04-02)
 - [ ] **Phase 12: Validation Diagnostics** - Config errors name the failing test, the exact field path, and suggest fixes for bad references
 
 ## Phase Details
@@ -75,7 +75,7 @@ Plans:
 
 Plans:
 - [x] 11-01-PLAN.md — Add KINDLM_PRICING table and estimateDryRunCost to core; add cost fields to TestPlanEntry/TestPlan
-- [ ] 11-02-PLAN.md — Update formatTestPlan CLI formatter to display per-entry and total cost
+- [x] 11-02-PLAN.md — Update formatTestPlan CLI formatter to display per-entry and total cost
 
 ### Phase 12: Validation Diagnostics
 **Goal**: Config errors give users enough context to fix the problem without reading source code
@@ -102,5 +102,5 @@ Plans:
 | 8. Worktree File Copy | v2.1.0 | 1/1 | Complete | 2026-04-01 |
 | 9. CLI Utility Unit Tests | v2.1.0 | 1/1 | Complete | 2026-04-02 |
 | 10. Reporter Output + Gate Integrity | v2.2.0 | 2/2 | Complete    | 2026-04-02 |
-| 11. Dry Run | v2.2.0 | 1/2 | In Progress|  |
+| 11. Dry Run | v2.2.0 | 2/2 | Complete   | 2026-04-02 |
 | 12. Validation Diagnostics | v2.2.0 | 0/? | Not started | - |

@@ -20,11 +20,11 @@ Requirements for Core Quality milestone. Each maps to roadmap phases.
 
 ### Dry Run
 
-- [ ] **DRY-01**: User can run `kindlm test --dry-run` to see execution plan without making API calls
-- [ ] **DRY-02**: Dry-run output shows each test name, target model(s), and repeat count
-- [ ] **DRY-03**: Dry-run output shows assertion types configured per test (toolCalls, judge, pii, etc.)
+- [x] **DRY-01**: User can run `kindlm test --dry-run` to see execution plan without making API calls
+- [x] **DRY-02**: Dry-run output shows each test name, target model(s), and repeat count
+- [x] **DRY-03**: Dry-run output shows assertion types configured per test (toolCalls, judge, pii, etc.)
 - [x] **DRY-04**: Dry-run output shows estimated cost per test and total estimated cost based on model pricing
-- [ ] **DRY-05**: Dry-run output shows total API call count (tests x models x repeats)
+- [x] **DRY-05**: Dry-run output shows total API call count (tests x models x repeats)
 
 ### Validation
 
@@ -55,11 +55,11 @@ None — scope is tight for this milestone.
 | GATE-01 | Phase 10 | Complete |
 | GATE-02 | Phase 10 | Complete |
 | GATE-03 | Phase 10 | Complete |
-| DRY-01 | Phase 11 | Pending |
-| DRY-02 | Phase 11 | Pending |
-| DRY-03 | Phase 11 | Pending |
+| DRY-01 | Phase 11 | Complete |
+| DRY-02 | Phase 11 | Complete |
+| DRY-03 | Phase 11 | Complete |
 | DRY-04 | Phase 11 | Complete |
-| DRY-05 | Phase 11 | Pending |
+| DRY-05 | Phase 11 | Complete |
 | VAL-01 | Phase 12 | Pending |
 | VAL-02 | Phase 12 | Pending |
 | VAL-03 | Phase 12 | Pending |
