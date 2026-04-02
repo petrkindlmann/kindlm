@@ -111,16 +111,30 @@ function formatTestMeta(test: TestRunResult, c: Colorize): string | null {
   return `      ${c.dim(parts.join(" · "))}`;
 }
 
+function extractReasoning(a: AssertionResult): string | null {
+  if (a.assertionType !== "judge") return null;
+  if (!a.metadata || typeof a.metadata !== "object") return null;
+  const r = (a.metadata as Record<string, unknown>)["reasoning"];
+  if (typeof r !== "string" || r.trim() === "") return null;
+  return r;
+}
+
 function formatAssertion(a: AssertionResult, c: Colorize): string {
   if (a.passed) {
     const scoreStr = formatScore(a);
     const label = scoreStr ? `${a.label} ${c.cyan(scoreStr)}` : a.label;
-    return `      ${c.green("✓")} ${c.dim(label)}`;
+    const line = `      ${c.green("✓")} ${c.dim(label)}`;
+    const reasoning = extractReasoning(a);
+    if (reasoning) return `${line}\n        Reasoning: ${c.dim(reasoning)}`;
+    return line;
   }
   const scoreStr = formatScore(a);
   const detail = a.failureMessage ?? "failed";
   const label = scoreStr ? `${a.label} ${c.cyan(scoreStr)}` : a.label;
-  return `      ${c.red("✗")} ${label}: ${detail}`;
+  const line = `      ${c.red("✗")} ${label}: ${detail}`;
+  const reasoning = extractReasoning(a);
+  if (reasoning) return `${line}\n        Reasoning: ${reasoning}`;
+  return line;
 }
 
 function formatScore(a: AssertionResult): string {
