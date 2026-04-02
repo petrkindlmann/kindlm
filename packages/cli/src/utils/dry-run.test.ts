@@ -17,6 +17,7 @@ function makeEntry(overrides: Partial<TestPlanEntry> = {}): TestPlanEntry {
     isCommand: false,
     skip: false,
     tags: [],
+    estimatedCostUsd: null,
     ...overrides,
   };
 }
@@ -30,6 +31,7 @@ function makePlan(overrides: Partial<TestPlan> = {}): TestPlan {
     totalExecutionUnits: 5,
     concurrency: 4,
     timeoutMs: 30000,
+    totalEstimatedCostUsd: null,
     ...overrides,
   };
 }
