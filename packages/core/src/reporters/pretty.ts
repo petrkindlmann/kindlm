@@ -123,19 +123,73 @@ function extractReasoning(a: AssertionResult): string | null {
   return r;
 }
 
+interface ToolCallMetadata {
+  receivedToolCalls?: Array<{ name: string; arguments: Record<string, unknown> }>;
+  expectedTool?: string;
+  expectedArgs?: Record<string, unknown>;
+  argDiffs?: Record<string, { expected: unknown; received: unknown }>;
+  argCount?: number;
+}
+
+function extractToolCallDetail(a: AssertionResult): ToolCallMetadata | null {
+  const toolCallTypes = ["tool_called", "tool_not_called", "tool_order"];
+  if (!toolCallTypes.includes(a.assertionType)) return null;
+  if (!a.metadata || typeof a.metadata !== "object") return null;
+  return a.metadata as ToolCallMetadata;
+}
+
+function truncateArgs(json: string): string {
+  if (json.length <= 500) return json;
+  return json.slice(0, 500) + "...(truncated)";
+}
+
 function formatAssertion(a: AssertionResult, c: Colorize): string {
   if (a.passed) {
     const scoreStr = formatScore(a);
+    const tcDetail = extractToolCallDetail(a);
+    if (tcDetail?.argCount !== undefined && tcDetail.argCount > 0) {
+      const argLabel = scoreStr
+        ? `${a.label} (${tcDetail.argCount} args) ${c.cyan(scoreStr)}`
+        : `${a.label} (${tcDetail.argCount} args)`;
+      const passLine = `      ${c.green("✓")} ${c.dim(argLabel)}`;
+      const reasoning = extractReasoning(a);
+      if (reasoning) return `${passLine}\n        Reasoning: ${c.dim(reasoning)}`;
+      return passLine;
+    }
     const label = scoreStr ? `${a.label} ${c.cyan(scoreStr)}` : a.label;
     const line = `      ${c.green("✓")} ${c.dim(label)}`;
     const reasoning = extractReasoning(a);
     if (reasoning) return `${line}\n        Reasoning: ${c.dim(reasoning)}`;
     return line;
   }
+
   const scoreStr = formatScore(a);
   const detail = a.failureMessage ?? "failed";
   const label = scoreStr ? `${a.label} ${c.cyan(scoreStr)}` : a.label;
   const line = `      ${c.red("✗")} ${label}: ${detail}`;
+
+  const tcDetail = extractToolCallDetail(a);
+  if (tcDetail?.receivedToolCalls && tcDetail.receivedToolCalls.length > 0) {
+    const parts: string[] = [line];
+
+    parts.push(`        ${c.dim("Actual tool calls:")}`);
+    tcDetail.receivedToolCalls.forEach((tc, i) => {
+      const argsStr = truncateArgs(JSON.stringify(tc.arguments));
+      parts.push(`        ${c.dim(`${i + 1}.`)} ${tc.name}(${argsStr})`);
+    });
+
+    if (tcDetail.argDiffs && Object.keys(tcDetail.argDiffs).length > 0) {
+      parts.push(`        ${c.dim("Arg diffs:")}`);
+      for (const [key, { expected, received }] of Object.entries(tcDetail.argDiffs)) {
+        parts.push(`          ${key}:`);
+        parts.push(`            ${c.green("expected:")} ${JSON.stringify(expected)}`);
+        parts.push(`            ${c.red("received:")} ${JSON.stringify(received)}`);
+      }
+    }
+
+    return parts.join("\n");
+  }
+
   const reasoning = extractReasoning(a);
   if (reasoning) return `${line}\n        Reasoning: ${reasoning}`;
   return line;

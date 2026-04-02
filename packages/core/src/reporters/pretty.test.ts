@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createPrettyReporter } from "./pretty.js";
 import type { RunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
+import type { FailureCode } from "../assertions/interface.js";
 
 function makeRunResult(overrides: Partial<RunResult> = {}): RunResult {
   return {
@@ -406,5 +407,215 @@ describe("formatAssertion reasoning display", () => {
     });
     const output = await reporter.generate(run, makeGateEval({ passed: false }));
     expect(output.content).not.toContain("Reasoning:");
+  });
+});
+
+// Helper to create a RunResult with a single tool_called assertion
+function makeToolCallRunResult(assertion: {
+  assertionType?: string;
+  label?: string;
+  passed: boolean;
+  score?: number;
+  failureCode?: FailureCode;
+  failureMessage?: string;
+  metadata?: Record<string, unknown>;
+}): RunResult {
+  return makeRunResult({
+    passed: assertion.passed ? 1 : 0,
+    failed: assertion.passed ? 0 : 1,
+    suites: [
+      {
+        name: "tool-suite",
+        status: assertion.passed ? "passed" : "failed",
+        tests: [
+          {
+            name: "tool-test",
+            modelId: "gpt-4o",
+            status: assertion.passed ? "passed" : "failed",
+            assertions: [
+              {
+                assertionType: assertion.assertionType ?? "tool_called",
+                label: assertion.label ?? 'Tool "search" called',
+                passed: assertion.passed,
+                score: assertion.score ?? (assertion.passed ? 1 : 0),
+                failureCode: assertion.failureCode,
+                failureMessage: assertion.failureMessage,
+                metadata: assertion.metadata,
+              },
+            ],
+            latencyMs: 300,
+            costUsd: 0.001,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+describe("truncateArgs", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  it("returns short strings unchanged via formatAssertion output", async () => {
+    const shortArgs = JSON.stringify({ query: "hello" });
+    const run = makeToolCallRunResult({
+      passed: false,
+      failureMessage: "tool missing",
+      metadata: {
+        receivedToolCalls: [{ id: "c1", name: "search", arguments: { query: "hello" } }],
+        expectedTool: "other",
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain(shortArgs);
+    expect(output.content).not.toContain("...(truncated)");
+  });
+
+  it("truncates long args at 500 chars with ...(truncated)", async () => {
+    const longValue = "x".repeat(600);
+    const run = makeToolCallRunResult({
+      passed: false,
+      failureMessage: "tool missing",
+      metadata: {
+        receivedToolCalls: [{ id: "c1", name: "search", arguments: { q: longValue } }],
+        expectedTool: "other",
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("...(truncated)");
+  });
+});
+
+describe("formatAssertion tool call rich output", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  it("shows numbered call list on tool_called failure with receivedToolCalls", async () => {
+    const run = makeToolCallRunResult({
+      passed: false,
+      failureMessage: "Expected tool missing",
+      metadata: {
+        receivedToolCalls: [
+          { id: "c1", name: "search", arguments: { q: "cats" } },
+          { id: "c2", name: "lookup", arguments: { id: "42" } },
+        ],
+        expectedTool: "missing",
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("1.");
+    expect(output.content).toContain("search(");
+    expect(output.content).toContain("2.");
+    expect(output.content).toContain("lookup(");
+  });
+
+  it("shows argDiffs with green expected and red received on ARGS_MISMATCH failure", async () => {
+    const run = makeToolCallRunResult({
+      passed: false,
+      failureMessage: "args mismatch",
+      metadata: {
+        receivedToolCalls: [{ id: "c1", name: "search", arguments: { query: "dogs" } }],
+        expectedTool: "search",
+        expectedArgs: { query: "cats" },
+        argDiffs: {
+          query: { expected: "cats", received: "dogs" },
+        },
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("[green]expected:[/green]");
+    expect(output.content).toContain("[red]received:[/red]");
+    expect(output.content).toContain('"cats"');
+    expect(output.content).toContain('"dogs"');
+  });
+
+  it("shows (N args) suffix on passing tool_called with argCount > 0", async () => {
+    const run = makeToolCallRunResult({
+      passed: true,
+      metadata: { argCount: 3 },
+    });
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).toContain("(3 args)");
+  });
+
+  it("does NOT show (0 args) suffix when argCount is 0", async () => {
+    const run = makeToolCallRunResult({
+      passed: true,
+      metadata: { argCount: 0 },
+    });
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).not.toContain("(0 args)");
+  });
+
+  it("shows numbered call list on tool_not_called failure", async () => {
+    const run = makeToolCallRunResult({
+      assertionType: "tool_not_called",
+      label: 'Tool "forbidden" not called',
+      passed: false,
+      failureMessage: "Expected tool forbidden to NOT be called",
+      metadata: {
+        receivedToolCalls: [
+          { id: "c1", name: "forbidden", arguments: {} },
+        ],
+        expectedTool: "forbidden",
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("1.");
+    expect(output.content).toContain("forbidden(");
+  });
+
+  it("shows numbered call list on tool_order failure", async () => {
+    const run = makeToolCallRunResult({
+      assertionType: "tool_order",
+      label: 'Tool "first" at position 0',
+      passed: false,
+      failureCode: "TOOL_CALL_ORDER_WRONG",
+      failureMessage: 'Expected "first" at position 0',
+      metadata: {
+        receivedToolCalls: [
+          { id: "c1", name: "second", arguments: {} },
+          { id: "c2", name: "first", arguments: {} },
+        ],
+        expectedTool: "first",
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("1.");
+    expect(output.content).toContain("second(");
+    expect(output.content).toContain("2.");
+    expect(output.content).toContain("first(");
+  });
+
+  it("does not affect non-tool assertion formatting", async () => {
+    const run = makeRunResult({
+      passed: 0,
+      failed: 1,
+      suites: [
+        {
+          name: "pii-suite",
+          status: "failed",
+          tests: [
+            {
+              name: "pii-test",
+              modelId: "gpt-4o",
+              status: "failed",
+              assertions: [
+                {
+                  assertionType: "no_pii",
+                  label: "No PII detected",
+                  passed: false,
+                  score: 0,
+                  failureMessage: "SSN detected",
+                },
+              ],
+              latencyMs: 100,
+              costUsd: 0,
+            },
+          ],
+        },
+      ],
+    });
+    const output = await reporter.generate(run, makeGateEval({ passed: false }));
+    expect(output.content).toContain("No PII detected: SSN detected");
+    expect(output.content).not.toContain("Actual tool calls:");
   });
 });

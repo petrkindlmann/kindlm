@@ -139,19 +139,21 @@ export function createToolCalledAssertion(
         return Promise.resolve(results);
       }
 
+      // matching.length > 0 is guaranteed here (early return above handles 0 case)
+      const firstMatchArgs = matching.length > 0 ? matching[0]?.arguments ?? {} : {};
       results.push({
         assertionType: "tool_called",
         label: `Tool "${tool}" called`,
         passed: true,
         score: 1,
-        metadata: { argCount: Object.keys(matching[0].arguments).length },
+        metadata: { argCount: Object.keys(firstMatchArgs).length },
       });
 
       if (argsMatch) {
         const anyMatch = matching.some((tc) =>
           matchArgs(tc.arguments, argsMatch),
         );
-        const diffs = anyMatch ? undefined : computeArgDiffs(matching[0].arguments, argsMatch);
+        const diffs = anyMatch ? undefined : computeArgDiffs(firstMatchArgs, argsMatch);
         results.push({
           assertionType: "tool_called",
           label: `Tool "${tool}" args match`,
@@ -160,7 +162,7 @@ export function createToolCalledAssertion(
           failureCode: anyMatch ? undefined : "TOOL_CALL_ARGS_MISMATCH",
           failureMessage: anyMatch
             ? undefined
-            : `Expected args ${JSON.stringify(argsMatch)}, got ${JSON.stringify(matching[0]?.arguments)}`,
+            : `Expected args ${JSON.stringify(argsMatch)}, got ${JSON.stringify(firstMatchArgs)}`,
           metadata: anyMatch
             ? undefined
             : {
@@ -261,12 +263,14 @@ export function createToolOrderAssertion(
           continue;
         }
 
+        // matching.length > 0 is guaranteed here (early return above handles 0 case)
+        const firstOrderArgs = matching.length > 0 ? matching[0]?.arguments ?? {} : {};
         results.push({
           assertionType: "tool_order",
           label: `Tool "${exp.tool}" called`,
           passed: true,
           score: 1,
-          metadata: { argCount: Object.keys(matching[0].arguments).length },
+          metadata: { argCount: Object.keys(firstOrderArgs).length },
         });
 
         if (exp.argsMatch) {
@@ -275,7 +279,7 @@ export function createToolOrderAssertion(
           );
           const diffs = anyMatch
             ? undefined
-            : computeArgDiffs(matching[0].arguments, exp.argsMatch ?? {});
+            : computeArgDiffs(firstOrderArgs, exp.argsMatch ?? {});
           results.push({
             assertionType: "tool_order",
             label: `Tool "${exp.tool}" args match`,
@@ -284,7 +288,7 @@ export function createToolOrderAssertion(
             failureCode: anyMatch ? undefined : "TOOL_CALL_ARGS_MISMATCH",
             failureMessage: anyMatch
               ? undefined
-              : `Expected args ${JSON.stringify(exp.argsMatch)}, got ${JSON.stringify(matching[0]?.arguments)}`,
+              : `Expected args ${JSON.stringify(exp.argsMatch)}, got ${JSON.stringify(firstOrderArgs)}`,
             metadata: anyMatch
               ? undefined
               : {
