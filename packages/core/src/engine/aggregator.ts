@@ -13,6 +13,8 @@ export interface TestCaseRunResult {
   costEstimateUsd: number | null;
   errored?: boolean;
   error?: { code: string; message: string };
+  /** True when every provider call for this run was served from cache. */
+  fromCache?: boolean;
 }
 
 export interface AggregatedTestResult {

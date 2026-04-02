@@ -71,6 +71,8 @@ export interface ProviderResponse {
   latencyMs: number;
   modelId: string;
   finishReason: "stop" | "max_tokens" | "tool_calls" | "error" | "unknown";
+  /** True when this response was served from the local cache rather than a live provider call. */
+  fromCache?: boolean;
 }
 
 export type ProviderErrorCode =
@@ -126,4 +128,6 @@ export interface ConversationResult {
   totalUsage: ProviderResponse["usage"];
   totalLatencyMs: number;
   truncated: boolean;
+  /** True when every turn in this conversation was a cache hit. */
+  fromCache?: boolean;
 }
