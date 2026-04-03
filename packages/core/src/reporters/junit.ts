@@ -45,8 +45,10 @@ export function createJunitReporter(): Reporter {
               (a) => !a.passed,
             );
             for (const a of failedAssertions) {
+              const turnLabel = a.metadata?.turnLabel as string | undefined;
+              const labelPrefix = turnLabel ? `[Turn: ${turnLabel}] ` : "";
               lines.push(
-                `      <failure message="${esc(a.label)}" type="${esc(a.failureCode ?? "ASSERTION_FAILED")}">${esc(a.failureMessage ?? "Assertion failed")}</failure>`,
+                `      <failure message="${esc(`${labelPrefix}${a.label}`)}" type="${esc(a.failureCode ?? "ASSERTION_FAILED")}">${esc(a.failureMessage ?? "Assertion failed")}</failure>`,
               );
             }
           }

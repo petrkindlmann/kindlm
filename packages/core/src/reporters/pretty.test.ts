@@ -540,6 +540,121 @@ describe("[cached] indicator", () => {
   });
 });
 
+describe("turn-grouped output", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  function makeTurnRunResult(assertions: Array<{
+    assertionType: string;
+    label: string;
+    passed: boolean;
+    score: number;
+    metadata?: Record<string, unknown>;
+  }>): RunResult {
+    return makeRunResult({
+      suites: [
+        {
+          name: "agent-suite",
+          status: "passed",
+          tests: [
+            {
+              name: "multi-turn-test",
+              modelId: "gpt-4o",
+              status: "passed",
+              assertions,
+              latencyMs: 1000,
+              costUsd: 0.002,
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("renders turn headers for assertions with turnLabel in metadata", async () => {
+    const run = makeTurnRunResult([
+      {
+        assertionType: "tool_called",
+        label: 'Tool "search" called',
+        passed: true,
+        score: 1,
+        metadata: { turnLabel: "turn-1" },
+      },
+    ]);
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).toContain("── Turn: turn-1 ──");
+  });
+
+  it("renders assertions without turnLabel flat (backward compat)", async () => {
+    const run = makeTurnRunResult([
+      {
+        assertionType: "no_pii",
+        label: "No PII detected",
+        passed: true,
+        score: 1,
+      },
+    ]);
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).not.toContain("── Turn:");
+    expect(output.content).toContain("No PII detected");
+  });
+
+  it("renders unlabeled assertions before labeled turn groups", async () => {
+    const run = makeTurnRunResult([
+      {
+        assertionType: "no_pii",
+        label: "No PII in final output",
+        passed: true,
+        score: 1,
+      },
+      {
+        assertionType: "tool_called",
+        label: 'Tool "search" called',
+        passed: true,
+        score: 1,
+        metadata: { turnLabel: "turn-1" },
+      },
+    ]);
+    const output = await reporter.generate(run, makeGateEval());
+    const noFinalPiiPos = output.content.indexOf("No PII in final output");
+    const turnHeaderPos = output.content.indexOf("── Turn: turn-1 ──");
+    expect(noFinalPiiPos).toBeGreaterThanOrEqual(0);
+    expect(turnHeaderPos).toBeGreaterThanOrEqual(0);
+    expect(noFinalPiiPos).toBeLessThan(turnHeaderPos);
+  });
+
+  it("renders multiple turns in order they appear in assertions array", async () => {
+    const run = makeTurnRunResult([
+      {
+        assertionType: "tool_called",
+        label: 'Tool "search" called',
+        passed: true,
+        score: 1,
+        metadata: { turnLabel: "turn-1" },
+      },
+      {
+        assertionType: "tool_called",
+        label: 'Tool "lookup" called',
+        passed: true,
+        score: 1,
+        metadata: { turnLabel: "turn-2" },
+      },
+      {
+        assertionType: "tool_called",
+        label: 'Tool "finalize" called',
+        passed: true,
+        score: 1,
+        metadata: { turnLabel: "turn-3" },
+      },
+    ]);
+    const output = await reporter.generate(run, makeGateEval());
+    const t1Pos = output.content.indexOf("── Turn: turn-1 ──");
+    const t2Pos = output.content.indexOf("── Turn: turn-2 ──");
+    const t3Pos = output.content.indexOf("── Turn: turn-3 ──");
+    expect(t1Pos).toBeLessThan(t2Pos);
+    expect(t2Pos).toBeLessThan(t3Pos);
+  });
+});
+
 describe("formatAssertion tool call rich output", () => {
   const reporter = createPrettyReporter(mockColorize);
 
