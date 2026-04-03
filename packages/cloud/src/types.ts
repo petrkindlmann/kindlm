@@ -87,6 +87,8 @@ export interface TestResult {
   failureCodes: string | null;
   failureMessages: string | null;
   assertionScores: string | null;
+  responseText: string | null;
+  toolCallsJson: string | null;
   createdAt: string;
 }
 

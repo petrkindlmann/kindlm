@@ -67,6 +67,8 @@ const sampleResult: TestResult = {
   failureCodes: null,
   failureMessages: null,
   assertionScores: null,
+  responseText: null,
+  toolCallsJson: null,
   createdAt: "2025-01-01T00:00:00.000Z",
 };
 
