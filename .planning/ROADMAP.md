@@ -167,5 +167,5 @@ Plans:
 | 14. Response Caching | v2.3.0 | 2/2 | Complete    | 2026-04-02 |
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 17. GitHub Action | v2.3.0 | 2/2 | Complete   | 2026-04-03 |
+| 17. GitHub Action | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |

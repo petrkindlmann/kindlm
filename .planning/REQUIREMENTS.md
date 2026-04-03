@@ -53,8 +53,8 @@ Requirements for v2.3.0 Developer Experience & Depth. Each maps to roadmap phase
 - [x] **ACTION-01**: `kindlm/test@v2` GitHub Action works on ubuntu-latest, macos-latest, and windows-latest runners
 - [x] **ACTION-02**: Action accepts inputs: `config` (path), `reporter` (type), `args` (extra CLI args), `cloud-token` (optional)
 - [x] **ACTION-03**: Action outputs: `pass-rate`, `total`, `passed`, `failed`, `exit-code`
-- [ ] **ACTION-04**: Action uploads JUnit XML as a GitHub artifact for test summary integration
-- [ ] **ACTION-05**: Action posts a PR comment with test summary (pass/fail count, failing test names)
+- [x] **ACTION-04**: Action uploads JUnit XML as a GitHub artifact for test summary integration
+- [x] **ACTION-05**: Action posts a PR comment with test summary (pass/fail count, failing test names)
 - [x] **ACTION-06**: When `cloud-token` input is set, action auto-uploads results to KindLM Cloud
 - [x] **ACTION-07**: Action is bundled as a JS action (`runs.using: node20`) with `dist/index.js` via @vercel/ncc
 - [x] **ACTION-08**: Action never writes raw model responses to step summary (security: prevent API key/sensitive data leaks)
@@ -139,8 +139,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACTION-01 | Phase 17 | Complete |
 | ACTION-02 | Phase 17 | Complete |
 | ACTION-03 | Phase 17 | Complete |
-| ACTION-04 | Phase 17 | Pending |
-| ACTION-05 | Phase 17 | Pending |
+| ACTION-04 | Phase 17 | Complete |
+| ACTION-05 | Phase 17 | Complete |
 | ACTION-06 | Phase 17 | Complete |
 | ACTION-07 | Phase 17 | Complete |
 | ACTION-08 | Phase 17 | Complete |
