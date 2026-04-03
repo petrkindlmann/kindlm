@@ -382,6 +382,9 @@ const ExpectSchema = z.object({
 
 // ============================================================
 // Tool Simulation Schema (for agent testing)
+// The `responses[].when/then` pattern is the YAML equivalent of
+// "onToolCall" mapping — tool name + conditional argument matching
+// produces mock responses without any live backend.
 // ============================================================
 
 const ToolSimulationSchema = z.object({
