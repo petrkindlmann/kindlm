@@ -304,3 +304,122 @@ describe("validateConfig error path format", () => {
     }
   });
 });
+
+describe("conversation schema", () => {
+  function testWithConversation(overrides: Record<string, unknown> = {}) {
+    return {
+      kindlm: 1,
+      project: "test-project",
+      suite: { name: "test-suite" },
+      providers: { openai: { apiKeyEnv: "OPENAI_API_KEY" } },
+      models: [{ id: "gpt-4o", provider: "openai", model: "gpt-4o" }],
+      prompts: { greeting: { user: "Hello {{name}}" } },
+      tests: [
+        {
+          name: "conv-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          expect: {},
+          ...overrides,
+        },
+      ],
+    };
+  }
+
+  it("parses a test case with conversation array containing labeled turns with expect", () => {
+    const result = validateConfig(
+      testWithConversation({
+        conversation: [
+          {
+            turn: "turn-1",
+            expect: { output: { contains: ["hello"] } },
+          },
+          {
+            turn: "turn-2",
+            user: "Follow-up question",
+            expect: { output: { contains: ["world"] } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tests[0]?.conversation).toHaveLength(2);
+      expect(result.data.tests[0]?.conversation?.[0]?.turn).toBe("turn-1");
+      expect(result.data.tests[0]?.conversation?.[1]?.user).toBe("Follow-up question");
+    }
+  });
+
+  it("rejects duplicate turn labels with clear error message", () => {
+    const result = validateConfig(
+      testWithConversation({
+        conversation: [
+          { turn: "same-label", expect: {} },
+          { turn: "same-label", expect: {} },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = (result.error.details?.errors ?? []) as string[];
+      const dupError = errors.find((e) => e.includes("Duplicate turn label"));
+      expect(dupError).toBeDefined();
+      expect(dupError).toContain("same-label");
+    }
+  });
+
+  it("allows test case without conversation field (backward compat)", () => {
+    const result = validateConfig(testWithConversation());
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tests[0]?.conversation).toBeUndefined();
+    }
+  });
+
+  it("rejects maxTurns: 21 (exceeds max 20)", () => {
+    const result = validateConfig(testWithConversation({ maxTurns: 21 }));
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts maxTurns: 20 (boundary)", () => {
+    const result = validateConfig(testWithConversation({ maxTurns: 20 }));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tests[0]?.maxTurns).toBe(20);
+    }
+  });
+
+  it("rejects maxTurns: 0 (below min 1)", () => {
+    const result = validateConfig(testWithConversation({ maxTurns: 0 }));
+    expect(result.success).toBe(false);
+  });
+
+  it("allows turn without expect (assertion is optional per turn)", () => {
+    const result = validateConfig(
+      testWithConversation({
+        conversation: [
+          { turn: "no-assertions-turn" },
+          { turn: "with-assertions-turn", expect: { output: { contains: ["ok"] } } },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tests[0]?.conversation?.[0]?.expect).toBeUndefined();
+    }
+  });
+
+  it("allows turn with user message override", () => {
+    const result = validateConfig(
+      testWithConversation({
+        conversation: [
+          { turn: "user-turn", user: "What is the weather?" },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tests[0]?.conversation?.[0]?.user).toBe("What is the weather?");
+    }
+  });
+});
