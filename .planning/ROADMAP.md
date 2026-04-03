@@ -112,9 +112,10 @@ Plans:
   3. If the conversation exceeds `maxTurns` (default 10, hard cap 20), the test fails with `MAX_TURNS_EXCEEDED` rather than running forever
   4. Conversation state (message history) is completely isolated between test cases — one test cannot leak messages into another
   5. The pretty reporter groups assertion results by turn label so the developer can see which turn caused a failure
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
+- [ ] 16-01-PLAN.md — ConversationTurnSchema in Zod + per-turn assertion loop in runner
+- [ ] 16-02-PLAN.md — Pretty reporter turn grouping + JSON/JUnit turnLabel + onToolCall docs
 
 ### Phase 17: GitHub Action
 **Goal**: Teams can add KindLM to a GitHub Actions workflow in under 5 minutes and get PR comments with test summaries and JUnit artifacts
@@ -164,6 +165,6 @@ Plans:
 | 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete    | 2026-04-02 |
 | 14. Response Caching | v2.3.0 | 2/2 | Complete    | 2026-04-02 |
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 16. Multi-Turn Agent Testing | v2.3.0 | 0/? | Not started | - |
+| 16. Multi-Turn Agent Testing | v2.3.0 | 0/2 | Not started | - |
 | 17. GitHub Action | v2.3.0 | 0/? | Not started | - |
 | 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |
