@@ -127,9 +127,10 @@ Plans:
   3. A JUnit XML artifact is uploaded to GitHub so the test summary tab shows a structured breakdown
   4. Setting the `cloud-token` input causes results to be automatically uploaded to KindLM Cloud
   5. The action outputs `pass-rate`, `total`, `passed`, `failed`, and `exit-code` step outputs for downstream workflow steps
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
+- [ ] 17-01-PLAN.md — Package scaffold, action.yml, core run logic (install CLI, run tests, parse JSON, set outputs)
+- [ ] 17-02-PLAN.md — PR comment upsert, JUnit XML generation, artifact upload, unit tests, ncc build
 
 ### Phase 18: Dashboard Team Features
 **Goal**: Team members can view test history, spot regressions in trend charts, compare two runs side-by-side, and drill into individual test results
@@ -166,5 +167,5 @@ Plans:
 | 14. Response Caching | v2.3.0 | 2/2 | Complete    | 2026-04-02 |
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 17. GitHub Action | v2.3.0 | 0/? | Not started | - |
+| 17. GitHub Action | v2.3.0 | 0/2 | In progress | - |
 | 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |
