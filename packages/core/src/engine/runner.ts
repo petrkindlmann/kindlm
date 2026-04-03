@@ -464,16 +464,56 @@ async function executeUnit(
     const { request } = buildResult.data;
 
     // 2. Run conversation
-    const conversation = await runConversation(adapter, request, test.tools ?? []);
+    const conversation = await runConversation(adapter, request, test.tools ?? [], { maxTurns: test.maxTurns });
     const fromCache = conversation.turns.length > 0 &&
       conversation.turns.every((t) => t.response.fromCache === true);
     const costEstimate = adapter.estimateCost(modelConfig.model, conversation.totalUsage);
 
-    // 3. Build assertion context
+    // 3. Evaluate per-turn assertions (each turn's expect evaluated against that turn's response only)
+    const perTurnResults: AssertionResult[] = [];
+    if (test.conversation) {
+      for (let i = 0; i < test.conversation.length; i++) {
+        const turnDef = test.conversation[i];
+        if (!turnDef?.expect) continue;
+        const turnResponse = conversation.turns[i];
+        if (!turnResponse) continue; // guard against truncated conversations
+
+        const turnContext: AssertionContext = {
+          outputText: turnResponse.response.text,
+          toolCalls: turnResponse.response.toolCalls,
+          configDir: deps.configDir,
+          latencyMs: turnResponse.response.latencyMs,
+        };
+
+        const turnAssertions = createAssertionsFromExpect(turnDef.expect);
+        const turnResults = await runAssertions(turnAssertions, turnContext);
+
+        // Stamp turnLabel into metadata (spread to avoid mutation)
+        for (const r of turnResults) {
+          r.metadata = { ...r.metadata, turnLabel: turnDef.turn };
+        }
+        perTurnResults.push(...turnResults);
+      }
+    }
+
+    // Inject synthetic failure when conversation was truncated (exceeds maxTurns)
+    if (conversation.truncated) {
+      perTurnResults.push({
+        assertionType: "conversation",
+        label: "Conversation within maxTurns limit",
+        passed: false,
+        score: 0,
+        failureCode: "INTERNAL_ERROR",
+        failureMessage: `MAX_TURNS_EXCEEDED: conversation exceeded ${test.maxTurns ?? 10} turns`,
+      });
+    }
+
+    // 4. Build assertion context and run final (test-level) assertions against the last turn
     const { assertions, context } = buildAssertionContext(conversation, test, modelConfig, deps, schemaCache, config, costEstimate, adapter);
 
-    // 4. Run assertions
-    const allResults = await runAssertions(assertions, context);
+    // 5. Run final assertions and combine with per-turn results
+    const finalResults = await runAssertions(assertions, context);
+    const allResults = [...perTurnResults, ...finalResults];
     const allPassed = allResults.every((r) => r.passed);
 
     try {
