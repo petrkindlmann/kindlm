@@ -1,8 +1,7 @@
-import { watch } from "node:fs";
-import type { FSWatcher } from "node:fs";
+import { watch } from "chokidar";
 
 export interface WatcherOptions {
-  debounceMs?: number;
+  stabilityThreshold?: number;
 }
 
 export interface FileWatcher {
@@ -10,33 +9,32 @@ export interface FileWatcher {
 }
 
 /**
- * Watches a file for changes and calls the callback after a debounce period.
- * Uses node:fs.watch which is efficient across platforms.
- * Returns a handle that can be closed to stop watching.
+ * Watches multiple file paths for changes using chokidar.
+ * Uses awaitWriteFinish to stabilize rapid saves (e.g. editor atomic writes).
+ * Only change and add events trigger the callback — ignores initial scan.
  */
-export function watchFile(
-  filePath: string,
+export function watchFiles(
+  paths: string[],
   onChange: () => void,
   options?: WatcherOptions,
 ): FileWatcher {
-  const debounceMs = options?.debounceMs ?? 300;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let fsWatcher: FSWatcher | null = null;
+  const stabilityThreshold = options?.stabilityThreshold ?? 300;
 
-  fsWatcher = watch(filePath, () => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      onChange();
-    }, debounceMs);
+  const watcher = watch(paths, {
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold,
+      pollInterval: 100,
+    },
   });
+
+  watcher.on("change", onChange);
+  watcher.on("add", onChange);
 
   return {
     close() {
-      if (timer) clearTimeout(timer);
-      if (fsWatcher) {
-        fsWatcher.close();
-        fsWatcher = null;
-      }
+      void watcher.close();
     },
   };
 }
