@@ -416,6 +416,16 @@ const ToolSimulationSchema = z.object({
 });
 
 // ============================================================
+// Conversation Turn Schema
+// ============================================================
+
+const ConversationTurnSchema = z.object({
+  turn: NonEmptyString.describe("Unique label for this conversation turn"),
+  user: z.string().optional().describe("User message override for this turn"),
+  expect: ExpectSchema.optional().describe("Assertions evaluated against this turn's response"),
+});
+
+// ============================================================
 // Test Case Schema
 // ============================================================
 
@@ -454,6 +464,17 @@ const TestCaseSchema = z.object({
     .describe(
       "Simulated tools available to the model for this test case",
     ),
+  conversation: z
+    .array(ConversationTurnSchema)
+    .optional()
+    .describe("Labeled turns with per-turn assertions for multi-turn agent tests"),
+  maxTurns: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional()
+    .describe("Maximum conversation turns (default 10, max 20)"),
   expect: ExpectSchema.describe(
     "Assertions to evaluate against the model output",
   ),
@@ -468,14 +489,30 @@ const TestCaseSchema = z.object({
     .optional()
     .default(false)
     .describe("Skip this test case during execution"),
-}).refine(
-  (test) => {
-    const hasPrompt = test.prompt !== undefined;
-    const hasCommand = test.command !== undefined;
-    return (hasPrompt || hasCommand) && !(hasPrompt && hasCommand);
-  },
-  { message: "Exactly one of 'prompt' or 'command' must be set on each test case" },
-);
+}).superRefine((test, ctx) => {
+  const hasPrompt = test.prompt !== undefined;
+  const hasCommand = test.command !== undefined;
+  if (!(hasPrompt || hasCommand) || (hasPrompt && hasCommand)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Exactly one of 'prompt' or 'command' must be set on each test case",
+    });
+  }
+  if (test.conversation) {
+    const seen = new Set<string>();
+    for (const t of test.conversation) {
+      if (seen.has(t.turn)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate turn label "${t.turn}" — turn labels must be unique within a test case`,
+        });
+      }
+      seen.add(t.turn);
+    }
+  }
+});
+
+export type ConversationTurnConfig = z.infer<typeof ConversationTurnSchema>;
 
 // ============================================================
 // Gates Schema

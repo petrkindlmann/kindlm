@@ -9,6 +9,7 @@ export type {
   ToolCallExpect,
   ToolSimulation,
   ComplianceConfig,
+  ConversationTurnConfig,
 } from "../config/schema.js";
 
 // Backward compatibility alias
