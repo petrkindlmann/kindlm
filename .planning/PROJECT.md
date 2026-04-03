@@ -8,17 +8,17 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 
 Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
-## Current Milestone: v2.3.0 Developer Experience & Depth
+## Current State
 
-**Goal:** Make KindLM faster to iterate with, deeper in agent testing capabilities, easier to adopt in CI, and useful as a team dashboard.
+**v2.3.0 shipped 2026-04-03.** All 6 phases complete. Roadmap empty — awaiting v2.4.0 milestone planning.
 
-**Target features:**
-- Multi-turn agent testing — conditional branching, decision tree assertions
-- Response caching — local cache for free iteration during development
-- Rich tool call failure output — full arguments, call sequence on assertion failure
-- GitHub Action — `kindlm/test@v2` for zero-boilerplate CI adoption
-- Watch mode — `kindlm test --watch` re-runs on config change
-- Dashboard team features — run comparison, trend charts, test history search
+**v2.3.0 delivered:**
+- Rich tool call failure output — numbered call sequences, arg diffs, truncation
+- Response caching — SHA-256-keyed local cache with TTL and `kindlm cache clear`
+- Watch mode — `kindlm test --watch` with chokidar, abort/queue, cost tracking
+- Multi-turn agent testing — YAML conversation turns with per-turn assertions
+- GitHub Action — `kindlm/test@v2` with PR comments, JUnit artifacts, cloud upload
+- Dashboard team features — run history filtering, trend charts, run comparison, test detail drill-down
 
 ## Requirements
 
@@ -51,13 +51,15 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ VAL-03/04: "Did you mean?" suggestions for undefined prompt/provider/model refs — v2.2.0
 - ✓ TCOUT-01–06: Rich tool call failure output with numbered call sequences, arg diffs, truncation — v2.3.0
 
-### Active
-
 - ✓ CACHE-01–08: Response caching with local file cache, TTL, --no-cache, [cached] indicator, cache clear — v2.3.0
 - ✓ WATCH-01–07: Watch mode with chokidar, abort/queue, cost tracking, SIGINT cleanup — v2.3.0
 - ✓ CONV-01–08: Multi-turn agent testing with labeled turns, per-turn assertions, turn-grouped reporters — v2.3.0
 - ✓ ACTION-01–08: GitHub Action kindlm/test@v2 with PR comments, JUnit, cloud upload — v2.3.0
-- ✓ DASH-01–10: Dashboard team features with trends, comparison, drill-down — v2.3.0 (human verification pending)
+- ✓ DASH-01–10: Dashboard team features with trends, comparison, drill-down — v2.3.0
+
+### Active
+
+(None — awaiting v2.4.0 milestone planning)
 
 ### Out of Scope
 
@@ -67,21 +69,21 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ## Context
 
-**Current state (as of v2.2.0, 2026-04-02):**
-- CLI published: `@kindlm/cli` v2.0.0 on npm (v2.2.0 pending publish)
-- Cloud Worker live at api.kindlm.com (Cloudflare Workers + D1)
-- 13 D1 migrations applied to kindlm-prod
+**Current state (as of v2.3.0, 2026-04-03):**
+- CLI published: `@kindlm/cli` on npm
+- Cloud Worker live at api.kindlm.com (Cloudflare Workers + D1, 14 migrations)
 - Sentry error monitoring active
 - VS Code extension published
 - Stripe billing in test mode
-- Pretty reporter shows judge reasoning (pass dimmed, fail normal)
-- Gates warn with ⚠ when evaluating against zero assertions
-- `--dry-run` shows test plan with cost estimates (KINDLM_PRICING table)
-- Validation errors include test name, bracket-notation field paths, "Did you mean?" suggestions
-- 617+ core tests passing, TypeScript clean across all packages
+- GitHub Action `kindlm/test@v2` published
+- Dashboard: run history with filters, trend charts (recharts), run comparison, test detail drill-down
+- Response caching, watch mode, multi-turn testing all shipped
+- 54 files changed, ~3800 lines added in v2.3.0 milestone
+- TypeScript clean across all packages
 
 **Known tech debt:**
 - Stripe live-mode products need sk_live_ key to create (user action required)
+- Dashboard phase 18 has 4 human verification items pending (browser testing)
 
 ## Key Decisions
 
@@ -130,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after Phase 17 completion*
+*Last updated: 2026-04-03 after v2.3.0 milestone completion*
