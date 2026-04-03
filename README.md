@@ -1,10 +1,37 @@
 # KindLM
 
+Test AI agents in CI by asserting tool calls, decisions, and structured outputs.
+Catch regressions that text evals miss.
+
 ![CI](https://github.com/petrkindlmann/kindlm/actions/workflows/ci.yml/badge.svg)
 
-Behavioral regression testing for AI agents. Test what your agents **do** — not just what they say.
+## Demo
 
-![KindLM test output](site/public/terminal-demo.svg)
+<!-- TODO: Record terminal GIF with `vhs` or `asciinema` showing: kindlm test on the basic-tool-call example -->
+<!-- Replace this block with: ![KindLM terminal demo](site/public/terminal-demo.gif) -->
+
+See it fail:
+
+```yaml
+# kindlm.yaml — the agent should call lookup_order but calls cancel_order instead
+expect:
+  toolCalls:
+    - tool: lookup_order
+      argsMatch: { order_id: "12345" }
+```
+
+```
+kindlm test
+
+  support-agent / looks-up-order
+
+  gpt-4o
+    ✗ looks-up-order  (1.1s)
+      ✗ tool_called: expected lookup_order, got cancel_order
+      ✓ pii: no PII detected
+
+  0 passed, 1 failed — exit 1
+```
 
 ## Why KindLM?
 
@@ -154,6 +181,15 @@ packages/
 docs/         Technical specs and documentation
 site/         Landing page + docs (Next.js)
 ```
+
+## Examples
+
+| File | What it tests |
+|------|---------------|
+| [basic-tool-call.yaml](examples/basic-tool-call.yaml) | Agent calls the right tool with correct arguments |
+| [pii-guardrail.yaml](examples/pii-guardrail.yaml) | No PII leaked in responses |
+| [escalation-handling.yaml](examples/escalation-handling.yaml) | Agent escalates to human when asked |
+| [github-action.yml](examples/github-action.yml) | CI workflow template |
 
 ## License
 
