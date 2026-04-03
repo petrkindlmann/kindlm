@@ -18,7 +18,7 @@ import { renderCompliancePdf } from "../utils/pdf-renderer.js";
 import { selectReporter } from "../utils/select-reporter.js";
 import { getGitInfo } from "../utils/git.js";
 import { formatTestPlan } from "../utils/dry-run.js";
-import { watchFile } from "../utils/watcher.js";
+import { watchFiles } from "../utils/watcher.js";
 import { createNodeFileReader } from "../utils/file-reader.js";
 import { createWorktree, WorktreeError, copyFilesToWorktree, extractConfigFilePaths } from "../utils/worktree.js";
 
@@ -92,25 +92,99 @@ export function registerTestCommand(program: Command): void {
         }
       }
 
-      // --watch: run once, then re-run on config file change
+      // --watch: run once, then re-run on config + referenced file changes
       if (options.watch) {
-        const executeRun = async () => {
-          await executeTestRun(options);
+        const configPath = resolve(process.cwd(), options.config);
+
+        // Read config now to extract referenced file paths for multi-file watching
+        let initialYaml = "";
+        try {
+          initialYaml = readFileSync(configPath, "utf-8");
+        } catch {
+          // If we can't read it yet, watch just the config file
+        }
+        const referencedPaths = extractConfigFilePaths(initialYaml)
+          .map((p) => resolve(dirname(configPath), p));
+        const watchPaths = [configPath, ...referencedPaths];
+
+        // Abort/queue state
+        let runInProgress = false;
+        let pendingRerun = false;
+        let abortRef = { aborted: false };
+        let sessionRuns = 0;
+        let sessionCostUsd = 0;
+
+        const triggerRun = async () => {
+          if (runInProgress) {
+            abortRef.aborted = true;
+            pendingRerun = true;
+            return;
+          }
+
+          runInProgress = true;
+          abortRef = { aborted: false };
+
+          // Timestamped separator between runs (not before the first)
+          if (sessionRuns > 0) {
+            console.log(chalk.dim(`\u2500\u2500\u2500\u2500 [${new Date().toISOString()}] \u2500\u2500\u2500\u2500`));
+          }
+
+          let runResult: { costUsd: number; passed: number; failed: number } | undefined;
+          try {
+            runResult = await executeTestRun(options);
+          } catch (e) {
+            console.error(chalk.red(`Error: ${e instanceof Error ? e.message : String(e)}`));
+          }
+
+          sessionRuns++;
+          if (runResult !== undefined) {
+            sessionCostUsd += runResult.costUsd;
+          }
+          console.log(
+            chalk.dim(
+              `Session cost: $${sessionCostUsd.toFixed(4)} (${sessionRuns} run${sessionRuns === 1 ? "" : "s"})`,
+            ),
+          );
+
+          runInProgress = false;
+
+          if (pendingRerun) {
+            pendingRerun = false;
+            void triggerRun();
+          }
         };
 
         // Initial run
-        await executeRun();
+        await triggerRun();
 
-        const configPath = resolve(process.cwd(), options.config);
-        console.log(chalk.dim(`\nWatching ${configPath} for changes...`));
+        const watchedCount = watchPaths.length;
+        console.log(
+          chalk.dim(
+            `\nWatching ${watchedCount > 1 ? `${watchedCount} files` : configPath} for changes...`,
+          ),
+        );
         console.log(chalk.dim("Press Ctrl+C to stop.\n"));
 
-        watchFile(configPath, () => {
-          console.log(chalk.cyan("\nConfig changed. Re-running tests...\n"));
-          executeRun().catch((e) => {
-            console.error(chalk.red(`Error: ${e instanceof Error ? e.message : String(e)}`));
-          });
+        const fileWatcher = watchFiles(watchPaths, () => {
+          void triggerRun();
         });
+
+        // Signal handling — clean exit with session summary
+        let cleanedUp = false;
+        const cleanup = () => {
+          if (cleanedUp) return;
+          cleanedUp = true;
+          abortRef.aborted = true;
+          fileWatcher.close();
+          console.log(
+            chalk.dim(
+              `\nWatch session ended. ${sessionRuns} run${sessionRuns === 1 ? "" : "s"}, $${sessionCostUsd.toFixed(4)} total cost.`,
+            ),
+          );
+          process.exit(0);
+        };
+        process.on("SIGINT", cleanup);
+        process.on("SIGTERM", cleanup);
 
         // Keep process alive — watch mode runs until interrupted
         return;
@@ -120,7 +194,9 @@ export function registerTestCommand(program: Command): void {
       await executeTestRun(options);
     });
 
-  async function executeTestRun(options: TestOptions): Promise<void> {
+  async function executeTestRun(
+    options: TestOptions,
+  ): Promise<{ costUsd: number; passed: number; failed: number } | undefined> {
     // P-02: Validate reporter before running tests to fail fast
     const reporter = selectReporter(options.reporter);
 
@@ -235,11 +311,18 @@ export function registerTestCommand(program: Command): void {
         // Non-fatal — don't block exit on cache failure
       }
 
+      // Compute run cost for watch mode session tracking
+      const totalCostUsd = result.suites
+        .flatMap((s) => s.tests)
+        .reduce((sum, t) => sum + (t.costUsd ?? 0), 0);
+
       // Exit code — in watch mode, don't exit the process
       const allPassed = result.failed === 0 && result.errored === 0 && gateEvaluation.passed;
       if (!options.watch) {
         process.exit(allPassed ? 0 : 1);
       }
+
+      return { costUsd: totalCostUsd, passed: result.passed, failed: result.failed };
     } catch (e) {
       if (e instanceof ProviderError) {
         const prefix = e.code === "TIMEOUT"
@@ -267,6 +350,7 @@ export function registerTestCommand(program: Command): void {
       if (!options.watch) {
         process.exit(1);
       }
+      return undefined;
     } finally {
       if (originalCwd) {
         process.chdir(originalCwd);
