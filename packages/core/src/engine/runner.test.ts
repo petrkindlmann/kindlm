@@ -527,3 +527,224 @@ describe("createRunner", () => {
     expect(testResult.error!.code).toBe("UNKNOWN_ERROR");
   });
 });
+
+describe("per-turn assertion evaluation", () => {
+  it("stamps turnLabel into assertion metadata for each per-turn result", async () => {
+    // Two-turn conversation: first returns tool call, second returns final text
+    const adapter: ProviderAdapter = {
+      name: "openai",
+      initialize: vi.fn(),
+      complete: vi.fn()
+        .mockResolvedValueOnce({
+          text: "Turn one response",
+          toolCalls: [{ id: "tc1", name: "search", arguments: { q: "test" }, index: 0 }],
+          usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+          raw: {},
+          latencyMs: 50,
+          modelId: "gpt-4o",
+          finishReason: "tool_calls",
+        } satisfies ProviderResponse)
+        .mockResolvedValueOnce({
+          text: "Final answer here",
+          toolCalls: [],
+          usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
+          raw: {},
+          latencyMs: 50,
+          modelId: "gpt-4o",
+          finishReason: "stop",
+        } satisfies ProviderResponse),
+      estimateCost: vi.fn().mockReturnValue(0.001),
+      supportsTools: vi.fn().mockReturnValue(true),
+    };
+
+    const config = makeConfig({
+      tests: [
+        {
+          name: "conv-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          tools: [{ name: "search", defaultResponse: { results: [] } }],
+          conversation: [
+            {
+              turn: "turn-one",
+              expect: { output: { format: "text" as const, contains: ["Turn one"] } },
+            },
+          ],
+          expect: { output: { format: "text" as const, contains: ["Final"] } },
+        },
+      ],
+    });
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    // Per-turn assertion must have turnLabel in metadata
+    const turnAssertion = assertions.find((a) => a.metadata?.turnLabel === "turn-one");
+    expect(turnAssertion).toBeDefined();
+    expect(turnAssertion!.passed).toBe(true);
+  });
+
+  it("evaluates per-turn toolCalls from that turn only (not allToolCalls)", async () => {
+    // First turn has a tool call; second turn is the final response
+    const adapter: ProviderAdapter = {
+      name: "openai",
+      initialize: vi.fn(),
+      complete: vi.fn()
+        .mockResolvedValueOnce({
+          text: "",
+          toolCalls: [{ id: "tc1", name: "lookup", arguments: { id: "42" }, index: 0 }],
+          usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+          raw: {},
+          latencyMs: 50,
+          modelId: "gpt-4o",
+          finishReason: "tool_calls",
+        } satisfies ProviderResponse)
+        .mockResolvedValueOnce({
+          text: "Done",
+          toolCalls: [],
+          usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
+          raw: {},
+          latencyMs: 50,
+          modelId: "gpt-4o",
+          finishReason: "stop",
+        } satisfies ProviderResponse),
+      estimateCost: vi.fn().mockReturnValue(0.001),
+      supportsTools: vi.fn().mockReturnValue(true),
+    };
+
+    const config = makeConfig({
+      tests: [
+        {
+          name: "tool-call-turn-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          tools: [{ name: "lookup", defaultResponse: { result: "found" } }],
+          conversation: [
+            {
+              turn: "tool-turn",
+              // Assert the tool was called in turn 1 specifically
+              expect: { toolCalls: [{ tool: "lookup", shouldNotCall: false, argsMatch: { id: "42" } }] },
+            },
+          ],
+          expect: {},
+        },
+      ],
+    });
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    const turnAssertion = assertions.find((a) => a.metadata?.turnLabel === "tool-turn");
+    expect(turnAssertion).toBeDefined();
+    expect(turnAssertion!.passed).toBe(true);
+  });
+
+  it("evaluates test.expect against finalText for backward compatibility", async () => {
+    const adapter = makeAdapter({ text: "Final response text" });
+
+    const config = makeConfig({
+      tests: [
+        {
+          name: "compat-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          // No conversation field — plain test.expect still works
+          expect: { output: { format: "text" as const, contains: ["Final response"] } },
+        },
+      ],
+    });
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.runResult.passed).toBe(1);
+  });
+
+  it("produces MAX_TURNS_EXCEEDED synthetic failure when conversation is truncated", async () => {
+    // Return a tool call every time to force truncation at maxTurns=1
+    const adapter: ProviderAdapter = {
+      name: "openai",
+      initialize: vi.fn(),
+      complete: vi.fn().mockResolvedValue({
+        text: "",
+        toolCalls: [{ id: "tc1", name: "always_calls", arguments: {}, index: 0 }],
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        raw: {},
+        latencyMs: 50,
+        modelId: "gpt-4o",
+        finishReason: "tool_calls",
+      } satisfies ProviderResponse),
+      estimateCost: vi.fn().mockReturnValue(0.001),
+      supportsTools: vi.fn().mockReturnValue(true),
+    };
+
+    const config = makeConfig({
+      tests: [
+        {
+          name: "truncated-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          maxTurns: 1,
+          tools: [{ name: "always_calls", defaultResponse: { result: "keep going" } }],
+          expect: {},
+        },
+      ],
+    });
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    const truncAssertion = assertions.find((a) => a.failureMessage?.includes("MAX_TURNS_EXCEEDED"));
+    expect(truncAssertion).toBeDefined();
+    expect(truncAssertion!.passed).toBe(false);
+    expect(truncAssertion!.assertionType).toBe("conversation");
+  });
+
+  it("produces no assertion results for turns without expect", async () => {
+    const adapter = makeAdapter({ text: "Hello" });
+
+    const config = makeConfig({
+      tests: [
+        {
+          name: "no-expect-turn-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          conversation: [
+            { turn: "no-expect-turn" },
+          ],
+          expect: {},
+        },
+      ],
+    });
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const runner = createRunner(config, deps);
+    const result = await runner.run();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    // No per-turn assertions should appear for a turn without expect
+    const turnAssertions = assertions.filter((a) => a.metadata?.turnLabel === "no-expect-turn");
+    expect(turnAssertions).toHaveLength(0);
+  });
+});
