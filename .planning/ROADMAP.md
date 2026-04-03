@@ -51,7 +51,7 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
 
 - [x] **Phase 13: Rich Tool Call Failure Output** - Full tool call sequence and arg diffs in pretty reporter on assertion failure (completed 2026-04-02)
 - [x] **Phase 14: Response Caching** - Local SHA-256-keyed response cache with TTL, `--no-cache` flag, and `kindlm cache clear` (completed 2026-04-02)
-- [ ] **Phase 15: Watch Mode** - `kindlm test --watch` re-runs on config file change with cumulative cost tracking
+- [x] **Phase 15: Watch Mode** - `kindlm test --watch` re-runs on config file change with cumulative cost tracking (completed 2026-04-03)
 - [ ] **Phase 16: Multi-Turn Agent Testing** - YAML-defined conversation turns with per-turn assertions and mock tool responses
 - [ ] **Phase 17: GitHub Action** - `kindlm/test@v2` JS action with PR comments, JUnit artifacts, and optional cloud upload
 - [ ] **Phase 18: Dashboard Team Features** - Run history, trend charts, run comparison, and test detail drill-down
@@ -100,7 +100,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 15-01-PLAN.md — Replace node:fs.watch with chokidar 4.x multi-file watcher
-- [ ] 15-02-PLAN.md — Wire watch mode with abort, cost tracking, separators, and signal handling
+- [x] 15-02-PLAN.md — Wire watch mode with abort, cost tracking, separators, and signal handling
 
 ### Phase 16: Multi-Turn Agent Testing
 **Goal**: Developers can define and assert on multi-turn agent conversations in YAML, including mock tool responses, without live tool backends
@@ -163,7 +163,7 @@ Plans:
 | 12. Validation Diagnostics | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete    | 2026-04-02 |
 | 14. Response Caching | v2.3.0 | 2/2 | Complete    | 2026-04-02 |
-| 15. Watch Mode | v2.3.0 | 1/2 | In Progress|  |
+| 15. Watch Mode | v2.3.0 | 2/2 | Complete   | 2026-04-03 |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 0/? | Not started | - |
 | 17. GitHub Action | v2.3.0 | 0/? | Not started | - |
 | 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |
