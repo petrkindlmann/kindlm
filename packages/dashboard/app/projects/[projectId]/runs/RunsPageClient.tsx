@@ -1,11 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
-import type { TestRun } from "@/lib/api";
+import type { TestRun, TrendPoint } from "@/lib/api";
 import { fetcher } from "@/lib/api";
 import RunTable from "@/components/RunTable";
+import RunFilterBar from "@/components/RunFilterBar";
+import TrendChart from "@/components/TrendChart";
 import EmptyState from "@/components/EmptyState";
 
 const PER_PAGE = 20;
@@ -18,11 +20,33 @@ function RunsContent() {
   const page = Number(searchParams.get("page") ?? "1");
   const offset = (page - 1) * PER_PAGE;
 
+  const branch = searchParams.get("branch") ?? undefined;
+  const suite = searchParams.get("suite") ?? undefined;
+  const dateFrom = searchParams.get("dateFrom") ?? undefined;
+  const dateTo = searchParams.get("dateTo") ?? undefined;
+
+  // Build query with all active filters
+  const query = new URLSearchParams({ limit: String(PER_PAGE), offset: String(offset) });
+  if (branch) query.set("branch", branch);
+  if (suite) query.set("suite", suite);
+  if (dateFrom) query.set("dateFrom", dateFrom);
+  if (dateTo) query.set("dateTo", dateTo);
+
   const { data, isLoading, error } = useSWR<{
     runs: TestRun[];
     total: number;
   }>(
-    `/v1/projects/${projectId}/runs?limit=${PER_PAGE}&offset=${offset}`,
+    `/v1/projects/${projectId}/runs?${query}`,
+    fetcher,
+  );
+
+  const { data: trendsData } = useSWR<{ trends: TrendPoint[] }>(
+    `/v1/projects/${projectId}/runs/trends`,
+    fetcher,
+  );
+
+  const { data: suitesData } = useSWR<{ suites: Array<{ id: string; name: string }> }>(
+    `/v1/projects/${projectId}/suites`,
     fetcher,
   );
 
@@ -30,8 +54,26 @@ function RunsContent() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PER_PAGE);
 
+  const branches = [
+    ...new Set(runs.map((r) => r.branch).filter((b): b is string => b !== null)),
+  ];
+  const suiteNames = (suitesData?.suites ?? []).map((s) => s.name);
+
+  const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
+
+  function toggleRun(runId: string) {
+    setSelectedRunIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(runId)) next.delete(runId);
+      else next.add(runId);
+      return next;
+    });
+  }
+
   function goToPage(p: number) {
-    router.push(`/projects/${projectId}/runs?page=${p}`);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(p));
+    router.push(`/projects/${projectId}/runs?${params.toString()}`);
   }
 
   if (error) {
@@ -51,6 +93,16 @@ function RunsContent() {
         </p>
       </div>
 
+      <RunFilterBar
+        projectId={projectId}
+        branches={branches}
+        suiteNames={suiteNames}
+      />
+
+      {trendsData?.trends && trendsData.trends.length > 0 && (
+        <TrendChart data={trendsData.trends} />
+      )}
+
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -69,7 +121,26 @@ function RunsContent() {
         />
       ) : (
         <>
-          <RunTable runs={runs} projectId={projectId} />
+          {selectedRunIds.size === 2 && (
+            <button
+              onClick={() => {
+                const ids = [...selectedRunIds];
+                router.push(
+                  `/projects/${projectId}/runs/compare?runA=${ids[0]}&runB=${ids[1]}`,
+                );
+              }}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Compare selected ({selectedRunIds.size})
+            </button>
+          )}
+
+          <RunTable
+            runs={runs}
+            projectId={projectId}
+            selectedRunIds={selectedRunIds}
+            onToggleRun={toggleRun}
+          />
 
           {/* Pagination */}
           {totalPages > 1 && (
