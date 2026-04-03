@@ -49,7 +49,23 @@ projectRunRoutes.post("/:projectId/runs", async (c) => {
   return c.json(run, 201);
 });
 
-// GET /:projectId/runs — List runs
+// GET /:projectId/runs/trends — Day-bucketed pass rate and cost trends
+projectRunRoutes.get("/:projectId/runs/trends", async (c) => {
+  const projectId = c.req.param("projectId");
+  const auth = c.get("auth");
+  const queries = getQueries(c.env.DB);
+
+  const project = await queries.getProject(projectId);
+  if (!project || project.orgId !== auth.org.id) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const limit = parseIntBounded(c.req.query("limit"), 30, 1, 90);
+  const trends = await queries.getRunTrends(projectId, limit);
+  return c.json({ trends });
+});
+
+// GET /:projectId/runs — List runs with optional filters
 projectRunRoutes.get("/:projectId/runs", async (c) => {
   const projectId = c.req.param("projectId");
   const auth = c.get("auth");
@@ -61,10 +77,13 @@ projectRunRoutes.get("/:projectId/runs", async (c) => {
   }
 
   const suiteId = c.req.query("suiteId") ?? undefined;
+  const branch = c.req.query("branch") ?? undefined;
+  const dateFrom = c.req.query("dateFrom") ?? undefined;
+  const dateTo = c.req.query("dateTo") ?? undefined;
   const limit = parseIntBounded(c.req.query("limit"), 50, 1, 100);
   const offset = parseIntBounded(c.req.query("offset"), 0, 0, 100_000);
 
-  const result = await queries.listRuns(projectId, { suiteId, limit, offset });
+  const result = await queries.listRuns(projectId, { suiteId, branch, dateFrom, dateTo, limit, offset });
   return c.json(result);
 });
 
