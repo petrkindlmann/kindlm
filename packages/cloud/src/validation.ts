@@ -82,6 +82,8 @@ export const resultItem = z.object({
   failureCodes: z.string().max(10_000).nullable().optional(),
   failureMessages: z.string().max(50_000).nullable().optional(),
   assertionScores: z.string().max(50_000).nullable().optional(),
+  responseText: z.string().max(100_000).nullable().optional(),
+  toolCallsJson: z.string().max(100_000).nullable().optional(),
 });
 
 export const uploadResultsBody = z.object({

@@ -66,6 +66,8 @@ function mapTestResult(row: Record<string, unknown>): TestResult {
     failureCodes: (row.failure_codes as string) ?? null,
     failureMessages: (row.failure_messages as string) ?? null,
     assertionScores: (row.assertion_scores as string) ?? null,
+    responseText: (row.response_text as string) ?? null,
+    toolCallsJson: (row.tool_calls_json as string) ?? null,
     createdAt: row.created_at as string,
   };
 }
@@ -324,7 +326,7 @@ export function getTestingQueries(db: D1Database) {
 
   async function listRuns(
     projectId: string,
-    opts?: { suiteId?: string; limit?: number; offset?: number },
+    opts?: { suiteId?: string; branch?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number },
   ): Promise<{ runs: Run[]; total: number }> {
     const where = ["project_id = ?"];
     const params: unknown[] = [projectId];
@@ -332,6 +334,21 @@ export function getTestingQueries(db: D1Database) {
     if (opts?.suiteId) {
       where.push("suite_id = ?");
       params.push(opts.suiteId);
+    }
+
+    if (opts?.branch) {
+      where.push("branch = ?");
+      params.push(opts.branch);
+    }
+
+    if (opts?.dateFrom) {
+      where.push("created_at >= ?");
+      params.push(opts.dateFrom);
+    }
+
+    if (opts?.dateTo) {
+      where.push("created_at <= ?");
+      params.push(opts.dateTo);
     }
 
     const whereClause = where.join(" AND ");
@@ -354,6 +371,33 @@ export function getTestingQueries(db: D1Database) {
     return { runs: results.map(mapRun), total };
   }
 
+  async function getRunTrends(
+    projectId: string,
+    limit: number = 30,
+  ): Promise<Array<{ day: string; avgPassRate: number | null; totalCostUsd: number | null; runCount: number }>> {
+    const { results } = await db
+      .prepare(
+        `SELECT
+          strftime('%Y-%m-%d', created_at) AS day,
+          AVG(pass_rate) AS avg_pass_rate,
+          SUM(cost_estimate_usd) AS total_cost_usd,
+          COUNT(*) AS run_count
+        FROM runs
+        WHERE project_id = ? AND status = 'completed'
+        GROUP BY day
+        ORDER BY day DESC
+        LIMIT ?`,
+      )
+      .bind(projectId, limit)
+      .all();
+    return results.map((r) => ({
+      day: r.day as string,
+      avgPassRate: (r.avg_pass_rate as number) ?? null,
+      totalCostUsd: (r.total_cost_usd as number) ?? null,
+      runCount: r.run_count as number,
+    }));
+  }
+
   // ---- Results ----
 
   async function createResults(
@@ -372,6 +416,8 @@ export function getTestingQueries(db: D1Database) {
       failureCodes?: string | null;
       failureMessages?: string | null;
       assertionScores?: string | null;
+      responseText?: string | null;
+      toolCallsJson?: string | null;
     }>,
   ): Promise<void> {
     const stmts = results.map((r) => {
@@ -379,7 +425,7 @@ export function getTestingQueries(db: D1Database) {
       const now = new Date().toISOString();
       return db
         .prepare(
-          "INSERT INTO results (id, run_id, test_case_name, model_id, passed, pass_rate, run_count, judge_avg, drift_score, latency_avg_ms, cost_usd, total_tokens, failure_codes, failure_messages, assertion_scores, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO results (id, run_id, test_case_name, model_id, passed, pass_rate, run_count, judge_avg, drift_score, latency_avg_ms, cost_usd, total_tokens, failure_codes, failure_messages, assertion_scores, response_text, tool_calls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(
           id,
@@ -397,6 +443,8 @@ export function getTestingQueries(db: D1Database) {
           r.failureCodes ?? null,
           r.failureMessages ?? null,
           r.assertionScores ?? null,
+          r.responseText ?? null,
+          r.toolCallsJson ?? null,
           now,
         );
     });
@@ -548,6 +596,7 @@ export function getTestingQueries(db: D1Database) {
     createRun,
     updateRun,
     listRuns,
+    getRunTrends,
     createResults,
     listResults,
     getBaseline,
