@@ -2,12 +2,25 @@ import Link from "next/link";
 import type { TestRun } from "@/lib/api";
 import Badge from "./Badge";
 
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
+}
+
 interface RunTableProps {
   runs: TestRun[];
   projectId: string;
+  selectedRunIds?: Set<string>;
+  onToggleRun?: (runId: string) => void;
 }
 
-export default function RunTable({ runs, projectId }: RunTableProps) {
+export default function RunTable({
+  runs,
+  projectId,
+  selectedRunIds = new Set(),
+  onToggleRun,
+}: RunTableProps) {
   if (runs.length === 0) {
     return null;
   }
@@ -18,6 +31,7 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50">
+              <th className="w-10 px-4 py-3"></th>
               <th className="whitespace-nowrap px-4 py-3 font-medium text-stone-600">
                 Status
               </th>
@@ -26,6 +40,9 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
               </th>
               <th className="whitespace-nowrap px-4 py-3 font-medium text-stone-600">
                 Tests
+              </th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium text-stone-600">
+                Duration
               </th>
               <th className="whitespace-nowrap px-4 py-3 font-medium text-stone-600">
                 Branch
@@ -41,6 +58,14 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
           <tbody className="divide-y divide-stone-100">
             {runs.map((run) => (
               <tr key={run.id} className="hover:bg-stone-50">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedRunIds.has(run.id)}
+                    onChange={() => onToggleRun?.(run.id)}
+                    className="h-4 w-4 rounded border-stone-300 text-indigo-600"
+                  />
+                </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <Link href={`/projects/${projectId}/runs/${run.id}`}>
                     <Badge
@@ -66,6 +91,14 @@ export default function RunTable({ runs, projectId }: RunTableProps) {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-stone-600">
                   {run.testCount}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-stone-600">
+                  {run.finishedAt
+                    ? formatDuration(
+                        new Date(run.finishedAt).getTime() -
+                          new Date(run.startedAt).getTime(),
+                      )
+                    : "--"}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   {run.branch ? (
