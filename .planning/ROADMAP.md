@@ -142,9 +142,11 @@ Plans:
   3. Selecting two runs opens a side-by-side comparison showing which individual tests changed status between runs
   4. Clicking a test result shows its assertion outcomes, tool calls, and model response in a detail view
   5. All chart components load client-side only (no SSR) so the dashboard never crashes on initial page render
-**Plans**: 1 plan
+**Plans**: 3 plans
 Plans:
-- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
+- [ ] 18-01-PLAN.md — Cloud API: filter params, trends endpoint, run comparison endpoint, result detail types
+- [ ] 18-02-PLAN.md — Dashboard: run filter bar, trend chart, RunTable checkboxes + duration
+- [ ] 18-03-PLAN.md — Dashboard: run comparison page, test detail drill-down with expandable rows
 **UI hint**: yes
 
 ## Progress
@@ -168,4 +170,4 @@ Plans:
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 17. GitHub Action | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |
+| 18. Dashboard Team Features | v2.3.0 | 0/3 | Not started | - |
