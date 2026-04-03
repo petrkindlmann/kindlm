@@ -97,9 +97,10 @@ Plans:
   3. Each re-run is separated by a timestamped separator line — the terminal is not cleared so the user can scroll back
   4. The cumulative API cost across the watch session is displayed after each run
   5. Pressing `Ctrl+C` terminates watch mode cleanly — no zombie test processes remain and the file watcher is closed
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — Enrich assertion metadata + rich pretty reporter formatting
+- [ ] 15-01-PLAN.md — Replace node:fs.watch with chokidar 4.x multi-file watcher
+- [ ] 15-02-PLAN.md — Wire watch mode with abort, cost tracking, separators, and signal handling
 
 ### Phase 16: Multi-Turn Agent Testing
 **Goal**: Developers can define and assert on multi-turn agent conversations in YAML, including mock tool responses, without live tool backends
@@ -162,7 +163,7 @@ Plans:
 | 12. Validation Diagnostics | v2.2.0 | 2/2 | Complete | 2026-04-02 |
 | 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete    | 2026-04-02 |
 | 14. Response Caching | v2.3.0 | 2/2 | Complete    | 2026-04-02 |
-| 15. Watch Mode | v2.3.0 | 0/? | Not started | - |
+| 15. Watch Mode | v2.3.0 | 0/2 | Not started | - |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 0/? | Not started | - |
 | 17. GitHub Action | v2.3.0 | 0/? | Not started | - |
 | 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |
