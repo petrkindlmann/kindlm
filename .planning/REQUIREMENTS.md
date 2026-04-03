@@ -30,12 +30,12 @@ Requirements for v2.3.0 Developer Experience & Depth. Each maps to roadmap phase
 ### Watch Mode
 
 - [x] **WATCH-01**: `kindlm test --watch` watches the config file and all referenced files for changes using chokidar
-- [ ] **WATCH-02**: On file change, the previous test run is killed before starting a new one (no zombie processes)
+- [x] **WATCH-02**: On file change, the previous test run is killed before starting a new one (no zombie processes)
 - [x] **WATCH-03**: File change detection uses chokidar `awaitWriteFinish` with 300ms stabilization threshold
-- [ ] **WATCH-04**: Between runs, a separator line with timestamp is printed (not full terminal clear)
-- [ ] **WATCH-05**: Cumulative API cost is tracked and displayed across the watch session
-- [ ] **WATCH-06**: `Ctrl+C` cleanly exits watch mode, killing any running test process and closing the file watcher
-- [ ] **WATCH-07**: Watch mode works with response cache — config-only changes re-run from cache instantly
+- [x] **WATCH-04**: Between runs, a separator line with timestamp is printed (not full terminal clear)
+- [x] **WATCH-05**: Cumulative API cost is tracked and displayed across the watch session
+- [x] **WATCH-06**: `Ctrl+C` cleanly exits watch mode, killing any running test process and closing the file watcher
+- [x] **WATCH-07**: Watch mode works with response cache — config-only changes re-run from cache instantly
 
 ### Multi-Turn Agent Testing
 
@@ -122,12 +122,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CACHE-07 | Phase 14 | Complete |
 | CACHE-08 | Phase 14 | Complete |
 | WATCH-01 | Phase 15 | Complete |
-| WATCH-02 | Phase 15 | Pending |
+| WATCH-02 | Phase 15 | Complete |
 | WATCH-03 | Phase 15 | Complete |
-| WATCH-04 | Phase 15 | Pending |
-| WATCH-05 | Phase 15 | Pending |
-| WATCH-06 | Phase 15 | Pending |
-| WATCH-07 | Phase 15 | Pending |
+| WATCH-04 | Phase 15 | Complete |
+| WATCH-05 | Phase 15 | Complete |
+| WATCH-06 | Phase 15 | Complete |
+| WATCH-07 | Phase 15 | Complete |
 | CONV-01 | Phase 16 | Pending |
 | CONV-02 | Phase 16 | Pending |
 | CONV-03 | Phase 16 | Pending |
