@@ -1,9 +1,9 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as github from "@actions/github";
 import type { KindlmJsonReport } from "./types.js";
-
-// TODO(plan-02): import { upsertPrComment } from './comment.js';
-// TODO(plan-02): import { uploadJunitArtifact } from './junit.js';
+import { buildCommentBody, upsertPrComment } from "./comment.js";
+import { generateJunitXml, uploadJunitArtifact } from "./junit.js";
 
 /**
  * Extract and parse the KindLM JSON report from CLI stdout.
@@ -89,14 +89,15 @@ export async function run(): Promise<void> {
 
     core.info(`Results: ${passed}/${totalTests} passed (${passRate.toFixed(1)}%)`);
 
-    // TODO(plan-02): upload JUnit XML artifact
-    // await uploadJunitArtifact(report);
+    // Step 4b: Generate JUnit XML and upload as artifact (non-fatal)
+    const xml = generateJunitXml(report);
+    await uploadJunitArtifact(xml);
 
-    // TODO(plan-02): post PR comment if comment input is enabled
-    // if (comment && github.context.eventName === 'pull_request') {
-    //   await upsertPrComment(report, passed, failed, totalTests, passRate);
-    // }
-    void comment; // suppress unused-variable warning until plan-02
+    // Step 4c: Post or update PR comment when comment input is enabled
+    if (comment && github.context.eventName === "pull_request") {
+      const body = buildCommentBody(report, passRate);
+      await upsertPrComment(body);
+    }
 
     // Step 5: Cloud upload — non-fatal per D-22 (upload failure must not fail CI)
     if (cloudToken) {
