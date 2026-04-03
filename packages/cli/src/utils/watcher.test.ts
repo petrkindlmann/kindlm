@@ -1,116 +1,101 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock node:fs before importing the module under test
-const mockWatchClose = vi.fn();
-const mockWatch = vi.fn().mockReturnValue({ close: mockWatchClose });
+// Mock chokidar before importing module under test
+const mockClose = vi.fn().mockResolvedValue(undefined);
+const mockOn = vi.fn().mockReturnThis();
+const mockWatch = vi.fn().mockReturnValue({ on: mockOn, close: mockClose });
 
-vi.mock("node:fs", () => ({
-  watch: mockWatch,
-}));
+vi.mock("chokidar", () => ({ watch: mockWatch }));
 
 // Import after mock setup
-const { watchFile } = await import("./watcher.js");
+const { watchFiles } = await import("./watcher.js");
 
-describe("watchFile", () => {
+describe("watchFiles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    mockOn.mockReturnThis();
+    mockClose.mockResolvedValue(undefined);
+    mockWatch.mockReturnValue({ on: mockOn, close: mockClose });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("calls fs.watch with the given file path", () => {
+  it("calls chokidar.watch() with the provided paths array", () => {
+    const paths = ["/path/to/kindlm.yaml", "/path/to/other.yaml"];
     const onChange = vi.fn();
-    const watcher = watchFile("/path/to/kindlm.yaml", onChange);
+    const handle = watchFiles(paths, onChange);
+
+    expect(mockWatch).toHaveBeenCalledWith(paths, expect.any(Object));
+
+    handle.close();
+  });
+
+  it("passes ignoreInitial: true and awaitWriteFinish defaults to chokidar", () => {
+    const onChange = vi.fn();
+    const handle = watchFiles(["/path/to/file.yaml"], onChange);
 
     expect(mockWatch).toHaveBeenCalledWith(
-      "/path/to/kindlm.yaml",
-      expect.any(Function),
+      expect.any(Array),
+      expect.objectContaining({
+        ignoreInitial: true,
+        awaitWriteFinish: {
+          stabilityThreshold: 300,
+          pollInterval: 100,
+        },
+      }),
     );
 
-    watcher.close();
+    handle.close();
   });
 
-  it("debounces rapid changes", () => {
+  it("forwards custom stabilityThreshold to chokidar options", () => {
     const onChange = vi.fn();
-    watchFile("/path/to/kindlm.yaml", onChange, { debounceMs: 200 });
-
-    // Get the callback that was passed to fs.watch
-    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
-
-    // Simulate rapid file changes
-    watchCallback();
-    watchCallback();
-    watchCallback();
-
-    // onChange should not have been called yet
-    expect(onChange).not.toHaveBeenCalled();
-
-    // Advance past debounce
-    vi.advanceTimersByTime(200);
-
-    // Should only fire once
-    expect(onChange).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses default debounce of 300ms when not specified", () => {
-    const onChange = vi.fn();
-    watchFile("/path/to/kindlm.yaml", onChange);
-
-    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
-    watchCallback();
-
-    // At 299ms, not fired yet
-    vi.advanceTimersByTime(299);
-    expect(onChange).not.toHaveBeenCalled();
-
-    // At 300ms, fires
-    vi.advanceTimersByTime(1);
-    expect(onChange).toHaveBeenCalledTimes(1);
-  });
-
-  it("fires again after debounce period for subsequent changes", () => {
-    const onChange = vi.fn();
-    watchFile("/path/to/kindlm.yaml", onChange, { debounceMs: 100 });
-
-    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
-
-    // First change
-    watchCallback();
-    vi.advanceTimersByTime(100);
-    expect(onChange).toHaveBeenCalledTimes(1);
-
-    // Second change
-    watchCallback();
-    vi.advanceTimersByTime(100);
-    expect(onChange).toHaveBeenCalledTimes(2);
-  });
-
-  it("closes the fs.watch handle on close()", () => {
-    const onChange = vi.fn();
-    const watcher = watchFile("/path/to/kindlm.yaml", onChange);
-
-    watcher.close();
-
-    expect(mockWatchClose).toHaveBeenCalled();
-  });
-
-  it("clears pending timer on close()", () => {
-    const onChange = vi.fn();
-    const watcher = watchFile("/path/to/kindlm.yaml", onChange, {
-      debounceMs: 500,
+    const handle = watchFiles(["/path/to/file.yaml"], onChange, {
+      stabilityThreshold: 500,
     });
 
-    const watchCallback = mockWatch.mock.calls[0]?.[1] as () => void;
-    watchCallback();
+    expect(mockWatch).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({
+        awaitWriteFinish: {
+          stabilityThreshold: 500,
+          pollInterval: 100,
+        },
+      }),
+    );
 
-    // Close before debounce fires
-    watcher.close();
-    vi.advanceTimersByTime(500);
+    handle.close();
+  });
 
-    // onChange should never fire
-    expect(onChange).not.toHaveBeenCalled();
+  it("triggers onChange callback on 'change' event", () => {
+    const onChange = vi.fn();
+    watchFiles(["/path/to/file.yaml"], onChange);
+
+    // Find the change event handler registered via .on("change", handler)
+    const changeCall = mockOn.mock.calls.find(([event]) => event === "change");
+    expect(changeCall).toBeDefined();
+    const changeHandler = changeCall![1] as () => void;
+
+    changeHandler();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("triggers onChange callback on 'add' event", () => {
+    const onChange = vi.fn();
+    watchFiles(["/path/to/file.yaml"], onChange);
+
+    const addCall = mockOn.mock.calls.find(([event]) => event === "add");
+    expect(addCall).toBeDefined();
+    const addHandler = addCall![1] as () => void;
+
+    addHandler();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls watcher.close() on the chokidar instance when close() is called", () => {
+    const onChange = vi.fn();
+    const handle = watchFiles(["/path/to/file.yaml"], onChange);
+
+    handle.close();
+
+    expect(mockClose).toHaveBeenCalled();
   });
 });
