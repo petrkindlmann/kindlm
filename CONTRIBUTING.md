@@ -3,7 +3,7 @@
 ## Getting Started
 
 ```bash
-git clone https://github.com/kindlm/kindlm.git
+git clone https://github.com/petrkindlmann/kindlm.git
 cd kindlm
 npm install
 npm run build
@@ -52,9 +52,13 @@ npm run test         # Vitest across all packages
 
 For new assertion types, follow the pattern in `packages/core/src/assertions/` and register in `assertions/registry.ts`.
 
+## Questions & Discussion
+
+We use [GitHub Discussions](https://github.com/petrkindlmann/kindlm/discussions) for Q&A, feature ideas, and general conversation. Open a discussion before filing an issue if you're unsure whether something is a bug.
+
 ## Reporting Issues
 
-Open a [GitHub Issue](https://github.com/kindlm/kindlm/issues) and include:
+Open a [GitHub Issue](https://github.com/petrkindlmann/kindlm/issues) and include:
 
 - KindLM version (`kindlm --version`)
 - Node.js version (`node --version`)
