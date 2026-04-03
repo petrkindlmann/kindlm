@@ -47,6 +47,54 @@
 
 ---
 
+## Milestone: v2.3.0 — Developer Experience & Depth
+
+**Shipped:** 2026-04-03
+**Phases:** 6 | **Plans:** 12 | **Timeline:** ~1 day (2026-04-02 → 2026-04-03)
+
+### What Was Built
+
+- Rich tool call failure output — numbered call sequences, arg diffs, truncation in pretty reporter
+- SHA-256-keyed response caching with TTL, `--no-cache`, `[cached]` indicator, `kindlm cache clear`
+- Watch mode (`--watch`) with chokidar 4.x, abort/queue, cumulative cost tracking, SIGINT cleanup
+- Multi-turn agent testing — YAML conversation turns with per-turn assertions and mock tool responses
+- GitHub Action `kindlm/test@v2` — PR comments, JUnit XML artifacts, optional cloud upload
+- Dashboard team features — run history filtering, recharts trend charts, run-to-run comparison, test detail drill-down
+
+### What Worked
+
+- Auto-advance (`--auto`) pipeline ran discuss → plan → execute for Phase 18 in a single session with no manual intervention
+- Wave-based execution with worktree isolation prevented file conflicts between parallel plans
+- Existing dashboard patterns (SWR, Tailwind stone palette, RunTable/ResultGrid) made Phase 18 mostly additive — no refactoring needed
+- Phase 13-17 each completed in ~1 session with clean verification passes
+
+### What Was Inefficient
+
+- Phase 18 verification returned `human_needed` for 4 browser tests — these are still pending and will accumulate as tech debt if not addressed
+- No milestone audit was run before completion — skipped in favor of speed since all phases had individual verification
+- SUMMARY.md one-liner extraction still produces noisy output (raw task descriptions instead of clean one-liners) — the v2.0.0 lesson wasn't fully addressed
+
+### Patterns Established
+
+- `Colorize` interface chains (`c.dim(c.cyan())`) for all new reporter output — zero direct chalk in core
+- `deepSortKeys` before SHA-256 for cache key determinism
+- `dynamic(() => import(), { ssr: false })` mandatory for all charting components in dashboard
+- Conversation runner as pure state machine with I/O injected via interfaces
+
+### Key Lessons
+
+1. **Auto-advance is production-ready** for well-specified phases — Phase 18 ran discuss → plan → execute → verify without intervention
+2. **Dashboard phases need browser testing gates** — automated verification can confirm code structure but not visual correctness
+3. **Run milestone audit before completion** — even if individual phases pass, cross-phase integration issues can hide
+
+### Cost Observations
+
+- 6 phases completed in ~1 day across multiple sessions
+- Phase 18 (largest: 3 plans, 2 waves) executed in ~45 minutes wall time
+- Notable: Research + planning + execution + verification for Phase 18 all ran in a single context window with auto-advance
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -54,8 +102,13 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v2.0.0 | 5 | 7 | First milestone using GSD workflow end-to-end |
+| v2.1.0 | 4 | 4 | Gap closure — small focused phases |
+| v2.2.0 | 3 | 6 | Core quality — reporter, dry-run, validation |
+| v2.3.0 | 6 | 12 | Largest milestone — auto-advance pipeline mature |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Short, well-scoped phases (1 plan each) execute faster than large multi-plan phases.
 2. Audit before completion catches integration gaps that individual phase verifications miss.
+3. Auto-advance pipeline (`--auto`) is reliable for well-specified phases with clear requirements.
+4. SUMMARY.md one-liner field needs consistent population — downstream tools depend on it (identified v2.0.0, still an issue v2.3.0).
