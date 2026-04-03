@@ -2,10 +2,9 @@ kindlm: 1
 project: blog-examples
 
 suite:
-  name: delivery-support-bot
+  name: escalation-handling
   description: >
-    Zomato's Nugget AI refused to escalate to a human agent.
-    These tests verify the agent calls connect_human_agent when asked.
+    Tests that an agent escalates to a human when explicitly asked, without trying to resolve the issue itself.
 
 providers:
   openai:

@@ -2,10 +2,9 @@ kindlm: 1
 project: blog-examples
 
 suite:
-  name: airline-support-bot
+  name: basic-tool-call
   description: >
-    Air Canada's chatbot hallucinated a bereavement refund policy.
-    These tests catch fabricated policies and ensure proper escalation.
+    Tests that an agent calls the correct tool with the right arguments instead of hallucinating a response.
 
 providers:
   openai:
