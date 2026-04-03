@@ -39,14 +39,14 @@ Requirements for v2.3.0 Developer Experience & Depth. Each maps to roadmap phase
 
 ### Multi-Turn Agent Testing
 
-- [ ] **CONV-01**: Users can define multi-turn conversations in YAML with labeled turns under a `conversation:` block
-- [ ] **CONV-02**: Each turn has its own `expect:` block supporting all existing assertion types
-- [ ] **CONV-03**: Users can define mock tool responses via `onToolCall` mapping (tool name → response payload)
-- [ ] **CONV-04**: `maxTurns` config field limits conversation length (default 10, max 20), failing with `MAX_TURNS_EXCEEDED` if exceeded
-- [ ] **CONV-05**: Conversation state (messages array) is isolated per test case — never shared across test boundaries
-- [ ] **CONV-06**: The conversation runner lives in `@kindlm/core` as a pure state machine with no I/O dependencies
-- [ ] **CONV-07**: Pretty reporter groups assertion results by turn label
-- [ ] **CONV-08**: Zod schema validates conversation config with clear error messages for missing turn labels or invalid structure
+- [x] **CONV-01**: Users can define multi-turn conversations in YAML with labeled turns under a `conversation:` block
+- [x] **CONV-02**: Each turn has its own `expect:` block supporting all existing assertion types
+- [x] **CONV-03**: Users can define mock tool responses via `onToolCall` mapping (tool name → response payload)
+- [x] **CONV-04**: `maxTurns` config field limits conversation length (default 10, max 20), failing with `MAX_TURNS_EXCEEDED` if exceeded
+- [x] **CONV-05**: Conversation state (messages array) is isolated per test case — never shared across test boundaries
+- [x] **CONV-06**: The conversation runner lives in `@kindlm/core` as a pure state machine with no I/O dependencies
+- [x] **CONV-07**: Pretty reporter groups assertion results by turn label
+- [x] **CONV-08**: Zod schema validates conversation config with clear error messages for missing turn labels or invalid structure
 
 ### GitHub Action
 
@@ -128,14 +128,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WATCH-05 | Phase 15 | Complete |
 | WATCH-06 | Phase 15 | Complete |
 | WATCH-07 | Phase 15 | Complete |
-| CONV-01 | Phase 16 | Pending |
-| CONV-02 | Phase 16 | Pending |
-| CONV-03 | Phase 16 | Pending |
-| CONV-04 | Phase 16 | Pending |
-| CONV-05 | Phase 16 | Pending |
-| CONV-06 | Phase 16 | Pending |
-| CONV-07 | Phase 16 | Pending |
-| CONV-08 | Phase 16 | Pending |
+| CONV-01 | Phase 16 | Complete |
+| CONV-02 | Phase 16 | Complete |
+| CONV-03 | Phase 16 | Complete |
+| CONV-04 | Phase 16 | Complete |
+| CONV-05 | Phase 16 | Complete |
+| CONV-06 | Phase 16 | Complete |
+| CONV-07 | Phase 16 | Complete |
+| CONV-08 | Phase 16 | Complete |
 | ACTION-01 | Phase 17 | Pending |
 | ACTION-02 | Phase 17 | Pending |
 | ACTION-03 | Phase 17 | Pending |
