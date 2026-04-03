@@ -29,7 +29,10 @@ export function createJsonReporter(version?: string): Reporter {
           tests: suite.tests.map((test) => ({
             name: test.name,
             status: test.status,
-            assertions: test.assertions,
+            assertions: test.assertions.map((a) => ({
+              ...a,
+              ...(a.metadata?.turnLabel ? { turnLabel: a.metadata.turnLabel } : {}),
+            })),
             latencyMs: test.latencyMs,
             costUsd: test.costUsd,
           })),

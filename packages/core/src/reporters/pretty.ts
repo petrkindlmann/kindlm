@@ -27,9 +27,45 @@ export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
           const meta = formatTestMeta(test, c);
           if (meta) lines.push(meta);
 
-          // Show all assertions
-          for (const a of test.assertions) {
-            lines.push(formatAssertion(a, c));
+          // Group assertions by turnLabel for conversation tests
+          const hasTurns = test.assertions.some(
+            (a) => a.metadata?.turnLabel !== undefined,
+          );
+
+          if (!hasTurns) {
+            // No conversation turns — render flat (backward compat)
+            for (const a of test.assertions) {
+              lines.push(formatAssertion(a, c));
+            }
+          } else {
+            // Group by turnLabel, preserving order
+            const turnOrder: string[] = [];
+            const byTurn = new Map<string | undefined, AssertionResult[]>();
+
+            for (const a of test.assertions) {
+              const label = a.metadata?.turnLabel as string | undefined;
+              if (label !== undefined && !byTurn.has(label)) {
+                turnOrder.push(label);
+              }
+              const bucket = byTurn.get(label) ?? [];
+              bucket.push(a);
+              byTurn.set(label, bucket);
+            }
+
+            // Unlabeled assertions first (final-turn expect:)
+            const unlabeled = byTurn.get(undefined) ?? [];
+            for (const a of unlabeled) {
+              lines.push(formatAssertion(a, c));
+            }
+
+            // Then labeled turns in order
+            for (const label of turnOrder) {
+              lines.push(`      ${c.dim(`── Turn: ${label} ──`)}`);
+              const assertions = byTurn.get(label) ?? [];
+              for (const a of assertions) {
+                lines.push(formatAssertion(a, c));
+              }
+            }
           }
 
           totalCost += test.costUsd;
