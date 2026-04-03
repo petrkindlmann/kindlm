@@ -57,7 +57,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - ✓ WATCH-01–07: Watch mode with chokidar, abort/queue, cost tracking, SIGINT cleanup — v2.3.0
 - ✓ CONV-01–08: Multi-turn agent testing with labeled turns, per-turn assertions, turn-grouped reporters — v2.3.0
 - ✓ ACTION-01–08: GitHub Action kindlm/test@v2 with PR comments, JUnit, cloud upload — v2.3.0
-- [ ] DASH-01–10: Dashboard team features with trends, comparison, drill-down — v2.3.0
+- ✓ DASH-01–10: Dashboard team features with trends, comparison, drill-down — v2.3.0 (human verification pending)
 
 ### Out of Scope
 
