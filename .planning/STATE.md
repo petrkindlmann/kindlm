@@ -2,23 +2,23 @@
 gsd_state_version: 1.0
 milestone: v2.3.0
 milestone_name: Developer Experience & Depth
-status: verifying
-stopped_at: Phase 16 context gathered
-last_updated: "2026-04-03T04:57:05.738Z"
+status: executing
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-04-03T05:30:02.336Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 0
 ---
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 16 (multi-turn-agent-testing) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -28,7 +28,7 @@ Progress: [░░░░░░░░░░] 0%
 See: `.planning/PROJECT.md` (updated 2026-04-02)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Phase 15 — watch-mode
+**Current focus:** Phase 16 — multi-turn-agent-testing
 
 ## Tech Debt
 
@@ -54,6 +54,9 @@ Full decision log: `.planning/PROJECT.md` Key Decisions table.
 - [Phase 15]: awaitWriteFinish stabilityThreshold 300ms default — chokidar handles debounce, no setTimeout needed
 - [Phase 15]: abortRef signals in-flight run but does not force-kill it — run finishes its current test naturally, new run won't stack
 - [Phase 15]: executeTestRun return type changed to return cost data for watch session accumulation; non-watch path unchanged (process.exit before return)
+- [Phase 16]: .superRefine() consolidates prompt/command exclusivity and unique turn-label validation in one pass
+- [Phase 16]: Per-turn AssertionContext uses only that turn's toolCalls not allToolCalls for assertion isolation
+- [Phase 16]: Synthetic MAX_TURNS_EXCEEDED assertion uses assertionType=conversation for reporter filtering
 
 ## Accumulated Context
 
@@ -63,6 +66,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-03T04:57:05.734Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-multi-turn-agent-testing/16-CONTEXT.md
+Last session: 2026-04-03T05:30:02.334Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None

@@ -114,7 +114,7 @@ Plans:
   5. The pretty reporter groups assertion results by turn label so the developer can see which turn caused a failure
 **Plans**: 2 plans
 Plans:
-- [ ] 16-01-PLAN.md — ConversationTurnSchema in Zod + per-turn assertion loop in runner
+- [x] 16-01-PLAN.md — ConversationTurnSchema in Zod + per-turn assertion loop in runner
 - [ ] 16-02-PLAN.md — Pretty reporter turn grouping + JSON/JUnit turnLabel + onToolCall docs
 
 ### Phase 17: GitHub Action
@@ -165,6 +165,6 @@ Plans:
 | 13. Rich Tool Call Failure Output | v2.3.0 | 1/1 | Complete    | 2026-04-02 |
 | 14. Response Caching | v2.3.0 | 2/2 | Complete    | 2026-04-02 |
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 16. Multi-Turn Agent Testing | v2.3.0 | 0/2 | Not started | - |
+| 16. Multi-Turn Agent Testing | v2.3.0 | 1/2 | In Progress|  |
 | 17. GitHub Action | v2.3.0 | 0/? | Not started | - |
 | 18. Dashboard Team Features | v2.3.0 | 0/? | Not started | - |
