@@ -1,0 +1,49 @@
+name: 'KindLM Test'
+description: 'Run KindLM behavioral tests in CI'
+author: 'KindLM'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  config:
+    description: 'Path to kindlm.yaml config file'
+    required: false
+    default: 'kindlm.yaml'
+  version:
+    description: '@kindlm/cli version to install (e.g. "latest", "2.1.0")'
+    required: false
+    default: 'latest'
+  reporter:
+    description: 'Reporter type for output (default: junit)'
+    required: false
+    default: 'junit'
+  args:
+    description: 'Additional CLI arguments to pass to kindlm test'
+    required: false
+    default: ''
+  cloud-token:
+    description: 'KindLM Cloud API token for uploading results'
+    required: false
+    default: ''
+  comment:
+    description: 'Post a PR comment with the test summary (true or false)'
+    required: false
+    default: 'true'
+
+outputs:
+  pass-rate:
+    description: 'Test pass rate as a percentage string (e.g. "95.5")'
+  total:
+    description: 'Total number of tests run'
+  passed:
+    description: 'Number of tests that passed'
+  failed:
+    description: 'Number of tests that failed'
+  exit-code:
+    description: 'CLI exit code: "0" (all passed) or "1" (some failed)'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
