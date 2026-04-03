@@ -54,7 +54,7 @@ See `.planning/milestones/v2.2.0-ROADMAP.md` for full details.
 - [x] **Phase 15: Watch Mode** - `kindlm test --watch` re-runs on config file change with cumulative cost tracking (completed 2026-04-03)
 - [x] **Phase 16: Multi-Turn Agent Testing** - YAML-defined conversation turns with per-turn assertions and mock tool responses (completed 2026-04-03)
 - [x] **Phase 17: GitHub Action** - `kindlm/test@v2` JS action with PR comments, JUnit artifacts, and optional cloud upload (completed 2026-04-03)
-- [ ] **Phase 18: Dashboard Team Features** - Run history, trend charts, run comparison, and test detail drill-down
+- [x] **Phase 18: Dashboard Team Features** - Run history, trend charts, run comparison, and test detail drill-down (completed 2026-04-03)
 
 ## Phase Details
 
@@ -146,7 +146,7 @@ Plans:
 Plans:
 - [x] 18-01-PLAN.md — Cloud API: filter params, trends endpoint, run comparison endpoint, result detail types
 - [x] 18-02-PLAN.md — Dashboard: run filter bar, trend chart, RunTable checkboxes + duration
-- [ ] 18-03-PLAN.md — Dashboard: run comparison page, test detail drill-down with expandable rows
+- [x] 18-03-PLAN.md — Dashboard: run comparison page, test detail drill-down with expandable rows
 **UI hint**: yes
 
 ## Progress
@@ -170,4 +170,4 @@ Plans:
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 17. GitHub Action | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 18. Dashboard Team Features | v2.3.0 | 2/3 | In Progress|  |
+| 18. Dashboard Team Features | v2.3.0 | 3/3 | Complete   | 2026-04-03 |
