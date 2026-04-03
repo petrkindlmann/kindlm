@@ -63,7 +63,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ### Out of Scope
 
-- Stripe live-mode products — blocked on sk_live_ key with product create permissions (user action)
+- ~~Stripe live-mode~~ — resolved 2026-04-03, key set as Worker secret
 - CF_API_TOKEN GitHub Actions secret — non-blocking, deferred
 - Worktree cwd switching — `--isolate` creates worktree but tests still run in original dir (may be intentional scope for v2.0.0)
 
@@ -82,7 +82,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 - TypeScript clean across all packages
 
 **Known tech debt:**
-- Stripe live-mode products need sk_live_ key to create (user action required)
+- Stripe live-mode key set (2026-04-03) — billing is live
 - 5 pre-existing integration test failures in `scenarios.test.ts` (tool call mocking issues)
 
 ## Key Decisions
