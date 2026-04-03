@@ -83,7 +83,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 **Known tech debt:**
 - Stripe live-mode products need sk_live_ key to create (user action required)
-- Dashboard phase 18 has 4 human verification items pending (browser testing)
+- 5 pre-existing integration test failures in `scenarios.test.ts` (tool call mocking issues)
 
 ## Key Decisions
 

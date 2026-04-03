@@ -525,9 +525,9 @@ When adding a new assertion type (e.g., `regex_match`):
 
 ## Current State
 
-**v2.1.0 shipped 2026-04-02.** Everything in the MVP list is complete and live.
+**v2.3.0 shipped 2026-04-03.** All features complete and live.
 
-- CLI on npm, Cloud at api.kindlm.com, VS Code extension published, Stripe in test mode
-- Active tech debt: `runArtifacts` flag is a no-op; 48 integration test failures; Stripe live-mode needs `sk_live_` key
+- CLI on npm, Cloud at api.kindlm.com, VS Code extension published, GitHub Action published, Stripe in test mode
+- Active tech debt: 5 pre-existing integration test failures in `scenarios.test.ts` (tool call mocking); Stripe live-mode needs `sk_live_` key
 
 **For authoritative current state, always read `.planning/PROJECT.md`** — it is updated after every phase and milestone. Do not rely on this file or memory entries for project status; they can be stale.
