@@ -3,21 +3,21 @@ gsd_state_version: 1.0
 milestone: v2.3.0
 milestone_name: Developer Experience & Depth
 status: executing
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-04-03T08:46:11.617Z"
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-04-03T08:50:00.137Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
 ## Current Position
 
 Phase: 18 (dashboard-team-features) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -65,6 +65,8 @@ Full decision log: `.planning/PROJECT.md` Key Decisions table.
 - [Phase 17-02]: JUnit XML generated from JSON report inside the action — no second CLI invocation needed
 - [Phase 18-01]: Trends route registered before list runs route to prevent Hono wildcard collision
 - [Phase 18-01]: Run-to-run compare treats runA as baseline, runB as current for semantic consistency
+- [Phase 18-02]: RunTable selectedRunIds/onToggleRun made optional with defaults for backward compatibility with ProjectPageClient
+- [Phase 18-02]: dynamic import ssr: false wraps recharts to avoid window undefined errors in Next.js SSR
 
 ## Accumulated Context
 
@@ -74,6 +76,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:46:11.615Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-04-03T08:50:00.134Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None
