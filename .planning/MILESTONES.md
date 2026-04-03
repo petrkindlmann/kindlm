@@ -1,5 +1,25 @@
 # Milestones
 
+## v2.3.0 Developer Experience & Depth (Shipped: 2026-04-03)
+
+**Phases completed:** 6 phases, 12 plans, 11 tasks
+
+**Key accomplishments:**
+
+- Task 1 — Assertion metadata enrichment (`tool-calls.ts`):
+- `packages/cli/src/utils/cache.ts`
+- One-liner:
+- Full watch mode implementation in `packages/cli/src/commands/test.ts`:
+- One-liner:
+- pretty.ts
+- GitHub Action `kindlm/test@v2` scaffolded with action.yml (6 inputs, 5 outputs, node20), TypeScript source that installs @kindlm/cli, runs with JSON reporter, parses structured output, and uploads to Cloud non-fatally
+- PR comment upsert with marker-based dedup, JUnit XML generation with artifact upload, and 34 unit tests covering all modules — ncc builds dist/index.js cleanly
+- 1. [Rule 1 - Bug] Test fixtures missing new required fields
+- Recharts dual Y-axis trend chart with ssr: false, URL-persisted filter bar, duration column, and checkbox-driven run comparison selection wired into the runs page
+- Task 1 — Run comparison page
+
+---
+
 ## v2.2.0 Core Quality (Shipped: 2026-04-02)
 
 **Phases completed:** 7 phases, 10 plans, 7 tasks
