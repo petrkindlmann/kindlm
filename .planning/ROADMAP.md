@@ -145,7 +145,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 18-01-PLAN.md — Cloud API: filter params, trends endpoint, run comparison endpoint, result detail types
-- [ ] 18-02-PLAN.md — Dashboard: run filter bar, trend chart, RunTable checkboxes + duration
+- [x] 18-02-PLAN.md — Dashboard: run filter bar, trend chart, RunTable checkboxes + duration
 - [ ] 18-03-PLAN.md — Dashboard: run comparison page, test detail drill-down with expandable rows
 **UI hint**: yes
 
@@ -170,4 +170,4 @@ Plans:
 | 15. Watch Mode | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 16. Multi-Turn Agent Testing | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
 | 17. GitHub Action | v2.3.0 | 2/2 | Complete    | 2026-04-03 |
-| 18. Dashboard Team Features | v2.3.0 | 1/3 | In Progress|  |
+| 18. Dashboard Team Features | v2.3.0 | 2/3 | In Progress|  |
