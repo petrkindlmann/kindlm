@@ -62,15 +62,15 @@ Requirements for v2.3.0 Developer Experience & Depth. Each maps to roadmap phase
 ### Dashboard Team Features
 
 - [ ] **DASH-01**: Run history page shows paginated list of runs with pass rate, duration, git branch, commit, date
-- [ ] **DASH-02**: Run history supports filtering by branch, suite name, and date range
-- [ ] **DASH-03**: Trend chart shows pass rate over time as a line chart (recharts, last 30 runs by default)
-- [ ] **DASH-04**: Trend chart shows cost over time as a secondary line
+- [x] **DASH-02**: Run history supports filtering by branch, suite name, and date range
+- [x] **DASH-03**: Trend chart shows pass rate over time as a line chart (recharts, last 30 runs by default)
+- [x] **DASH-04**: Trend chart shows cost over time as a secondary line
 - [ ] **DASH-05**: Run comparison page shows side-by-side diff of two runs highlighting which tests changed status
-- [ ] **DASH-06**: Test detail drill-down shows assertion results, tool calls, and model response for a specific test
+- [x] **DASH-06**: Test detail drill-down shows assertion results, tool calls, and model response for a specific test
 - [ ] **DASH-07**: All chart components use `dynamic(() => import(), { ssr: false })` to prevent SSR crashes
-- [ ] **DASH-08**: Dashboard API returns UTC timestamps; date bucketing happens client-side with user's timezone
-- [ ] **DASH-09**: Cloud API supports `GET /v1/projects/:id/runs/trends` endpoint with day-bucketed aggregation
-- [ ] **DASH-10**: Cloud API supports `GET /v1/runs/:id/compare/:otherId` endpoint for run comparison data
+- [x] **DASH-08**: Dashboard API returns UTC timestamps; date bucketing happens client-side with user's timezone
+- [x] **DASH-09**: Cloud API supports `GET /v1/projects/:id/runs/trends` endpoint with day-bucketed aggregation
+- [x] **DASH-10**: Cloud API supports `GET /v1/runs/:id/compare/:otherId` endpoint for run comparison data
 
 ## Future Requirements
 
@@ -145,15 +145,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACTION-07 | Phase 17 | Complete |
 | ACTION-08 | Phase 17 | Complete |
 | DASH-01 | Phase 18 | Pending |
-| DASH-02 | Phase 18 | Pending |
-| DASH-03 | Phase 18 | Pending |
-| DASH-04 | Phase 18 | Pending |
+| DASH-02 | Phase 18 | Complete |
+| DASH-03 | Phase 18 | Complete |
+| DASH-04 | Phase 18 | Complete |
 | DASH-05 | Phase 18 | Pending |
-| DASH-06 | Phase 18 | Pending |
+| DASH-06 | Phase 18 | Complete |
 | DASH-07 | Phase 18 | Pending |
-| DASH-08 | Phase 18 | Pending |
-| DASH-09 | Phase 18 | Pending |
-| DASH-10 | Phase 18 | Pending |
+| DASH-08 | Phase 18 | Complete |
+| DASH-09 | Phase 18 | Complete |
+| DASH-10 | Phase 18 | Complete |
 
 **Coverage:**
 - v2.3.0 requirements: 46 total
