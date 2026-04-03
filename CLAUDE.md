@@ -1,13 +1,13 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**KindLM v2.1.0** — shipped 2026-04-02
+**KindLM v2.3.0** — shipped 2026-04-03
 
 KindLM is a shipped open-source CLI tool that runs behavioral regression tests against AI agents. It tests what agents **do** (tool calls, decisions, structured output) — not just what they say. Cloud tier (live at api.kindlm.com) adds team dashboards, test history, compliance PDF export, and billing.
 
 **Core Value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
-**Current state:** Roadmap empty. Awaiting v2.2.0 milestone planning. For authoritative state, read `.planning/PROJECT.md`.
+**Current state:** Roadmap empty. Awaiting next milestone planning. For authoritative state, read `.planning/PROJECT.md`.
 
 ### Constraints
 
