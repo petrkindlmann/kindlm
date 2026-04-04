@@ -1,6 +1,6 @@
 {
   "name": "@kindlm/cli",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "type": "module",
   "license": "MIT",
   "description": "CLI for KindLM — behavioral regression testing for AI agents",

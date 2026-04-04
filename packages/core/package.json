@@ -1,6 +1,6 @@
 {
   "name": "@kindlm/core",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "type": "module",
   "license": "MIT",
   "description": "Core engine for KindLM — behavioral regression testing for AI agents",
