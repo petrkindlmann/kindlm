@@ -2,6 +2,7 @@ import { NavBar } from "./landing/NavBar";
 import { Terminal } from "./landing/Terminal";
 import { Reveal } from "./landing/Reveal";
 import { CopyButton } from "./landing/CopyButton";
+import { HeroDots } from "./landing/HeroDots";
 
 // ── Pre-computed YAML syntax highlighting (runs once at build time) ──
 
@@ -104,54 +105,57 @@ export default function LandingPage() {
 
       <main id="main-content">
         {/* ── HERO ── */}
-        <section className="max-w-[560px] mx-auto pt-[100px] sm:pt-36 pb-6 sm:pb-9 px-5 sm:px-6 text-center">
-          <p
-            className="text-[15px] font-semibold text-indigo-500 mb-3.5 sm:mb-[18px] opacity-0 animate-fade-up"
-            style={{ animationDelay: "0.1s" }}
-          >
-            Testing for AI agents
-          </p>
-          <h1
-            className="text-[30px] sm:text-[40px] lg:text-5xl font-bold tracking-[-0.035em] leading-[1.18] sm:leading-[1.12] text-stone-950 opacity-0 animate-fade-up"
-            style={{ animationDelay: "0.2s" }}
-          >
-            Know what your agent will do before your users do
-          </h1>
-          <p
-            className="text-base text-stone-600 leading-relaxed mt-3.5 sm:mt-[18px] max-w-[400px] mx-auto opacity-0 animate-fade-up"
-            style={{ animationDelay: "0.35s" }}
-          >
-            Regression tests for agentic workflows &mdash; tool calls, output quality, and compliance. Defined in YAML, run in CI.
-          </p>
-          <div
-            className="flex gap-2.5 justify-center mt-6 sm:mt-7 flex-wrap opacity-0 animate-fade-up"
-            style={{ animationDelay: "0.5s" }}
-          >
-            <CopyButton text="npm i -g @kindlm/cli" />
-            <a
-              href="/docs"
-              className="px-5 py-3 rounded-[10px] border border-stone-300 text-stone-700 text-sm font-semibold no-underline min-h-[44px] flex items-center hover:border-stone-400 transition-colors"
+        <div className="relative overflow-hidden">
+          <HeroDots />
+        <section className="relative z-10 max-w-[560px] mx-auto pt-[100px] sm:pt-36 pb-6 sm:pb-9 px-5 sm:px-6 text-center">
+            <p
+              className="text-[15px] font-semibold text-indigo-500 mb-3.5 sm:mb-[18px] opacity-0 animate-fade-up"
+              style={{ animationDelay: "0.1s" }}
             >
-              Read the docs
-            </a>
-          </div>
-          <p
-            className="text-[13px] text-stone-500 mt-3.5 opacity-0 animate-fade-up"
-            style={{ animationDelay: "0.55s" }}
-          >
-            Open source &middot; MIT &middot; No account needed
-          </p>
-          <div
-            className="flex gap-2.5 sm:gap-4 justify-center flex-wrap mt-[18px] sm:mt-[22px] opacity-0 animate-fade-up"
-            style={{ animationDelay: "0.6s" }}
-          >
-            {PROVIDERS.map((provider) => (
-              <span key={provider} className="text-xs font-medium text-stone-500 tracking-wide">
-                {provider}
-              </span>
-            ))}
-          </div>
+              Testing for AI agents
+            </p>
+            <h1
+              className="text-[30px] sm:text-[40px] lg:text-5xl font-bold tracking-[-0.035em] leading-[1.18] sm:leading-[1.12] text-stone-950 opacity-0 animate-fade-up"
+              style={{ animationDelay: "0.2s" }}
+            >
+              Know what your agent will do before your users do
+            </h1>
+            <p
+              className="text-base text-stone-600 leading-relaxed mt-3.5 sm:mt-[18px] max-w-[400px] mx-auto opacity-0 animate-fade-up"
+              style={{ animationDelay: "0.35s" }}
+            >
+              Regression tests for agentic workflows &mdash; tool calls, output quality, and compliance. Defined in YAML, run in CI.
+            </p>
+            <div
+              className="flex gap-2.5 justify-center mt-6 sm:mt-7 flex-wrap opacity-0 animate-fade-up"
+              style={{ animationDelay: "0.5s" }}
+            >
+              <CopyButton text="npm i -g @kindlm/cli" />
+              <a
+                href="/docs"
+                className="px-5 py-3 rounded-[10px] border border-stone-300 text-stone-700 text-sm font-semibold no-underline min-h-[44px] flex items-center hover:border-stone-400 transition-colors"
+              >
+                Read the docs
+              </a>
+            </div>
+            <p
+              className="text-[13px] text-stone-500 mt-3.5 opacity-0 animate-fade-up"
+              style={{ animationDelay: "0.55s" }}
+            >
+              Open source &middot; MIT &middot; No account needed
+            </p>
+            <div
+              className="flex gap-2.5 sm:gap-4 justify-center flex-wrap mt-[18px] sm:mt-[22px] opacity-0 animate-fade-up"
+              style={{ animationDelay: "0.6s" }}
+            >
+              {PROVIDERS.map((provider) => (
+                <span key={provider} className="text-xs font-medium text-stone-500 tracking-wide">
+                  {provider}
+                </span>
+              ))}
+            </div>
         </section>
+        </div>
 
         {/* ── Terminal ── */}
         <section className="max-w-[560px] mx-auto pt-3 pb-16 sm:pb-24 px-5 sm:px-6">
