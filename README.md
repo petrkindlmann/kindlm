@@ -7,9 +7,6 @@ Catch regressions that text evals miss.
 
 ## Demo
 
-<!-- TODO: Record terminal GIF with `vhs` or `asciinema` showing: kindlm test on the basic-tool-call example -->
-<!-- Replace this block with: ![KindLM terminal demo](site/public/terminal-demo.gif) -->
-
 See it fail:
 
 ```yaml
