@@ -40,7 +40,10 @@ export type ErrorCode =
   | "CLOUD_UPLOAD_ERROR"
   | "CLOUD_PLAN_LIMIT"
   | "CLOUD_RATE_LIMIT"
+  // Red team errors
+  | "REDTEAM_PLUGIN_ERROR"
   // System errors
+  | "INTERNAL_ERROR"
   | "UNKNOWN_ERROR";
 
 export function ok<T>(data: T): Result<T, never> {
