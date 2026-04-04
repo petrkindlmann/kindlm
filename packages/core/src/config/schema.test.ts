@@ -247,6 +247,42 @@ describe("validateConfig", () => {
   });
 });
 
+describe("validateConfig — redteam field", () => {
+  it("accepts a minimal config without a redteam section (backward compat)", () => {
+    const result = validateConfig(minimalConfig());
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Field is optional — must be undefined when omitted
+      expect(result.data.redteam).toBeUndefined();
+    }
+  });
+
+  it("accepts a config with a minimal valid redteam section", () => {
+    const result = validateConfig(
+      minimalConfig({
+        redteam: {
+          purpose: "Customer support chatbot for a banking app",
+          target: { model: "gpt-4o" },
+          plugins: [{ id: "prompt-injection" }],
+        },
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.redteam).toBeDefined();
+      expect(result.data.redteam?.purpose).toContain("chatbot");
+      expect(result.data.redteam?.target.model).toBe("gpt-4o");
+      expect(result.data.redteam?.plugins).toHaveLength(1);
+      expect(result.data.redteam?.plugins[0]?.id).toBe("prompt-injection");
+      // numTests default should populate from RedTeamPluginEntrySchema
+      expect(result.data.redteam?.plugins[0]?.numTests).toBe(5);
+      // strategy/gates defaults should populate
+      expect(result.data.redteam?.strategy.concurrency).toBe(4);
+      expect(result.data.redteam?.gates.maxCriticalFailures).toBe(0);
+    }
+  });
+});
+
 describe("formatZodPath", () => {
   it("returns empty string for empty path", () => {
     expect(formatZodPath([])).toBe("");

@@ -2,6 +2,15 @@ import { z } from "zod";
 import type { Result, KindlmError } from "../types/result.js";
 import { ok, err } from "../types/result.js";
 import { TraceConfigSchema } from "../trace/types.js";
+import { RedTeamConfigSchema } from "../redteam/schema.js";
+import type { RedTeamConfig } from "../redteam/schema.js";
+import { formatZodPath } from "./zod-path.js";
+
+// Re-export formatZodPath so existing `import { formatZodPath } from "./schema.js"`
+// call sites (and the public `@kindlm/core` surface via the config barrel)
+// keep working after the helper moved to ./zod-path.ts to break a
+// schema↔schema cycle with ../redteam/schema.js.
+export { formatZodPath };
 
 // ============================================================
 // Primitive / Reusable Schemas
@@ -659,6 +668,9 @@ export const KindLMConfigSchema = z.object({
   trace: TraceConfigSchema.optional().describe(
     "OpenTelemetry trace ingestion configuration for the 'kindlm trace' command",
   ),
+  redteam: RedTeamConfigSchema.optional().describe(
+    "Optional red team suite. When present, the `kindlm redteam` command uses this block; the main `kindlm run` flow ignores it.",
+  ),
   upload: UploadSchema.default({}),
   defaults: z
     .object({
@@ -709,16 +721,17 @@ export type ComplianceConfig = z.infer<typeof ComplianceSchema>;
 export type HttpProviderSchemaConfig = z.infer<typeof HttpProviderConfigSchema>;
 export type McpProviderSchemaConfig = z.infer<typeof McpProviderConfigSchema>;
 
+/**
+ * Re-exported for consumers that access the red team config through the
+ * top-level `KindLMConfig.redteam` field. The canonical definition lives
+ * in `../redteam/schema.js`; we re-export the type here so a single
+ * `import { KindLMConfig, RedTeamConfig } from "@kindlm/core"` works.
+ */
+export type { RedTeamConfig };
+
 // ============================================================
 // Validation
 // ============================================================
-
-export function formatZodPath(path: (string | number)[]): string {
-  return path.reduce<string>((acc, segment, i) => {
-    if (typeof segment === "number") return `${acc}[${segment}]`;
-    return i === 0 ? segment : `${acc}.${segment}`;
-  }, "");
-}
 
 export function validateConfig(
   raw: unknown,

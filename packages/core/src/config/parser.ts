@@ -3,6 +3,7 @@ import type { KindLMConfig } from "./schema.js";
 import { validateConfig } from "./schema.js";
 import type { Result } from "../types/result.js";
 import { ok, err } from "../types/result.js";
+import { createRedTeamPluginRegistry } from "../redteam/plugins/registry.js";
 
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
@@ -181,6 +182,60 @@ export function parseConfig(
     errors.push(
       `defaults.judgeModel "${config.defaults.judgeModel}" is not a configured model.${hint}`,
     );
+  }
+
+  // Red team cross-reference validation.
+  // Aggregates into the shared errors[] array rather than short-circuiting
+  // so a single parse pass surfaces every red team mistake alongside
+  // main-config mistakes.
+  if (config.redteam) {
+    const allModelIds3 = [...modelIds];
+
+    // redteam.target.model must resolve to a configured model
+    if (!modelIds.has(config.redteam.target.model)) {
+      const suggestion = suggestClosest(
+        config.redteam.target.model,
+        allModelIds3,
+      );
+      const hint = suggestion
+        ? ` Did you mean: "${suggestion}"?`
+        : ` Available models: ${allModelIds3.map((m) => `"${m}"`).join(", ")}`;
+      errors.push(
+        `redteam.target.model "${config.redteam.target.model}" is not a configured model.${hint}`,
+      );
+    }
+
+    // redteam.judge.model, when provided, must resolve too
+    if (
+      config.redteam.judge?.model &&
+      !modelIds.has(config.redteam.judge.model)
+    ) {
+      const suggestion = suggestClosest(
+        config.redteam.judge.model,
+        allModelIds3,
+      );
+      const hint = suggestion
+        ? ` Did you mean: "${suggestion}"?`
+        : ` Available models: ${allModelIds3.map((m) => `"${m}"`).join(", ")}`;
+      errors.push(
+        `redteam.judge.model "${config.redteam.judge.model}" is not a configured model.${hint}`,
+      );
+    }
+
+    // Plugin registry: catches unknown plugin ids (with Levenshtein hints)
+    // and enforces policy.config.policy as a belt-and-suspenders check.
+    // The registry already aggregates its own errors — fold them into the
+    // outer errors[] with the same `redteam.` prefix used above.
+    const registryResult = createRedTeamPluginRegistry(
+      config.redteam.plugins,
+    );
+    if (!registryResult.success) {
+      const registryErrors =
+        (registryResult.error.details?.errors as string[] | undefined) ?? [];
+      for (const e of registryErrors) {
+        errors.push(`redteam.${e}`);
+      }
+    }
   }
 
   // schemaFile / argsSchema path verification via fileReader

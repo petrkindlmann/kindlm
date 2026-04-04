@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Result, KindlmError } from "../types/result.js";
 import { ok, err } from "../types/result.js";
-import { formatZodPath } from "../config/schema.js";
+import { formatZodPath } from "../config/zod-path.js";
 
 // ============================================================
 // Primitive / Reusable Schemas
