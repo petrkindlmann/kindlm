@@ -72,7 +72,7 @@ describe("watchFiles", () => {
     // Find the change event handler registered via .on("change", handler)
     const changeCall = mockOn.mock.calls.find(([event]) => event === "change");
     expect(changeCall).toBeDefined();
-    const changeHandler = changeCall?.[1] as () => void;
+    const changeHandler = changeCall![1] as () => void;
 
     changeHandler();
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -84,7 +84,7 @@ describe("watchFiles", () => {
 
     const addCall = mockOn.mock.calls.find(([event]) => event === "add");
     expect(addCall).toBeDefined();
-    const addHandler = addCall?.[1] as () => void;
+    const addHandler = addCall![1] as () => void;
 
     addHandler();
     expect(onChange).toHaveBeenCalledTimes(1);

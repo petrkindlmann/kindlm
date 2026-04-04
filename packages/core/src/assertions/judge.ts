@@ -141,7 +141,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
         }
 
         const scores = successfulPasses.map((r) => r.score).sort((a, b) => a - b);
-        const median = scores[Math.floor(scores.length / 2)]!;
+        const median = scores[Math.floor(scores.length / 2)] ?? 0;
         const passed = median >= config.minScore;
 
         return [{
@@ -152,7 +152,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
           failureCode: passed ? undefined : "JUDGE_BELOW_THRESHOLD",
           failureMessage: passed ? undefined : `Median score ${median} below threshold ${config.minScore}`,
           metadata: {
-            reasoning: successfulPasses[Math.floor(successfulPasses.length / 2)]!.reasoning,
+            reasoning: successfulPasses[Math.floor(successfulPasses.length / 2)]?.reasoning,
             threshold: config.minScore,
             betaJudge: { passes: PASSES, successful: successfulPasses.length, scores },
           },
