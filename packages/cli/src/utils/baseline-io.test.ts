@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createFileBaselineIO } from "./baseline-io.js";
 
@@ -14,6 +15,9 @@ const mockWriteFileSync = vi.mocked(writeFileSync);
 const mockMkdirSync = vi.mocked(mkdirSync);
 const mockReaddirSync = vi.mocked(readdirSync);
 
+const PROJECT_KINDLM = path.resolve("/project/.kindlm");
+const BASELINES_DIR = path.join(PROJECT_KINDLM, "baselines");
+
 describe("FileBaselineIO", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -21,17 +25,17 @@ describe("FileBaselineIO", () => {
 
   describe("write", () => {
     it("creates directory and writes file", () => {
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
 
       const result = io.write("my-suite", '{"version":"1"}');
 
       expect(result.success).toBe(true);
       expect(mockMkdirSync).toHaveBeenCalledWith(
-        "/project/.kindlm/baselines",
+        BASELINES_DIR,
         { recursive: true },
       );
       expect(mockWriteFileSync).toHaveBeenCalledWith(
-        "/project/.kindlm/baselines/my-suite.json",
+        path.join(BASELINES_DIR, "my-suite.json"),
         '{"version":"1"}',
         "utf-8",
       );
@@ -42,7 +46,7 @@ describe("FileBaselineIO", () => {
         throw new Error("Permission denied");
       });
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       const result = io.write("my-suite", "{}");
 
       expect(result.success).toBe(false);
@@ -56,7 +60,7 @@ describe("FileBaselineIO", () => {
     it("returns file content", () => {
       mockReadFileSync.mockReturnValue('{"version":"1","suiteName":"my-suite"}' as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       const result = io.read("my-suite");
 
       expect(result.success).toBe(true);
@@ -64,7 +68,7 @@ describe("FileBaselineIO", () => {
         expect(result.data).toContain("my-suite");
       }
       expect(mockReadFileSync).toHaveBeenCalledWith(
-        "/project/.kindlm/baselines/my-suite.json",
+        path.join(BASELINES_DIR, "my-suite.json"),
         "utf-8",
       );
     });
@@ -74,7 +78,7 @@ describe("FileBaselineIO", () => {
         throw new Error("ENOENT: no such file or directory");
       });
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       const result = io.read("missing-suite");
 
       expect(result.success).toBe(false);
@@ -88,7 +92,7 @@ describe("FileBaselineIO", () => {
     it("returns baseline names from .json files", () => {
       mockReaddirSync.mockReturnValue(["suite-a.json", "suite-b.json", "readme.txt"] as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       const result = io.list();
 
       expect(result.success).toBe(true);
@@ -100,11 +104,11 @@ describe("FileBaselineIO", () => {
     it("creates baselines directory if it does not exist", () => {
       mockReaddirSync.mockReturnValue([] as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       io.list();
 
       expect(mockMkdirSync).toHaveBeenCalledWith(
-        "/project/.kindlm/baselines",
+        BASELINES_DIR,
         { recursive: true },
       );
     });
@@ -112,7 +116,7 @@ describe("FileBaselineIO", () => {
     it("returns empty array when no JSON files exist", () => {
       mockReaddirSync.mockReturnValue([] as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       const result = io.list();
 
       expect(result.success).toBe(true);
@@ -126,12 +130,12 @@ describe("FileBaselineIO", () => {
     it("replaces special characters with underscores", () => {
       mockReadFileSync.mockReturnValue("{}" as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       io.read("my suite/with:special<chars>");
 
       // sanitizeFilename should convert special chars to underscores
       expect(mockReadFileSync).toHaveBeenCalledWith(
-        "/project/.kindlm/baselines/my_suite_with_special_chars_.json",
+        path.join(BASELINES_DIR, "my_suite_with_special_chars_.json"),
         "utf-8",
       );
     });
@@ -139,11 +143,11 @@ describe("FileBaselineIO", () => {
     it("preserves hyphens and underscores", () => {
       mockReadFileSync.mockReturnValue("{}" as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       io.read("my-suite_v2");
 
       expect(mockReadFileSync).toHaveBeenCalledWith(
-        "/project/.kindlm/baselines/my-suite_v2.json",
+        path.join(BASELINES_DIR, "my-suite_v2.json"),
         "utf-8",
       );
     });
@@ -152,7 +156,7 @@ describe("FileBaselineIO", () => {
       // "my suite" and "my+suite" both sanitize to "my_suite"
       mockReadFileSync.mockReturnValue("{}" as never);
 
-      const io = createFileBaselineIO("/project/.kindlm");
+      const io = createFileBaselineIO(PROJECT_KINDLM);
       io.read("my suite");
 
       const firstCall = mockReadFileSync.mock.calls[0]?.[0];

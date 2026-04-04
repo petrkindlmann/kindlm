@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 // Use process.env for temp dir (works cross-platform, not affected by vi.mock hoisting)
 const sysTmp = process.env["TMPDIR"] ?? process.env["TMP"] ?? process.env["TEMP"] ?? "/tmp";
@@ -52,7 +52,7 @@ describe("auth", () => {
 
   it("loadToken returns null when credentials file contains malformed JSON", () => {
     const credPath = getCredentialsPath();
-    const dir = credPath.replace("/credentials", "");
+    const dir = dirname(credPath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(credPath, "not-valid-json");
     expect(loadToken()).toBeNull();
@@ -60,7 +60,7 @@ describe("auth", () => {
 
   it("loadToken returns null when token field is an empty string", () => {
     const credPath = getCredentialsPath();
-    const dir = credPath.replace("/credentials", "");
+    const dir = dirname(credPath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(credPath, JSON.stringify({ token: "", savedAt: new Date().toISOString() }));
     expect(loadToken()).toBeNull();
