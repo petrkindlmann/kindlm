@@ -4,12 +4,11 @@
     "mode": "yolo",
     "research_enabled": false,
     "plan_checker_enabled": false,
-    "auto_advance": true,
-    "_auto_chain_active": false
+    "auto_advance": true
   },
   "parallelization": false,
   "branching_strategy": "none",
   "commit_docs": true,
-  "milestone": "launch-ops",
-  "milestone_name": "Launch Ops"
+  "milestone": null,
+  "milestone_name": null
 }
