@@ -14,6 +14,7 @@ import { aggregateRuns } from "./aggregator.js";
 import type { BaselineData } from "../baseline/store.js";
 import type { CommandExecutor } from "./command.js";
 import { parseCommandOutput } from "./command.js";
+import { runWithConcurrency } from "./concurrency.js";
 
 // ============================================================
 // Public Types
@@ -735,33 +736,6 @@ function errorResult(
     errored: true,
     error: { code: "UNKNOWN_ERROR", message },
   };
-}
-
-// ============================================================
-// Concurrency Helper
-// ============================================================
-
-async function runWithConcurrency<T>(
-  tasks: (() => Promise<T>)[],
-  limit: number,
-): Promise<T[]> {
-  const results: T[] = Array.from({ length: tasks.length }) as T[];
-  let nextIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (nextIndex < tasks.length) {
-      const index = nextIndex++;
-      const task = tasks[index];
-      if (task === undefined) {
-        throw new Error(`Task at index ${index} is undefined`);
-      }
-      results[index] = await task();
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
 }
 
 // ============================================================

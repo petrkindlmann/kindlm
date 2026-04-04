@@ -51,3 +51,11 @@ export {
   resolveSeverity,
   BUILTIN_PLUGIN_IDS,
 } from "./plugins/registry.js";
+
+// Engine — attack generation aggregator (S02)
+export type {
+  AttackGenerationDeps,
+  AttackGenerationResult,
+  PerPluginGenerationResult,
+} from "./engine/generate.js";
+export { runAttackGeneration } from "./engine/generate.js";
