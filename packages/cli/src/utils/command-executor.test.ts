@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { createNodeCommandExecutor } from "./command-executor.js";
 
-describe("NodeCommandExecutor", () => {
+const isWindows = process.platform === "win32";
+
+describe.skipIf(isWindows)("NodeCommandExecutor", () => {
   const executor = createNodeCommandExecutor();
 
   it("returns stdout for a successful command", async () => {

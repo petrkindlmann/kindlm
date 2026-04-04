@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { validateWorktreeSlug, WorktreeError, WorktreeHasChangesError } from "./worktree.js";
 
@@ -274,19 +275,19 @@ describe("copyFilesToWorktree", () => {
 
   it("copies files to worktree at same relative path (mkdir + copyFile called)", async () => {
     const { copyFilesToWorktree } = await import("./worktree.js");
-    const repoRoot = "/repo";
-    const worktreePath = "/repo/.kindlm/worktrees/test-run";
-    const filePaths = ["/repo/schemas/response.json"];
+    const repoRoot = path.resolve("/repo");
+    const worktreePath = path.join(repoRoot, ".kindlm", "worktrees", "test-run");
+    const filePaths = [path.join(repoRoot, "schemas", "response.json")];
     await copyFilesToWorktree(worktreePath, repoRoot, filePaths);
-    expect(mockedMkdir).toHaveBeenCalledWith("/repo/.kindlm/worktrees/test-run/schemas", { recursive: true });
-    expect(mockedCopyFile).toHaveBeenCalledWith("/repo/schemas/response.json", "/repo/.kindlm/worktrees/test-run/schemas/response.json");
+    expect(mockedMkdir).toHaveBeenCalledWith(path.join(worktreePath, "schemas"), { recursive: true });
+    expect(mockedCopyFile).toHaveBeenCalledWith(path.join(repoRoot, "schemas", "response.json"), path.join(worktreePath, "schemas", "response.json"));
   });
 
   it("rejects path that resolves outside repoRoot with WorktreeError BEFORE any copy", async () => {
     const { copyFilesToWorktree } = await import("./worktree.js");
-    const repoRoot = "/repo";
-    const worktreePath = "/repo/.kindlm/worktrees/test-run";
-    const filePaths = ["/etc/passwd"];
+    const repoRoot = path.resolve("/repo");
+    const worktreePath = path.join(repoRoot, ".kindlm", "worktrees", "test-run");
+    const filePaths = [process.platform === "win32" ? "C:\\Windows\\System32\\drivers\\etc\\hosts" : "/etc/passwd"];
     await expect(copyFilesToWorktree(worktreePath, repoRoot, filePaths)).rejects.toBeInstanceOf(WorktreeError);
     expect(mockedCopyFile).not.toHaveBeenCalled();
     expect(mockedMkdir).not.toHaveBeenCalled();
