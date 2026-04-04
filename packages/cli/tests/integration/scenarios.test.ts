@@ -69,6 +69,27 @@ function makeHandler(
   };
 }
 
+/**
+ * Creates a handler that returns tool calls on the first request,
+ * then plain text on subsequent requests. This simulates the real
+ * conversation flow: model calls tool → gets result → responds with text.
+ */
+function makeToolThenTextHandler(
+  toolCallBody: string,
+  followUpText = "Done.",
+): (req: IncomingMessage, res: ServerResponse) => void {
+  let callCount = 0;
+  return (_req, res) => {
+    callCount++;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    if (callCount === 1) {
+      res.end(toolCallBody);
+    } else {
+      res.end(openaiReply(followUpText));
+    }
+  };
+}
+
 const defaultEnv = { OPENAI_API_KEY: "sk-test-fake-key" };
 
 // ============================================================
@@ -851,8 +872,7 @@ describe("Scenario: Provider Response Diversity", () => {
   it("tool call response + toolCalls assertion → pass", async () => {
     ({ dir, cleanup } = createTempDir());
     const { port, close } = await createMockServer({
-      handler: makeHandler(
-        200,
+      handler: makeToolThenTextHandler(
         openaiReply("I'll look that up.", [
           {
             id: "call_1",
@@ -898,6 +918,10 @@ tests:
       cwd: dir,
       env: defaultEnv,
     });
+    if (result.exitCode !== 0) {
+      console.log("STDOUT:", result.stdout);
+      console.log("STDERR:", result.stderr);
+    }
     expect(result.exitCode).toBe(0);
   });
 
@@ -944,8 +968,7 @@ tests:
   it("tool called that shouldNotCall → exit 1", async () => {
     ({ dir, cleanup } = createTempDir());
     const { port, close } = await createMockServer({
-      handler: makeHandler(
-        200,
+      handler: makeToolThenTextHandler(
         openaiReply("Done.", [
           {
             id: "call_1",
@@ -998,8 +1021,7 @@ tests:
   it("multi-tool response with assertions → pass", async () => {
     ({ dir, cleanup } = createTempDir());
     const { port, close } = await createMockServer({
-      handler: makeHandler(
-        200,
+      handler: makeToolThenTextHandler(
         openaiReply("Processing your request.", [
           {
             id: "call_1",
@@ -1403,8 +1425,7 @@ describe("Scenario: Edge Cases", () => {
   it("tool call with argsMatch partial match → pass", async () => {
     ({ dir, cleanup } = createTempDir());
     const { port, close } = await createMockServer({
-      handler: makeHandler(
-        200,
+      handler: makeToolThenTextHandler(
         openaiReply("Looking up.", [
           {
             id: "call_1",
@@ -1728,8 +1749,7 @@ describe("Scenario: Real-World Patterns", () => {
   it("refund agent: tool_called + shouldNotCall + pii + keywords", async () => {
     ({ dir, cleanup } = createTempDir());
     const { port, close } = await createMockServer({
-      handler: makeHandler(
-        200,
+      handler: makeToolThenTextHandler(
         openaiReply(
           "I found your order. Let me look into that for you. I understand your frustration.",
           [
@@ -1911,8 +1931,7 @@ tests:
   it("multi-turn tool agent with defaultResponse + assertions", async () => {
     ({ dir, cleanup } = createTempDir());
     const { port, close } = await createMockServer({
-      handler: makeHandler(
-        200,
+      handler: makeToolThenTextHandler(
         openaiReply("Based on the order, here is your status.", [
           {
             id: "call_1",
@@ -1923,6 +1942,7 @@ tests:
             },
           },
         ]),
+        "Based on the order, here is your status.",
       ),
     });
     closeServer = close;
