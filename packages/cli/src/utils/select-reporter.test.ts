@@ -39,7 +39,7 @@ describe("selectReporter", () => {
 
     expect(exitSpy).toHaveBeenCalledWith(1);
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    const errorArg = String(errorSpy.mock.calls[0]![0]);
+    const errorArg = String(errorSpy.mock.calls[0]?.[0]);
     expect(errorArg).toContain("nope");
     expect(errorArg).toContain("pretty");
     expect(errorArg).toContain("json");

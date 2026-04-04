@@ -114,11 +114,8 @@ describe("countWorktreeChanges", () => {
 
   it("returns { files: 0, commits: 0 } for a clean repo with no upstream commits", async () => {
     const { countWorktreeChanges } = await import("./worktree.js");
-    let callCount = 0;
     mockedExecFile.mockImplementation((_cmd, _args, callback: unknown) => {
-      callCount++;
-      // First call: git status --porcelain (empty = clean)
-      // Second call: git log @{u}..HEAD --oneline (empty = no upstream commits)
+      // Both calls return empty: git status --porcelain + git log @{u}..HEAD --oneline
       (callback as (err: null, stdout: string, stderr: string) => void)(null, "", "");
       return {} as ReturnType<typeof execFileMock>;
     });

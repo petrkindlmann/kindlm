@@ -4,6 +4,7 @@ import type { TestPlan, TestPlanEntry } from "@kindlm/core";
 
 // ANSI escape stripped for exact-string assertions where needed
 function stripAnsi(s: string): string {
+  // eslint-disable-next-line no-control-regex
   return s.replace(/\x1B\[[0-9;]*m/g, "");
 }
 

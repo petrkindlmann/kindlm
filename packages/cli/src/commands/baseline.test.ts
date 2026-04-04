@@ -47,7 +47,7 @@ import {
 } from "@kindlm/core";
 const mockListBaselines = vi.mocked(listBaselines);
 const mockDeserializeBaseline = vi.mocked(deserializeBaseline);
-const mockWriteBaseline = vi.mocked(writeBaseline);
+const _mockWriteBaseline = vi.mocked(writeBaseline);
 const mockWriteBaselineVersioned = vi.mocked(writeBaselineVersioned);
 const mockBuildBaselineData = vi.mocked(buildBaselineData);
 const mockReadBaseline = vi.mocked(readBaseline);

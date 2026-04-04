@@ -153,6 +153,7 @@ export async function createWorktree(
     } catch (e) {
       if (e instanceof WorktreeHasChangesError) {
         // Log and swallow — do not rethrow; user must clean up manually
+        // eslint-disable-next-line no-console
         console.warn(
           `Warning: worktree at ${e.worktreePath} has uncommitted changes or unpushed commits. ` +
             `Skipping cleanup. Remove manually: git worktree remove --force ${e.worktreePath}`,
@@ -248,6 +249,7 @@ export async function copyFilesToWorktree(
       await copyFile(filePath, dest);
     } catch (e) {
       if (typeof e === "object" && e !== null && (e as NodeJS.ErrnoException).code === "ENOENT") {
+        // eslint-disable-next-line no-console
         console.warn(chalk.yellow(`Warning: referenced file not found, skipping: ${filePath}`));
         continue;
       }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
 // Mock node:fs so we don't touch the real filesystem
