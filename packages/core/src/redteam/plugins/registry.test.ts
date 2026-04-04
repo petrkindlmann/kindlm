@@ -21,13 +21,15 @@ import type { RedTeamPluginContext, RedTeamCategory, Severity } from "../types.j
 // ------------------------------------------------------------
 
 function makeContext(): RedTeamPluginContext {
-  // The stubs never look at any of these fields — they short-circuit to
-  // err(INTERNAL_ERROR) before touching context — but we still supply a
-  // realistic shape so the cast stays honest against the interface.
+  // `grade` stubs (still returning INTERNAL_ERROR until S03) never look
+  // at any of these fields. We still supply a realistic shape so the
+  // cast stays honest against the interface. Runtime `generate()`
+  // behavior is covered in generation/generate.test.ts with a mock
+  // adapter, so no adapter is needed here.
   return {
     purpose: "Test purpose",
     targetModel: "gpt-4o",
-    // @ts-expect-error — adapters are not exercised by S01 stubs
+    // @ts-expect-error — adapters are not exercised by the grade stubs
     targetAdapter: undefined,
     numTests: 5,
     severity: "high",
@@ -113,17 +115,12 @@ describe("OWASP plugin stubs", () => {
         expect(plugin.description.length).toBeGreaterThan(0);
       });
 
-      it("generate returns INTERNAL_ERROR with an 'S02/S03' message", async () => {
+      it("exposes a function-valued generate (runtime behavior is covered by generation/generate.test.ts)", () => {
         const plugin = factory();
-        const result = await plugin.generate(makeContext());
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.code).toBe("INTERNAL_ERROR");
-          expect(result.error.message).toMatch(/not implemented.*S0[23]/i);
-        }
+        expect(typeof plugin.generate).toBe("function");
       });
 
-      it("grade returns INTERNAL_ERROR with an 'S02/S03' message", async () => {
+      it("grade returns INTERNAL_ERROR with an 'S03' message", async () => {
         const plugin = factory();
         const result = await plugin.grade(
           {
@@ -139,7 +136,7 @@ describe("OWASP plugin stubs", () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.code).toBe("INTERNAL_ERROR");
-          expect(result.error.message).toMatch(/not implemented.*S0[23]/i);
+          expect(result.error.message).toMatch(/not implemented.*S03/i);
         }
       });
     });
@@ -167,14 +164,9 @@ describe("createPolicyPlugin", () => {
     );
   });
 
-  it("generate and grade both return INTERNAL_ERROR stubs", async () => {
+  it("exposes a function-valued generate and a stubbed grade", async () => {
     const plugin = createPolicyPlugin({ policy: "Dummy policy" });
-    const gen = await plugin.generate(makeContext());
-    expect(gen.success).toBe(false);
-    if (!gen.success) {
-      expect(gen.error.code).toBe("INTERNAL_ERROR");
-      expect(gen.error.message).toMatch(/not implemented.*S0[23]/i);
-    }
+    expect(typeof plugin.generate).toBe("function");
     const grade = await plugin.grade(
       {
         pluginId: "policy",
@@ -189,6 +181,7 @@ describe("createPolicyPlugin", () => {
     expect(grade.success).toBe(false);
     if (!grade.success) {
       expect(grade.error.code).toBe("INTERNAL_ERROR");
+      expect(grade.error.message).toMatch(/not implemented.*S03/i);
     }
   });
 });
