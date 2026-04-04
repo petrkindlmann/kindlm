@@ -15,3 +15,4 @@ jobs:
         run: cd site && npx wrangler pages deploy out --project-name=kindlm-site
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 7285672ab997538a962589aae6d1bac8
