@@ -8,9 +8,24 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 
 Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code — so developers trust it in CI pipelines.
 
+## Current Milestone: v2.4.0 Rigor & Reach
+
+**Goal:** Close the methodological rigor gap and CI UX gap to make KindLM the provably-correct choice for serious agent testing teams.
+
+**Target features:**
+- Trajectory metrics (Vertex AI standard: precision, recall, exact_match)
+- pass^k reliability metric + default repeat raised to 3
+- Bootstrap CIs on all aggregate scores, p50/p95/p99 latency
+- LLM-judge bias mitigations (different family default, position randomization)
+- Failure-first terminal, sticky PR comment, GH Actions annotations, tool-call diff
+- Suite composition (include:, tests/**/*.yaml discovery), kindlm lint
+- Compliance PDF restructure (exec summary + Annex IV elements)
+- Docs refresh (README, CLAUDE.md, landing page split)
+- Tech debt: fix scenarios.test.ts failures
+
 ## Current State
 
-**v2.3.0 shipped 2026-04-03.** All 6 phases complete. Roadmap empty — awaiting v2.4.0 milestone planning.
+**v2.3.0 shipped 2026-04-03.** All 6 phases complete. v2.4.0 milestone in progress.
 
 **v2.3.0 delivered:**
 - Rich tool call failure output — numbered call sequences, arg diffs, truncation
@@ -59,7 +74,7 @@ Reliably test AI agent behavior end-to-end — from YAML config to provider call
 
 ### Active
 
-(None — awaiting v2.4.0 milestone planning)
+(Defined in REQUIREMENTS.md — v2.4.0 Rigor & Reach)
 
 ### Out of Scope
 
@@ -132,4 +147,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after v2.3.0 milestone completion*
+*Last updated: 2026-04-09 after v2.4.0 milestone start*

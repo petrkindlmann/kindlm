@@ -1,74 +1,46 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.3.0
-milestone_name: Developer Experience & Depth
-status: complete
-stopped_at: Shipped v2.3.0
-last_updated: "2026-04-04T00:00:00.000Z"
-last_activity: 2026-04-04
+milestone: v2.4.0
+milestone_name: Rigor & Reach
+status: defining_requirements
+stopped_at: Defining requirements
+last_updated: "2026-04-09T00:00:00.000Z"
+last_activity: 2026-04-09
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-03 - Completed quick task 260403-voa: fix dashboard version shows 0.0.0
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-09 — Milestone v2.4.0 started
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-04-02)
+See: `.planning/PROJECT.md` (updated 2026-04-09)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Phase 18 — dashboard-team-features
+**Current focus:** v2.4.0 Rigor & Reach — defining requirements
 
 ## Tech Debt
 
-- Stripe live-mode products need sk_live_ key (user action required)
+- 5 pre-existing integration test failures in `scenarios.test.ts` (tool call mocking issues)
 
 ## Decisions
 
-Recent decisions affecting v2.3.0 work:
+Recent decisions affecting v2.4.0 work:
 
-- `Colorize` interface for all formatter output — no direct chalk in core (zero-I/O boundary)
-- Cache key = SHA-256(model + sortedParams + messages + tools) — sorted keys prevent insertion-order collisions
-- Conversation runner in `@kindlm/core` as pure state machine — I/O injected via interfaces
-- GitHub Action as JS action (`node20`), not Docker — works on ubuntu/macos/windows runners
+(None yet)
 
 Full decision log: `.planning/PROJECT.md` Key Decisions table.
-
-- [Phase 13-01]: Assertion layer populates metadata; reporter reads it — zero coupling between assertion format and reporter display
-- [Phase 14]: deepSortKeys for cache key determinism — sort before JSON.stringify prevents insertion-order collisions
-- [Phase 14]: isCacheable guard — never write error or empty responses to cache to prevent cache poisoning
-- [Phase 14]: registerCacheCommand follows baseline.ts subcommand pattern for consistency
-- [Phase 14]: [cached] badge uses c.dim(c.cyan()) chained via Colorize — zero-I/O boundary in core preserved
-- [Phase 15]: chokidar 4.x (not 5.x): 5.x requires Node >= 20.19.0
-- [Phase 15]: awaitWriteFinish stabilityThreshold 300ms default — chokidar handles debounce, no setTimeout needed
-- [Phase 15]: abortRef signals in-flight run but does not force-kill it — run finishes its current test naturally, new run won't stack
-- [Phase 15]: executeTestRun return type changed to return cost data for watch session accumulation; non-watch path unchanged (process.exit before return)
-- [Phase 16]: .superRefine() consolidates prompt/command exclusivity and unique turn-label validation in one pass
-- [Phase 16]: Per-turn AssertionContext uses only that turn's toolCalls not allToolCalls for assertion isolation
-- [Phase 16]: Synthetic MAX_TURNS_EXCEEDED assertion uses assertionType=conversation for reporter filtering
-- [Phase 16]: Turn separator uses c.dim() to match existing metadata styling
-- [Phase 16]: JUnit turnLabel uses message prefix [Turn: label] — simplest approach without breaking XML parsers
-- [Phase 17-01]: Run kindlm test with --reporter json only (not dual reporters) — CLI supports single --reporter flag; JUnit deferred to plan-02
-- [Phase 17-01]: parseJsonReport exported as separate function for unit testability — avoids mocking full exec layer
-- [Phase 17-02]: Exclude *.test.ts from tsconfig.json to fix ncc build — ncc compiles all included files, not just entry point imports
-- [Phase 17-02]: JUnit XML generated from JSON report inside the action — no second CLI invocation needed
-- [Phase 18-01]: Trends route registered before list runs route to prevent Hono wildcard collision
-- [Phase 18-01]: Run-to-run compare treats runA as baseline, runB as current for semantic consistency
-- [Phase 18-02]: RunTable selectedRunIds/onToggleRun made optional with defaults for backward compatibility with ProjectPageClient
-- [Phase 18-02]: dynamic import ssr: false wraps recharts to avoid window undefined errors in Next.js SSR
-- [Phase 18-03]: Wrap CompareContent in Suspense because useSearchParams requires it in Next.js App Router
-- [Phase 18-03]: Map RunComparisonData to ComparisonData (hasBaseline: true) to reuse ComparisonView unchanged
 
 ## Accumulated Context
 
@@ -76,14 +48,20 @@ Full decision log: `.planning/PROJECT.md` Key Decisions table.
 
 None.
 
-### Quick Tasks Completed
+### Research
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260403-voa | fix dashboard version shows 0.0.0 | 2026-04-03 | be905de | [260403-voa-fix-dashboard-version-shows-0-0-0](./quick/260403-voa-fix-dashboard-version-shows-0-0-0/) |
+Deep market & technical research completed at `.planning/research/v2.4-market-signal.md` covering:
+- Competitive landscape (Promptfoo/OpenAI, LangSmith, Braintrust, Inspect AI, Cobalt, EvalView, DeepEval)
+- Trajectory metrics formulas (Vertex AI standard)
+- pass^k reliability (τ-bench)
+- LLM-judge bias magnitudes (MT-bench)
+- Anthropic statistical eval methodology
+- OTEL GenAI conventions
+- EU AI Act Annex IV deadline (Aug 2, 2026)
+- Code audit answers for 10 open questions
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:52:53.464Z
-Stopped at: Completed 18-03-PLAN.md
+Last session: 2026-04-09
+Stopped at: Defining requirements for v2.4.0
 Resume file: None
