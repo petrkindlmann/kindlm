@@ -73,3 +73,11 @@ export {
   formatRedTeamReportPretty,
   formatRedTeamReportJson,
 } from "./engine/report.js";
+
+// Engine — run orchestrator (S05)
+export type {
+  RedTeamRunDeps,
+  RedTeamRunResult,
+  PerPluginRunResult,
+} from "./engine/run.js";
+export { runRedTeam } from "./engine/run.js";
