@@ -16,10 +16,10 @@ Requirements for v2.4.0 Rigor & Reach. Each maps to roadmap phases.
 
 ### Reliability
 
-- [ ] **REL-01**: Default repeat count is 3 (changed from 1) with documentation recommending 5–8 for production
+- [ ] **REL-01**: Default repeat count is 3 (changed from 1) with documentation recommending 5-8 for production
 - [ ] **REL-02**: User sees pass^k (probability all k trials succeed) as a first-class metric in all reporter outputs
 - [ ] **REL-03**: User sees pass@k (probability at least one trial succeeds) alongside pass^k in reporter output
-- [ ] **REL-04**: User sees per-test variance (σ) across repeated runs in reporter output
+- [ ] **REL-04**: User sees per-test variance (sigma) across repeated runs in reporter output
 
 ### Statistical Rigor
 
@@ -39,13 +39,13 @@ Requirements for v2.4.0 Rigor & Reach. Each maps to roadmap phases.
 - [ ] **PRES-01**: Pretty reporter shows failures first, collapses passing assertions to a single summary line
 - [ ] **PRES-02**: Each failure includes a copy-pasteable repro command: `kindlm test -t <test-name>`
 - [ ] **PRES-03**: Failures are clustered by failure signature (e.g., "7 tests failed on search_orders with same arg mismatch")
-- [ ] **PRES-04**: Score deltas display significance: `0.82 → 0.74 (-0.08, n=5, not significant)`
+- [ ] **PRES-04**: Score deltas display significance: `0.82 -> 0.74 (-0.08, n=5, not significant)`
 - [ ] **PRES-05**: Per-evaluator stats include p50, p95, p99 (matching Cobalt's output)
 
 ### CI Integration
 
 - [ ] **CI-01**: `kindlm test` emits GitHub Actions annotations (`::error file=kindlm.yaml,line=N::`) for failing tests
-- [ ] **CI-02**: `kindlm test --pr-comment` generates a sticky PR comment with delta table (test|baseline|new|Δ|verdict), edited in place
+- [ ] **CI-02**: `kindlm test --pr-comment` generates a sticky PR comment with delta table (test|baseline|new|delta|verdict), edited in place
 - [ ] **CI-03**: PR comment collapses passing tests under `<details>` and highlights regressions
 
 ### Tool-Call Diffing
@@ -109,7 +109,7 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 | Feature | Reason |
 |---------|--------|
-| Sandboxed code execution | Inspect AI parity — high complexity, unclear demand for KindLM's audience |
+| Sandboxed code execution | Inspect AI parity -- high complexity, unclear demand for KindLM's audience |
 | RAG-specific metrics (faithfulness, context precision/recall) | Ragas formulas are public; not core to agent behavioral testing |
 | Pre-built eval library (100+ benchmarks) | Inspect AI's domain; KindLM's value is custom tests, not benchmark suites |
 | Agent Bridge (third-party framework adapters) | OTEL trace ingestion is the neutral path; framework-specific adapters add maintenance |
@@ -117,17 +117,50 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (Populated by roadmapper) | | |
+| REL-01 | Phase 19 | Pending |
+| REL-02 | Phase 19 | Pending |
+| REL-03 | Phase 19 | Pending |
+| REL-04 | Phase 19 | Pending |
+| STAT-01 | Phase 19 | Pending |
+| STAT-02 | Phase 19 | Pending |
+| STAT-03 | Phase 19 | Pending |
+| STAT-04 | Phase 19 | Pending |
+| TRAJ-01 | Phase 20 | Pending |
+| TRAJ-02 | Phase 20 | Pending |
+| TRAJ-03 | Phase 20 | Pending |
+| TRAJ-04 | Phase 20 | Pending |
+| JUDGE-02 | Phase 21 | Pending |
+| JUDGE-03 | Phase 21 | Pending |
+| JUDGE-04 | Phase 21 | Pending |
+| PRES-01 | Phase 22 | Pending |
+| PRES-02 | Phase 22 | Pending |
+| PRES-03 | Phase 22 | Pending |
+| PRES-04 | Phase 22 | Pending |
+| PRES-05 | Phase 22 | Pending |
+| CI-01 | Phase 23 | Pending |
+| CI-02 | Phase 23 | Pending |
+| CI-03 | Phase 23 | Pending |
+| DIFF-01 | Phase 24 | Pending |
+| DIFF-02 | Phase 24 | Pending |
+| DIFF-03 | Phase 24 | Pending |
+| SCALE-01 | Phase 25 | Pending |
+| SCALE-02 | Phase 25 | Pending |
+| SCALE-03 | Phase 25 | Pending |
+| COMP-01 | Phase 26 | Pending |
+| COMP-02 | Phase 26 | Pending |
+| COMP-03 | Phase 26 | Pending |
+| DOCS-01 | Phase 27 | Pending |
+| DOCS-02 | Phase 27 | Pending |
+| DOCS-03 | Phase 27 | Pending |
+| DEBT-01 | Phase 28 | Pending |
 
 **Coverage:**
-- v2.4.0 requirements: 33 total
-- Mapped to phases: 0
-- Unmapped: 33 ⚠️
+- v2.4.0 requirements: 36 total
+- Mapped to phases: 36
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after initial definition*
+*Last updated: 2026-04-09 after roadmap creation*
