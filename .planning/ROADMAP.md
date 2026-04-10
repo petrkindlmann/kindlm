@@ -87,7 +87,7 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
   3. Latency is reported as p50/p95/p99 (not just mean) in all reporter formats
   4. All aggregate scores display bootstrap 95% confidence intervals [lo, hi]
   5. Cost-per-task, tokens-per-task, and tool-calls-per-task appear as efficiency metrics in output
-**Plans**: TBD
+**Plans**: 19-01 (stats.ts), 19-02 (aggregator), 19-03 (schema/runner/CLI), 19-04 (reporters/gate)
 
 ### Phase 20: Trajectory Metrics
 **Goal**: Users can assert on the quality of an agent's tool-call trajectory against a reference sequence

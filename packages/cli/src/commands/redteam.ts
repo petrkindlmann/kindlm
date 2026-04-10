@@ -1,8 +1,14 @@
 /* eslint-disable no-console */
 import type { Command } from "commander";
-import { existsSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 import chalk from "chalk";
+import { parseConfig, runAttackGeneration } from "@kindlm/core";
+import type { AttackGenerationResult } from "@kindlm/core";
+import { createNodeFileReader } from "../utils/file-reader.js";
+import { initProviderAdapters } from "../utils/init-adapters.js";
+
+const MAX_CONFIG_SIZE = 1_048_576; // 1MB — same cap as runTests
 
 const TEMPLATE = `kindlm: 1
 project: my-project
@@ -79,6 +85,12 @@ redteam:
     # minOverallPassRate: 0.9
 `;
 
+interface GenerateOptions {
+  config: string;
+  format: string;
+  out?: string;
+}
+
 export function registerRedTeamCommand(program: Command): void {
   const redteam = program
     .command("redteam")
@@ -137,4 +149,164 @@ export function registerRedTeamCommand(program: Command): void {
         `  4. Run a red team: ${chalk.bold("kindlm redteam run")} ${chalk.dim("(coming in a later milestone)")}`,
       );
     });
+
+  redteam
+    .command("generate")
+    .description(
+      "Generate adversarial attacks from a red team config (prints JSON or table).",
+    )
+    .option("-c, --config <path>", "Path to config file", "kindlm.yaml")
+    .option("-f, --format <fmt>", "Output format: json, table", "json")
+    .option(
+      "-o, --out <path>",
+      "Write output to a file instead of stdout",
+    )
+    .action(async (options: GenerateOptions) => {
+      // 1. Resolve + read config
+      const configPath = resolve(process.cwd(), options.config);
+      const configDir = dirname(configPath);
+
+      // Size guard — mirrors runTests to keep the CLI consistent.
+      try {
+        const stat = statSync(configPath);
+        if (stat.size > MAX_CONFIG_SIZE) {
+          console.error(
+            chalk.red(
+              `Config file exceeds 1MB limit (${(stat.size / 1_048_576).toFixed(1)}MB): ${configPath}`,
+            ),
+          );
+          process.exit(1);
+        }
+      } catch {
+        console.error(chalk.red(`Config file not found: ${configPath}`));
+        process.exit(1);
+      }
+
+      let yamlContent: string;
+      try {
+        yamlContent = readFileSync(configPath, "utf-8");
+      } catch {
+        console.error(chalk.red(`Config file not found: ${configPath}`));
+        process.exit(1);
+      }
+
+      // 2. Parse + validate (same pattern as test.ts)
+      const fileReader = createNodeFileReader();
+      const parseResult = parseConfig(yamlContent, { configDir, fileReader });
+      if (!parseResult.success) {
+        console.error(chalk.red("Config validation failed:"));
+        const details = parseResult.error.details;
+        if (details && Array.isArray(details["errors"])) {
+          for (const e of details["errors"] as string[]) {
+            console.error(chalk.red(`  - ${e}`));
+          }
+        } else {
+          console.error(chalk.red(`  ${parseResult.error.message}`));
+        }
+        process.exit(1);
+      }
+
+      const config = parseResult.data;
+
+      // 3. Guard: redteam block must exist
+      if (!config.redteam) {
+        console.error(
+          chalk.red(
+            `No redteam: block found in ${configPath}. Run kindlm redteam init to scaffold one.`,
+          ),
+        );
+        process.exit(1);
+      }
+
+      // 4. Initialize provider adapters (shared helper with `kindlm test`)
+      const adapters = await initProviderAdapters(config, { noCache: true });
+
+      // 5. Run attack generation
+      const result = await runAttackGeneration(config, { adapters });
+      if (!result.success) {
+        console.error(chalk.red(`Attack generation failed: ${result.error.message}`));
+        const details = result.error.details;
+        if (details && typeof details["perPlugin"] === "object" && details["perPlugin"] !== null) {
+          const perPlugin = details["perPlugin"] as Record<
+            string,
+            { attackCount: number; error?: { code: string; message: string } }
+          >;
+          for (const [key, entry] of Object.entries(perPlugin)) {
+            if (entry.error) {
+              console.error(
+                chalk.red(`  - ${key}: ${entry.error.code} ${entry.error.message}`),
+              );
+            }
+          }
+        }
+        process.exit(1);
+      }
+
+      // 6. Format output
+      const output = formatAttackGenerationResult(result.data, options.format);
+
+      // 7. Write to file or stdout
+      if (options.out !== undefined) {
+        const outPath = resolve(process.cwd(), options.out);
+        try {
+          writeFileSync(outPath, output, "utf-8");
+          console.error(chalk.green(`Wrote attack generation output to ${outPath}`));
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error(chalk.red(`Failed to write output file: ${msg}`));
+          process.exit(1);
+        }
+      } else {
+        console.log(output);
+      }
+
+      process.exit(0);
+    });
+}
+
+/**
+ * Format an AttackGenerationResult as either JSON or a human-readable
+ * per-plugin table summary.
+ */
+function formatAttackGenerationResult(
+  data: AttackGenerationResult,
+  format: string,
+): string {
+  if (format === "table") {
+    const lines: string[] = [];
+    lines.push("Red team attack generation summary");
+    lines.push("-".repeat(50));
+    for (const [key, entry] of data.perPlugin.entries()) {
+      // Find an attack from this plugin to read back severity for the summary
+      // (the perPlugin entry doesn't carry severity directly — we read it off
+      // the first matching attack if any were generated).
+      const sampleAttack = data.attacks.find(
+        (a) => `${a.pluginId}#0` === key || key.startsWith(`${a.pluginId}#`),
+      );
+      const severity = sampleAttack?.severity ?? "n/a";
+      lines.push(
+        `  ${key}: ${entry.attackCount} attacks (severity=${severity})`,
+      );
+      if (entry.error) {
+        lines.push(
+          `    error: ${entry.error.code} — ${entry.error.message}`,
+        );
+      }
+    }
+    lines.push("-".repeat(50));
+    lines.push(`Total: ${data.attacks.length} attacks across ${data.perPlugin.size} plugins`);
+    return lines.join("\n");
+  }
+
+  // Default: JSON. Serialize perPlugin as a plain object so callers
+  // can pipe the output through `jq` etc.
+  return JSON.stringify(
+    {
+      attacks: data.attacks,
+      perPlugin: Object.fromEntries(data.perPlugin),
+      totalUsage: data.totalUsage,
+    },
+    null,
+    2,
+  );
 }

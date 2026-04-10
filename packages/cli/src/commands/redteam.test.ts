@@ -1,15 +1,111 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Command } from "commander";
 import { registerRedTeamCommand } from "./redteam.js";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
   writeFileSync: vi.fn(),
+  readFileSync: vi.fn(),
+  statSync: vi.fn(),
 }));
 
-import { existsSync, writeFileSync } from "node:fs";
+vi.mock("@kindlm/core", () => ({
+  parseConfig: vi.fn(),
+  runAttackGeneration: vi.fn(),
+}));
+
+vi.mock("../utils/file-reader.js", () => ({
+  createNodeFileReader: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock("../utils/init-adapters.js", () => ({
+  initProviderAdapters: vi.fn(),
+}));
+
+import { existsSync, writeFileSync, readFileSync, statSync } from "node:fs";
+import { parseConfig, runAttackGeneration } from "@kindlm/core";
+import { initProviderAdapters } from "../utils/init-adapters.js";
+
 const mockExistsSync = vi.mocked(existsSync);
 const mockWriteFileSync = vi.mocked(writeFileSync);
+const mockReadFileSync = vi.mocked(readFileSync);
+const mockStatSync = vi.mocked(statSync);
+const mockParseConfig = vi.mocked(parseConfig);
+const mockRunAttackGeneration = vi.mocked(runAttackGeneration);
+const mockInitProviderAdapters = vi.mocked(initProviderAdapters);
+
+// ---------- Shared fixtures ----------
+
+const VALID_YAML = "kindlm: 1\nsuite:\n  name: redteam\n";
+
+const minimalRedTeamConfig = {
+  kindlm: 1 as const,
+  suite: { name: "redteam", description: "" },
+  providers: { openai: { apiKeyEnv: "OPENAI_API_KEY" } },
+  models: [
+    { id: "gpt-4o", provider: "openai", model: "gpt-4o", params: { temperature: 0, maxTokens: 100 } },
+  ],
+  prompts: {},
+  tests: [],
+  defaults: { repeat: 1, concurrency: 1, timeoutMs: 10000 },
+  gates: null,
+  compliance: null,
+  trace: null,
+  upload: null,
+  redteam: {
+    purpose: "A helpful bookstore assistant.",
+    target: { model: "gpt-4o", prompt: "You are a bookstore assistant." },
+    plugins: [
+      { id: "prompt-injection", numTests: 2, severity: "high" as const },
+      { id: "pii-disclosure", numTests: 2, severity: "critical" as const },
+      { id: "excessive-agency", numTests: 2, severity: "high" as const },
+    ],
+    strategy: { concurrency: 2 },
+    gates: { maxCriticalFailures: 0, maxHighFailures: 0 },
+  },
+};
+
+const configWithoutRedteam = {
+  ...structuredClone(minimalRedTeamConfig),
+  redteam: undefined,
+};
+
+function makeAttack(pluginId: string, severity: string, label: string) {
+  return {
+    pluginId,
+    category: "prompt_injection" as const,
+    severity,
+    label,
+    prompt: `attack prompt for ${label}`,
+    systemPrompt: "You are a bookstore assistant.",
+  };
+}
+
+function makeSuccessfulGenerationResult() {
+  const attacks = [
+    makeAttack("prompt-injection", "high", "inj-1"),
+    makeAttack("prompt-injection", "high", "inj-2"),
+    makeAttack("pii-disclosure", "critical", "pii-1"),
+    makeAttack("pii-disclosure", "critical", "pii-2"),
+    makeAttack("excessive-agency", "high", "ea-1"),
+    makeAttack("excessive-agency", "high", "ea-2"),
+  ];
+  const perPlugin = new Map<
+    string,
+    { attackCount: number; error?: { code: string; message: string } }
+  >([
+    ["prompt-injection#0", { attackCount: 2 }],
+    ["pii-disclosure#1", { attackCount: 2 }],
+    ["excessive-agency#2", { attackCount: 2 }],
+  ]);
+  return {
+    attacks,
+    perPlugin,
+    totalUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+  };
+}
+
+// ---------- init subcommand (existing tests, unchanged behavior) ----------
 
 describe("redteam init command", () => {
   let program: Command;
@@ -37,6 +133,10 @@ describe("redteam init command", () => {
       exitCode = code as number;
       throw new Error(`process.exit(${code})`);
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("creates kindlm-redteam.yaml when file does not exist", async () => {
@@ -104,5 +204,210 @@ describe("redteam init command", () => {
     const allOutput = logs.join("\n");
     expect(allOutput).toContain("Next steps");
     expect(allOutput).toContain("kindlm redteam run");
+  });
+});
+
+// ---------- generate subcommand ----------
+
+describe("redteam generate command", () => {
+  let program: Command;
+  let logs: string[];
+  let errors: string[];
+  let exitCode: number | undefined;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    program = new Command();
+    program.exitOverride();
+    registerRedTeamCommand(program);
+
+    logs = [];
+    errors = [];
+    exitCode = undefined;
+
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      logs.push(args.map(String).join(" "));
+    });
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      errors.push(args.map(String).join(" "));
+    });
+    class ExitError extends Error {
+      constructor(public readonly code: number | string | null | undefined) {
+        super(`exit:${String(code)}`);
+        this.name = "ExitError";
+      }
+    }
+    vi.spyOn(process, "exit").mockImplementation((code?: number | string | null) => {
+      exitCode = code as number;
+      throw new ExitError(code);
+    });
+
+    // Default happy-path mocks
+    mockStatSync.mockReturnValue({ size: 500 } as ReturnType<typeof statSync>);
+    mockReadFileSync.mockReturnValue(VALID_YAML as unknown as ReturnType<typeof readFileSync>);
+    mockParseConfig.mockReturnValue({
+      success: true,
+      data: structuredClone(minimalRedTeamConfig),
+    } as never);
+    mockInitProviderAdapters.mockResolvedValue(new Map());
+    mockRunAttackGeneration.mockResolvedValue({
+      success: true,
+      data: makeSuccessfulGenerationResult(),
+    } as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("prints JSON with all attacks and exits 0 on happy path", async () => {
+    try {
+      await program.parseAsync(["node", "kindlm", "redteam", "generate"]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(0);
+    const stdout = logs.join("\n");
+    // JSON-shaped output
+    expect(stdout).toContain('"attacks"');
+    expect(stdout).toContain('"perPlugin"');
+    expect(stdout).toContain('"totalUsage"');
+    // 6 attacks present
+    const parsed = JSON.parse(stdout);
+    expect(parsed.attacks).toHaveLength(6);
+    expect(Object.keys(parsed.perPlugin)).toHaveLength(3);
+    expect(mockRunAttackGeneration).toHaveBeenCalledOnce();
+  });
+
+  it("prints table format with per-plugin summary lines", async () => {
+    try {
+      await program.parseAsync([
+        "node",
+        "kindlm",
+        "redteam",
+        "generate",
+        "--format",
+        "table",
+      ]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(0);
+    const stdout = logs.join("\n");
+    expect(stdout).toContain("Red team attack generation summary");
+    expect(stdout).toContain("prompt-injection#0: 2 attacks");
+    expect(stdout).toContain("pii-disclosure#1: 2 attacks");
+    expect(stdout).toContain("excessive-agency#2: 2 attacks");
+    expect(stdout).toContain("Total: 6 attacks across 3 plugins");
+  });
+
+  it("exits 1 with a dedicated message when config lacks a redteam block", async () => {
+    mockParseConfig.mockReturnValue({
+      success: true,
+      data: structuredClone(configWithoutRedteam),
+    } as never);
+
+    try {
+      await program.parseAsync(["node", "kindlm", "redteam", "generate"]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(1);
+    expect(errors.join("\n")).toContain("No redteam: block");
+    // runAttackGeneration should NOT have been reached
+    expect(mockRunAttackGeneration).not.toHaveBeenCalled();
+  });
+
+  it("exits 1 with bullet-listed errors when parseConfig fails", async () => {
+    mockParseConfig.mockReturnValue({
+      success: false,
+      error: {
+        code: "CONFIG_VALIDATION_ERROR",
+        message: "schema invalid",
+        details: { errors: ["missing field 'providers'", "plugin id 'xxx' unknown"] },
+      },
+    } as never);
+
+    try {
+      await program.parseAsync(["node", "kindlm", "redteam", "generate"]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(1);
+    const combined = errors.join("\n");
+    expect(combined).toContain("Config validation failed");
+    expect(combined).toContain("missing field 'providers'");
+    expect(combined).toContain("plugin id 'xxx' unknown");
+    expect(mockRunAttackGeneration).not.toHaveBeenCalled();
+  });
+
+  it("exits 1 and surfaces per-plugin errors when runAttackGeneration returns err", async () => {
+    mockRunAttackGeneration.mockResolvedValue({
+      success: false,
+      error: {
+        code: "REDTEAM_PLUGIN_ERROR",
+        message: "All plugins failed during attack generation",
+        details: {
+          perPlugin: {
+            "prompt-injection#0": {
+              attackCount: 0,
+              error: { code: "REDTEAM_PLUGIN_ERROR", message: "parse failure" },
+            },
+            "pii-disclosure#1": {
+              attackCount: 0,
+              error: { code: "REDTEAM_PLUGIN_ERROR", message: "adapter timeout" },
+            },
+          },
+        },
+      },
+    } as never);
+
+    try {
+      await program.parseAsync(["node", "kindlm", "redteam", "generate"]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(1);
+    const combined = errors.join("\n");
+    expect(combined).toContain("Attack generation failed");
+    expect(combined).toContain("All plugins failed");
+    expect(combined).toContain("prompt-injection#0");
+    expect(combined).toContain("parse failure");
+    expect(combined).toContain("pii-disclosure#1");
+    expect(combined).toContain("adapter timeout");
+  });
+
+  it("exits 1 when config file is not found (statSync throws)", async () => {
+    mockStatSync.mockImplementation(() => {
+      throw new Error("ENOENT");
+    });
+
+    try {
+      await program.parseAsync(["node", "kindlm", "redteam", "generate"]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(1);
+    expect(errors.join("\n")).toContain("Config file not found");
+    expect(mockParseConfig).not.toHaveBeenCalled();
+  });
+
+  it("writes output to --out file when provided and exits 0", async () => {
+    try {
+      await program.parseAsync([
+        "node",
+        "kindlm",
+        "redteam",
+        "generate",
+        "--out",
+        "attacks.json",
+      ]);
+    } catch { /* exit throws */ }
+
+    expect(exitCode).toBe(0);
+    // writeFileSync called twice: once by a possible stub + once by --out;
+    // we assert the --out call was made with an absolute path ending in attacks.json.
+    const outCalls = mockWriteFileSync.mock.calls.filter((c) =>
+      String(c[0]).endsWith("attacks.json"),
+    );
+    expect(outCalls).toHaveLength(1);
+    const written = outCalls[0]?.[1] as string;
+    expect(written).toContain('"attacks"');
+    // stdout must NOT also print the JSON payload (output went to file)
+    expect(logs.join("\n")).not.toContain('"totalUsage"');
   });
 });

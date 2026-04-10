@@ -4,21 +4,18 @@ import { resolve, dirname } from "node:path";
 import chalk from "chalk";
 import {
   parseConfig,
-  createProvider,
   createRunner,
 } from "@kindlm/core";
 import type {
-  ProviderAdapter,
   KindLMConfig,
   RunEvent,
   RunnerResult,
   BaselineData,
 } from "@kindlm/core";
-import { createHttpClient } from "./http.js";
 import { createSpinner } from "./spinner.js";
 import { createNodeFileReader } from "./file-reader.js";
 import { createNodeCommandExecutor } from "./command-executor.js";
-import { createCachingAdapter } from "./caching-adapter.js";
+import { initProviderAdapters } from "./init-adapters.js";
 import { loadFeatureFlags, isEnabled } from "./features.js";
 import type { FeatureFlags } from "./features.js";
 import { writeRunArtifacts } from "./artifacts.js";
@@ -167,101 +164,8 @@ async function runTestsInner(
     config.gates = { ...config.gates, costMaxUsd: undefined };
   }
 
-  // 4. Resolve API keys + create provider adapters
-  const httpClient = createHttpClient();
-  const adapters = new Map<string, ProviderAdapter>();
-
-  const providers = config.providers as Record<string, Record<string, unknown> | undefined>;
-  for (const [name, providerConfig] of Object.entries(providers)) {
-    if (!providerConfig) continue;
-
-    const apiKeyEnv = providerConfig.apiKeyEnv as string | undefined;
-    let apiKey = "";
-    if (apiKeyEnv) {
-      const key = process.env[apiKeyEnv];
-      if (!key) {
-        console.error(chalk.red(`Missing environment variable: ${apiKeyEnv}`));
-        process.exit(1);
-      }
-      apiKey = key.trim();
-    } else if (name !== "ollama" && name !== "http" && name !== "mcp") {
-      console.error(chalk.red(`Provider "${name}" requires apiKeyEnv to be configured`));
-      process.exit(1);
-    }
-
-    let adapter: ProviderAdapter;
-    try {
-      if (name === "http") {
-        // HTTP provider gets its config object directly + env lookup
-        const httpProviderConfig = providerConfig as {
-          url: string;
-          method?: string;
-          headers?: Record<string, string>;
-          body?: string;
-          responsePath?: string;
-          toolCallsPath?: string;
-          usagePaths?: {
-            inputTokens?: string;
-            outputTokens?: string;
-            totalTokens?: string;
-          };
-          modelIdPath?: string;
-        };
-        adapter = createProvider(name, httpClient, {
-          httpConfig: httpProviderConfig,
-          envLookup: (envName: string) => process.env[envName],
-        });
-      } else if (name === "mcp") {
-        const mcpProviderConfig = providerConfig as {
-          serverUrl: string;
-          toolName: string;
-          headers?: Record<string, string>;
-        };
-        // Resolve env: headers before passing to core (core is I/O-free)
-        const resolvedHeaders: Record<string, string> = {};
-        for (const [k, v] of Object.entries(mcpProviderConfig.headers ?? {})) {
-          if (v.startsWith("env:")) {
-            const envVal = process.env[v.slice(4)];
-            if (!envVal) {
-              console.error(chalk.red(`Missing environment variable for MCP header "${k}": ${v.slice(4)}`));
-              process.exit(1);
-            }
-            resolvedHeaders[k] = envVal;
-          } else {
-            resolvedHeaders[k] = v;
-          }
-        }
-        adapter = createProvider(name, httpClient, {
-          mcpConfig: {
-            serverUrl: mcpProviderConfig.serverUrl,
-            toolName: mcpProviderConfig.toolName,
-            headers: resolvedHeaders,
-          },
-        });
-      } else {
-        adapter = createProvider(name, httpClient);
-      }
-    } catch (cause) {
-      const msg = cause instanceof Error ? cause.message : String(cause);
-      console.error(chalk.red(`Failed to create provider "${name}": ${msg}`));
-      process.exit(1);
-    }
-
-    await adapter.initialize({
-      apiKey,
-      baseUrl: providerConfig.baseUrl as string | undefined,
-      organization: providerConfig.organization as string | undefined,
-      timeoutMs: config.defaults.timeoutMs,
-      maxRetries: 2,
-    });
-
-    // Wrap with caching unless --no-cache
-    if (!options.noCache) {
-      adapters.set(name, createCachingAdapter(adapter));
-    } else {
-      adapters.set(name, adapter);
-    }
-  }
+  // 4. Resolve API keys + create provider adapters (shared with `kindlm redteam generate`)
+  const adapters = await initProviderAdapters(config, { noCache: options.noCache });
 
   // 5. Create + run
   let completedTests = 0;
