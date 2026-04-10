@@ -3,10 +3,34 @@ import type { Command } from "commander";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import chalk from "chalk";
-import { parseConfig, runAttackGeneration } from "@kindlm/core";
-import type { AttackGenerationResult } from "@kindlm/core";
+import {
+  parseConfig,
+  runAttackGeneration,
+  runRedTeam,
+  formatRedTeamReportPretty,
+  formatRedTeamReportJson,
+} from "@kindlm/core";
+import type {
+  AttackGenerationResult,
+  Colorize,
+  RedTeamRunResult,
+} from "@kindlm/core";
 import { createNodeFileReader } from "../utils/file-reader.js";
 import { initProviderAdapters } from "../utils/init-adapters.js";
+
+// Chalk-backed Colorize used for pretty red team reports. Local copy
+// of the same shape used by `selectReporter` — kept here to avoid a
+// cross-file import just for nine passthrough lambdas.
+const REDTEAM_COLORIZE: Colorize = {
+  bold: (t) => chalk.bold(t),
+  red: (t) => chalk.red(t),
+  green: (t) => chalk.green(t),
+  yellow: (t) => chalk.yellow(t),
+  cyan: (t) => chalk.cyan(t),
+  dim: (t) => chalk.dim(t),
+  greenBold: (t) => chalk.green.bold(t),
+  redBold: (t) => chalk.red.bold(t),
+};
 
 const MAX_CONFIG_SIZE = 1_048_576; // 1MB — same cap as runTests
 
@@ -88,6 +112,12 @@ redteam:
 interface GenerateOptions {
   config: string;
   format: string;
+  out?: string;
+}
+
+interface RunOptions {
+  config: string;
+  reporter: string;
   out?: string;
 }
 
@@ -262,6 +292,166 @@ export function registerRedTeamCommand(program: Command): void {
 
       process.exit(0);
     });
+
+  redteam
+    .command("run")
+    .description(
+      "Run the full red team pipeline: generate attacks, execute against the target, grade, and report.",
+    )
+    .option("-c, --config <path>", "Path to config file", "kindlm.yaml")
+    .option(
+      "-r, --reporter <type>",
+      "Output format: pretty, json",
+      "pretty",
+    )
+    .option(
+      "-o, --out <path>",
+      "Write formatted report to a file instead of stdout",
+    )
+    .action(async (options: RunOptions) => {
+      // 1. Resolve + read config (mirrors the `generate` subcommand)
+      const configPath = resolve(process.cwd(), options.config);
+      const configDir = dirname(configPath);
+
+      try {
+        const stat = statSync(configPath);
+        if (stat.size > MAX_CONFIG_SIZE) {
+          console.error(
+            chalk.red(
+              `Config file exceeds 1MB limit (${(stat.size / 1_048_576).toFixed(1)}MB): ${configPath}`,
+            ),
+          );
+          process.exit(1);
+        }
+      } catch {
+        console.error(chalk.red(`Config file not found: ${configPath}`));
+        process.exit(1);
+      }
+
+      let yamlContent: string;
+      try {
+        yamlContent = readFileSync(configPath, "utf-8");
+      } catch {
+        console.error(chalk.red(`Config file not found: ${configPath}`));
+        process.exit(1);
+      }
+
+      // 2. Parse + validate
+      const fileReader = createNodeFileReader();
+      const parseResult = parseConfig(yamlContent, { configDir, fileReader });
+      if (!parseResult.success) {
+        console.error(chalk.red("Config validation failed:"));
+        const details = parseResult.error.details;
+        if (details && Array.isArray(details["errors"])) {
+          for (const e of details["errors"] as string[]) {
+            console.error(chalk.red(`  - ${e}`));
+          }
+        } else {
+          console.error(chalk.red(`  ${parseResult.error.message}`));
+        }
+        process.exit(1);
+      }
+
+      const config = parseResult.data;
+
+      // 3. Guard: redteam block must exist
+      if (!config.redteam) {
+        console.error(
+          chalk.red(
+            `No redteam: block found in ${configPath}. Run kindlm redteam init to scaffold one.`,
+          ),
+        );
+        process.exit(1);
+      }
+
+      // 4. Validate reporter early — fail fast before spending provider tokens.
+      if (options.reporter !== "pretty" && options.reporter !== "json") {
+        console.error(
+          chalk.red(
+            `Unknown reporter: '${options.reporter}'. Available: pretty, json`,
+          ),
+        );
+        process.exit(1);
+      }
+
+      // 5. Initialize provider adapters
+      const adapters = await initProviderAdapters(config, { noCache: true });
+
+      // 6. Run the full red team pipeline
+      const result = await runRedTeam(config, { adapters });
+      if (!result.success) {
+        console.error(chalk.red(`Red team run failed: ${result.error.message}`));
+        const details = result.error.details;
+        if (details && typeof details["perPlugin"] === "object" && details["perPlugin"] !== null) {
+          const perPlugin = details["perPlugin"] as Record<
+            string,
+            { attackCount: number; error?: { code: string; message: string } }
+          >;
+          for (const [key, entry] of Object.entries(perPlugin)) {
+            if (entry.error) {
+              console.error(
+                chalk.red(`  - ${key}: ${entry.error.code} ${entry.error.message}`),
+              );
+            }
+          }
+        }
+        process.exit(1);
+      }
+
+      // 7. Warn on partial per-plugin failures (ok result but some plugins errored).
+      const partialFailures: string[] = [];
+      for (const [key, entry] of result.data.perPlugin.entries()) {
+        if (entry.error) {
+          partialFailures.push(`  - ${key}: ${entry.error.code} ${entry.error.message}`);
+        }
+      }
+      if (partialFailures.length > 0) {
+        console.error(
+          chalk.yellow(
+            `Warning: ${partialFailures.length} plugin(s) failed during the run:`,
+          ),
+        );
+        for (const line of partialFailures) {
+          console.error(chalk.yellow(line));
+        }
+      }
+
+      // 8. Format report
+      const output = formatRedTeamReportOutput(result.data, options.reporter);
+
+      // 9. Write to file or stdout
+      if (options.out !== undefined) {
+        const outPath = resolve(process.cwd(), options.out);
+        try {
+          writeFileSync(outPath, output, "utf-8");
+          console.error(chalk.green(`Wrote red team report to ${outPath}`));
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error(chalk.red(`Failed to write output file: ${msg}`));
+          process.exit(1);
+        }
+      } else {
+        console.log(output);
+      }
+
+      // 10. Exit code based on gate verdict (0 = passed, 1 = failed).
+      process.exit(result.data.report.gates.passed ? 0 : 1);
+    });
+}
+
+/**
+ * Format a RedTeamRunResult using the requested reporter. `reporter` is
+ * pre-validated by the caller, so "pretty" and "json" are the only
+ * valid values reaching this helper.
+ */
+function formatRedTeamReportOutput(
+  data: RedTeamRunResult,
+  reporter: string,
+): string {
+  if (reporter === "json") {
+    return formatRedTeamReportJson(data.report);
+  }
+  return formatRedTeamReportPretty(data.report, REDTEAM_COLORIZE);
 }
 
 /**
