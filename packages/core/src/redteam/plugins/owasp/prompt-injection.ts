@@ -1,6 +1,6 @@
 import type { RedTeamPlugin } from "../interface.js";
-import { err } from "../../../types/result.js";
 import { generateAttacksForPlugin } from "../../generation/generate.js";
+import { gradeAttackResponse } from "../../grading/grade.js";
 
 /**
  * OWASP LLM01 — Prompt Injection.
@@ -21,12 +21,8 @@ export function createPromptInjectionPlugin(): RedTeamPlugin {
       return generateAttacksForPlugin(plugin, context);
     },
 
-    async grade() {
-      return err({
-        code: "INTERNAL_ERROR",
-        message:
-          "prompt-injection.grade is not implemented — added in S03.",
-      });
+    async grade(attack, outputText, context) {
+      return gradeAttackResponse(plugin, attack, outputText, context);
     },
   };
   return plugin;

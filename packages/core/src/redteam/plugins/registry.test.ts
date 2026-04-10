@@ -14,27 +14,7 @@ import { createMisinformationPlugin } from "./owasp/misinformation.js";
 import { createUnboundedConsumptionPlugin } from "./owasp/unbounded-consumption.js";
 import { createHarmfulContentPlugin } from "./owasp/harmful-content.js";
 import { createPolicyPlugin } from "./policy.js";
-import type { RedTeamPluginContext, RedTeamCategory, Severity } from "../types.js";
-
-// ------------------------------------------------------------
-// Test fixtures
-// ------------------------------------------------------------
-
-function makeContext(): RedTeamPluginContext {
-  // `grade` stubs (still returning INTERNAL_ERROR until S03) never look
-  // at any of these fields. We still supply a realistic shape so the
-  // cast stays honest against the interface. Runtime `generate()`
-  // behavior is covered in generation/generate.test.ts with a mock
-  // adapter, so no adapter is needed here.
-  return {
-    purpose: "Test purpose",
-    targetModel: "gpt-4o",
-    // @ts-expect-error — adapters are not exercised by the grade stubs
-    targetAdapter: undefined,
-    numTests: 5,
-    severity: "high",
-  };
-}
+import type { RedTeamCategory, Severity } from "../types.js";
 
 interface StubExpectation {
   id: string;
@@ -101,10 +81,10 @@ const OWASP_STUBS: Array<{
 ];
 
 // ------------------------------------------------------------
-// (a) / (b) — Stub shape and INTERNAL_ERROR wiring
+// (a) / (b) — Plugin shape and wiring
 // ------------------------------------------------------------
 
-describe("OWASP plugin stubs", () => {
+describe("OWASP plugins", () => {
   for (const { factory, expected } of OWASP_STUBS) {
     describe(`${expected.id}`, () => {
       it("instantiates with the correct id/category/severity", () => {
@@ -120,24 +100,9 @@ describe("OWASP plugin stubs", () => {
         expect(typeof plugin.generate).toBe("function");
       });
 
-      it("grade returns INTERNAL_ERROR with an 'S03' message", async () => {
+      it("exposes a function-valued grade (runtime behavior is covered by grading/grade.test.ts)", () => {
         const plugin = factory();
-        const result = await plugin.grade(
-          {
-            pluginId: plugin.id,
-            category: plugin.category,
-            severity: plugin.defaultSeverity,
-            label: "fixture",
-            userPrompt: "fixture",
-          },
-          "fixture-response",
-          makeContext(),
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.code).toBe("INTERNAL_ERROR");
-          expect(result.error.message).toMatch(/not implemented.*S03/i);
-        }
+        expect(typeof plugin.grade).toBe("function");
       });
     });
   }
@@ -164,25 +129,10 @@ describe("createPolicyPlugin", () => {
     );
   });
 
-  it("exposes a function-valued generate and a stubbed grade", async () => {
+  it("exposes function-valued generate and grade (runtime behavior is covered by grading/grade.test.ts)", () => {
     const plugin = createPolicyPlugin({ policy: "Dummy policy" });
     expect(typeof plugin.generate).toBe("function");
-    const grade = await plugin.grade(
-      {
-        pluginId: "policy",
-        category: "CUSTOM_POLICY",
-        severity: "high",
-        label: "fixture",
-        userPrompt: "fixture",
-      },
-      "response",
-      makeContext(),
-    );
-    expect(grade.success).toBe(false);
-    if (!grade.success) {
-      expect(grade.error.code).toBe("INTERNAL_ERROR");
-      expect(grade.error.message).toMatch(/not implemented.*S03/i);
-    }
+    expect(typeof plugin.grade).toBe("function");
   });
 });
 

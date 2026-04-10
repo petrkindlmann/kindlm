@@ -1,6 +1,6 @@
 import type { RedTeamPlugin } from "./interface.js";
-import { err } from "../../types/result.js";
 import { generateAttacksForPlugin } from "../generation/generate.js";
+import { gradeAttackResponse } from "../grading/grade.js";
 
 /**
  * Custom policy plugin — `id: "policy"`, `category: "CUSTOM_POLICY"`.
@@ -17,7 +17,7 @@ import { generateAttacksForPlugin } from "../generation/generate.js";
  *
  * `generate` delegates to the shared `generateAttacksForPlugin` so every
  * plugin uses the same adapter selection, retry policy, parse handling,
- * and error mapping. `grade` stays stubbed until S03 lands.
+ * and error mapping. `grade` delegates to the shared LLM-as-judge.
  */
 export function createPolicyPlugin(config: {
   policy: string;
@@ -32,12 +32,8 @@ export function createPolicyPlugin(config: {
       return generateAttacksForPlugin(plugin, context);
     },
 
-    async grade() {
-      return err({
-        code: "INTERNAL_ERROR",
-        message:
-          "policy.grade is not implemented — added in S03.",
-      });
+    async grade(attack, outputText, context) {
+      return gradeAttackResponse(plugin, attack, outputText, context);
     },
   };
   return plugin;
