@@ -59,3 +59,17 @@ export type {
   PerPluginGenerationResult,
 } from "./engine/generate.js";
 export { runAttackGeneration } from "./engine/generate.js";
+
+// Engine — vulnerability report (S04)
+export type {
+  RedTeamReport,
+  RedTeamGateEvaluation,
+  RedTeamGateResult,
+  CategorySummary,
+} from "./engine/report.js";
+export {
+  buildRedTeamReport,
+  evaluateRedTeamGates,
+  formatRedTeamReportPretty,
+  formatRedTeamReportJson,
+} from "./engine/report.js";
