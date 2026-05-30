@@ -66,7 +66,7 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
 
 - [x] **Phase 18.1: v2.3.1 False-Green Bugfixes** (6/6 plans) — completed 2026-05-30 — strict expect-key validation, argsSchema validator injection, opt-in tool-call ordering, real version stamp, expanded PII detectors, --no-cache regression test (verified 6/6)
 - [x] **Phase 19: Reliability & Statistical Foundations** (4/4 plans) — completed 2026-05-30 (verified 5/5) — Default repeat=3, pass^k/pass@k metrics, percentile latency, bootstrap CIs, efficiency metrics
-- [ ] **Phase 20: Trajectory Metrics** - Precision, recall, exact_match assertions against reference tool-call sequences
+- [x] **Phase 20: Trajectory Metrics** (2/2 plans) — completed 2026-05-30 (verified 4/4) — Precision, recall, exact_match assertions against reference tool-call sequences
 - [ ] **Phase 21: Judge Rigor** - Different-family default, position randomization, bootstrap CI for judge reliability
 - [ ] **Phase 22: Failure-First Terminal** - Failures first in reporter, repro commands, failure clustering, significance display, per-evaluator percentiles
 - [ ] **Phase 23: CI Integration** - GitHub Actions annotations, sticky PR comment with delta table, collapsed passing tests
@@ -121,7 +121,9 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
   2. User can add `trajectory_recall` to expect block and see recall score computed against a reference
   3. User can add `trajectory_exact_match` and get a binary 0/1 score for exact sequence match
   4. Setting `ordered: false` on any trajectory assertion switches from ordered to any-order matching
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 20-01-PLAN.md — pure trajectory metric module (fingerprint, multiset, precision/recall/exact_match) + unit tests (TDD)
+- [ ] 20-02-PLAN.md — Zod schema + registry wiring + FailureCodes + barrel export + integration/schema tests
 
 ### Phase 21: Judge Rigor
 **Goal**: LLM-as-judge evaluations are bias-mitigated and report their own reliability

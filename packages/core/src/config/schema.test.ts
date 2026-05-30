@@ -412,6 +412,158 @@ describe("strict expect schema (#1 false-green)", () => {
   });
 });
 
+describe("trajectory expect schema (Phase 20 TRAJ-01..04)", () => {
+  it("GATING: an existing valid non-trajectory config still round-trips under strict", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "legacy-test",
+            prompt: "greeting",
+            expect: {
+              toolCalls: [{ tool: "search", argsMatch: { q: "x" } }],
+              output: { contains: ["hi"] },
+              judge: [{ criteria: "be nice", minScore: 0.7 }],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("GATING: a trajectory config with precision/recall/exactMatch + ordered parses under strict", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "traj-full",
+            prompt: "greeting",
+            expect: {
+              trajectory: {
+                reference: [
+                  { tool: "lookup_order", args: { id: 1 } },
+                  { tool: "issue_refund", args: { id: 1, amount: 50 } },
+                ],
+                precision: { minScore: 1.0 },
+                recall: { minScore: 0.9 },
+                exactMatch: true,
+                ordered: false,
+                matchArgs: false,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("applies defaults: ordered true, matchArgs true, exactMatch false, action args {}", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "traj-defaults",
+            prompt: "greeting",
+            expect: {
+              trajectory: {
+                reference: [{ tool: "search" }],
+                recall: {},
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const traj = result.data.tests[0]?.expect.trajectory;
+      expect(traj?.ordered).toBe(true);
+      expect(traj?.matchArgs).toBe(true);
+      expect(traj?.exactMatch).toBe(false);
+      expect(traj?.recall?.minScore).toBe(1.0);
+      expect(traj?.reference[0]?.args).toEqual({});
+    }
+  });
+
+  it("trajectory coexists with legacy toolCalls in the same expect block (migration path B)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "traj-coexist",
+            prompt: "greeting",
+            expect: {
+              toolCalls: [{ tool: "lookup_order" }],
+              trajectory: {
+                reference: [{ tool: "lookup_order" }, { tool: "issue_refund" }],
+                exactMatch: true,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a trajectory block with no precision/recall/exactMatch (refinement)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "traj-none",
+            prompt: "greeting",
+            expect: {
+              trajectory: { reference: [{ tool: "search" }] },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty reference (min 1)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "traj-empty-ref",
+            prompt: "greeting",
+            expect: {
+              trajectory: { reference: [], recall: {} },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key inside trajectory (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "traj-typo",
+            prompt: "greeting",
+            expect: {
+              trajectory: {
+                reference: [{ tool: "search" }],
+                recall: {},
+                bogus: true,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("guardrails.pii.detectors (#5 named-detector registry)", () => {
   it("accepts a detectors list of valid names", () => {
     const result = validateConfig(
