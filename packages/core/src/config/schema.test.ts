@@ -71,7 +71,7 @@ describe("validateConfig", () => {
     const result = validateConfig(minimalConfig());
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.defaults.repeat).toBe(1);
+      expect(result.data.defaults.repeat).toBe(3);
       expect(result.data.defaults.concurrency).toBe(4);
       expect(result.data.defaults.timeoutMs).toBe(60000);
       expect(result.data.gates.passRateMin).toBe(0.95);
