@@ -888,17 +888,15 @@ describe("argsSchema validator injection (ROADMAP #2)", () => {
         },
       ],
     });
+    // Command tool calls use the line-delimited kindlm protocol.
+    const stdout = [
+      "done",
+      JSON.stringify({ kindlm: "tool_call", name: "transfer", arguments: { amount: 5 } }),
+    ].join("\n");
     const commandExecutor = {
       execute: vi.fn().mockResolvedValue({
         success: true as const,
-        data: {
-          stdout: JSON.stringify({
-            output: "done",
-            toolCalls: [{ name: "transfer", arguments: { amount: 5 } }],
-          }),
-          stderr: "",
-          exitCode: 0,
-        },
+        data: { stdout, stderr: "", exitCode: 0 },
       }),
     };
     const baseDeps = makeDeps();
