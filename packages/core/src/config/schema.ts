@@ -366,6 +366,72 @@ const GuardrailsSchema = z.object({
   keywords: KeywordGuardrailSchema.optional(),
 }).strict();
 
+// ============================================================
+// Trajectory Schema (Vertex AI / ADK trajectory metrics)
+// `expect.trajectory` scores the model's tool-call sequence against a
+// golden `reference` using precision / recall / exact-match formulas.
+// ============================================================
+
+const TrajectoryActionSchema = z.object({
+  tool: NonEmptyString.describe("Expected tool/function name"),
+  args: z
+    .record(z.unknown())
+    .optional()
+    .default({})
+    .describe(
+      "Expected tool arguments (deep equality when matchArgs: true)",
+    ),
+}).strict();
+
+const TrajectoryExpectSchema = z
+  .object({
+    reference: z
+      .array(TrajectoryActionSchema)
+      .min(1)
+      .max(500)
+      .describe(
+        "Reference tool-call sequence to score the predicted trajectory against",
+      ),
+    precision: z
+      .object({
+        minScore: Score01.default(1.0),
+      })
+      .strict()
+      .optional()
+      .describe("trajectory_precision = |pred ∩ ref| / |pred|"),
+    recall: z
+      .object({
+        minScore: Score01.default(1.0),
+      })
+      .strict()
+      .optional()
+      .describe("trajectory_recall = |pred ∩ ref| / |ref|"),
+    exactMatch: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        "Binary: 1 if predicted sequence exactly equals reference, else 0",
+      ),
+    ordered: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("If false, match as a multiset regardless of order (TRAJ-04)"),
+    matchArgs: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe(
+        "If true, actions are compared as (tool, args); if false, tool name only",
+      ),
+  })
+  .strict()
+  .refine((t) => t.precision || t.recall || t.exactMatch, {
+    message:
+      "trajectory must enable at least one of precision, recall, or exactMatch",
+  });
+
 const ExpectSchema = z.object({
   output: OutputExpectSchema.optional(),
   guardrails: GuardrailsSchema.optional(),
@@ -407,6 +473,9 @@ const ExpectSchema = z.object({
     .strict()
     .optional()
     .describe("Assert response cost is within budget"),
+  trajectory: TrajectoryExpectSchema.optional().describe(
+    "Trajectory metrics: precision, recall, exact match against a reference tool-call sequence",
+  ),
 }).strict();
 
 // ============================================================
@@ -739,6 +808,8 @@ export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
 export type GatesConfig = z.infer<typeof GatesSchema>;
 export type JudgeCriterion = z.infer<typeof JudgeCriterionSchema>;
 export type ToolCallExpect = z.infer<typeof ToolCallExpectSchema>;
+export type TrajectoryExpect = z.infer<typeof TrajectoryExpectSchema>;
+export type TrajectoryActionConfig = z.infer<typeof TrajectoryActionSchema>;
 export type ToolSimulation = z.infer<typeof ToolSimulationSchema>;
 export type ComplianceConfig = z.infer<typeof ComplianceSchema>;
 export type HttpProviderSchemaConfig = z.infer<typeof HttpProviderConfigSchema>;
