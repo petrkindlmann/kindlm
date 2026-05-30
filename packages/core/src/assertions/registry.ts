@@ -15,6 +15,7 @@ import { createJudgeAssertion } from "./judge.js";
 import { createDriftAssertion } from "./drift.js";
 import { createLatencyAssertion } from "./latency.js";
 import { createCostAssertion } from "./cost.js";
+import { createTrajectoryAssertion } from "./trajectory.js";
 export type AssertionFactory = (config: Expect) => Assertion;
 
 export interface AssertionOverrides {
@@ -145,6 +146,26 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
   if (expect.cost) {
     assertions.push(
       createCostAssertion({ maxUsd: expect.cost.maxUsd }),
+    );
+  }
+
+  if (expect.trajectory) {
+    // Trajectory metrics coexist with legacy toolCalls — they score the
+    // accumulated tool-call sequence against a golden reference. The Zod
+    // defaults already populated ordered/matchArgs/exactMatch (TRAJ-04 is the
+    // `ordered` toggle); a reference action with no `args` defaults to {}.
+    assertions.push(
+      createTrajectoryAssertion({
+        reference: expect.trajectory.reference.map((a) => ({
+          tool: a.tool,
+          args: a.args ?? {},
+        })),
+        precision: expect.trajectory.precision,
+        recall: expect.trajectory.recall,
+        exactMatch: expect.trajectory.exactMatch,
+        ordered: expect.trajectory.ordered,
+        matchArgs: expect.trajectory.matchArgs,
+      }),
     );
   }
 

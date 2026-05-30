@@ -24,6 +24,9 @@ export type { LatencyAssertionConfig } from "./latency.js";
 export { createCostAssertion } from "./cost.js";
 export type { CostAssertionConfig } from "./cost.js";
 
+export { createTrajectoryAssertion } from "./trajectory.js";
+export type { TrajectoryConfig, TrajectoryAction } from "./trajectory.js";
+
 export { createAssertionsFromExpect } from "./registry.js";
 export type { AssertionFactory, AssertionOverrides } from "./registry.js";
 

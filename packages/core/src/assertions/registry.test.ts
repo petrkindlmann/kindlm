@@ -495,6 +495,174 @@ describe("createAssertionsFromExpect", () => {
   });
 
   // ================================================================
+  // Trajectory assertions (Phase 20 TRAJ-01..04)
+  // ================================================================
+
+  describe("trajectory assertions", () => {
+    /** Context whose tool calls carry args, for matchArgs scoring. */
+    function ctxWithCalls(
+      calls: Array<{ name: string; arguments?: Record<string, unknown> }>,
+    ): AssertionContext {
+      return {
+        outputText: "",
+        toolCalls: calls.map((c, index) => ({
+          id: `call_${index}`,
+          index,
+          name: c.name,
+          arguments: c.arguments ?? {},
+        })),
+        configDir: ".",
+      };
+    }
+
+    it("builds a single trajectory assertion from expect.trajectory", () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          trajectory: {
+            reference: [{ tool: "a", args: {} }],
+            recall: { minScore: 1 },
+            exactMatch: false,
+            ordered: true,
+            matchArgs: true,
+          },
+        }),
+      );
+      expect(assertions).toHaveLength(1);
+      expect(assertions[0]?.type).toBe("trajectory");
+    });
+
+    it("TRAJ-01: precision result reflects extra tool calls", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          trajectory: {
+            reference: [
+              { tool: "lookup", args: {} },
+              { tool: "refund", args: {} },
+            ],
+            precision: { minScore: 1 },
+            exactMatch: false,
+            ordered: true,
+            matchArgs: false,
+          },
+        }),
+      );
+      const results = await assertions[0]!.evaluate(
+        ctxWithCalls([{ name: "lookup" }, { name: "spam" }]),
+      );
+      const precision = results.find(
+        (r) => r.assertionType === "trajectory_precision",
+      );
+      expect(precision?.score).toBe(0.5);
+      expect(precision?.passed).toBe(false);
+    });
+
+    it("TRAJ-02: recall result reflects missing reference steps", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          trajectory: {
+            reference: [
+              { tool: "lookup", args: {} },
+              { tool: "refund", args: {} },
+            ],
+            recall: { minScore: 1 },
+            exactMatch: false,
+            ordered: true,
+            matchArgs: false,
+          },
+        }),
+      );
+      const results = await assertions[0]!.evaluate(
+        ctxWithCalls([{ name: "lookup" }]),
+      );
+      const recall = results.find(
+        (r) => r.assertionType === "trajectory_recall",
+      );
+      expect(recall?.score).toBe(0.5);
+    });
+
+    it("TRAJ-03 + TRAJ-04: exact_match ordered=true FAILS on reorder, ordered=false PASSES", async () => {
+      const ref = [
+        { tool: "lookup", args: {} },
+        { tool: "refund", args: {} },
+      ];
+      const ctx = ctxWithCalls([{ name: "refund" }, { name: "lookup" }]);
+
+      const ordered = createAssertionsFromExpect(
+        makeExpect({
+          trajectory: {
+            reference: ref,
+            exactMatch: true,
+            ordered: true,
+            matchArgs: false,
+          },
+        }),
+      );
+      const orderedRes = (await ordered[0]!.evaluate(ctx)).find(
+        (r) => r.assertionType === "trajectory_exact_match",
+      );
+      expect(orderedRes?.score).toBe(0);
+      expect(orderedRes?.passed).toBe(false);
+
+      const anyOrder = createAssertionsFromExpect(
+        makeExpect({
+          trajectory: {
+            reference: ref,
+            exactMatch: true,
+            ordered: false,
+            matchArgs: false,
+          },
+        }),
+      );
+      const anyOrderRes = (await anyOrder[0]!.evaluate(ctx)).find(
+        (r) => r.assertionType === "trajectory_exact_match",
+      );
+      expect(anyOrderRes?.score).toBe(1);
+      expect(anyOrderRes?.passed).toBe(true);
+    });
+
+    it("emits all three metric results when all are enabled", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          trajectory: {
+            reference: [{ tool: "a", args: {} }],
+            precision: { minScore: 1 },
+            recall: { minScore: 1 },
+            exactMatch: true,
+            ordered: true,
+            matchArgs: false,
+          },
+        }),
+      );
+      const results = await assertions[0]!.evaluate(
+        ctxWithCalls([{ name: "a" }]),
+      );
+      const types = results.map((r) => r.assertionType);
+      expect(types).toContain("trajectory_precision");
+      expect(types).toContain("trajectory_recall");
+      expect(types).toContain("trajectory_exact_match");
+      expect(results).toHaveLength(3);
+    });
+
+    it("migration path B: toolCalls and trajectory coexist in one expect block", () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCalls: [{ tool: "lookup", shouldNotCall: false }],
+          trajectory: {
+            reference: [{ tool: "lookup", args: {} }],
+            recall: { minScore: 1 },
+            exactMatch: false,
+            ordered: true,
+            matchArgs: true,
+          },
+        }),
+      );
+      const types = assertions.map((a) => a.type);
+      expect(types).toContain("tool_called");
+      expect(types).toContain("trajectory");
+    });
+  });
+
+  // ================================================================
   // Combined assertions
   // ================================================================
 
