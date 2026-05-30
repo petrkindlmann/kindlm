@@ -699,8 +699,11 @@ export const KindLMConfigSchema = z.object({
         .int()
         .min(1)
         .max(100)
-        .default(1)
-        .describe("Default repeat count per test case"),
+        .default(3)
+        .describe(
+          "Default repeat count per test case. Defaults to 3 for statistical reliability " +
+            "(τ-bench, 2024). Set to 1 to run each test once. Recommended: 5-8 for production CI.",
+        ),
       concurrency: z
         .number()
         .int()

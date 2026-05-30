@@ -10,7 +10,13 @@ import { createJsonSchemaValidator } from "../assertions/schema.js";
 import { interpolate } from "../config/interpolation.js";
 import { runConversation } from "../providers/conversation.js";
 import type { ConversationResult } from "../types/provider.js";
-import type { TestCaseRunResult, AggregatedTestResult } from "./aggregator.js";
+import type {
+  TestCaseRunResult,
+  AggregatedTestResult,
+  ConfidenceInterval,
+  LatencyStats,
+  EfficiencyStats,
+} from "./aggregator.js";
 import { aggregateRuns } from "./aggregator.js";
 import type { BaselineData } from "../baseline/store.js";
 import type { CommandExecutor } from "./command.js";
@@ -72,10 +78,21 @@ export interface TestRunResult {
   status: "passed" | "failed" | "errored" | "skipped";
   assertions: AssertionResult[];
   error?: KindlmError;
+  /** Mean latency across runs (= latency.mean). Kept for back-compat. */
   latencyMs: number;
   costUsd: number;
   /** True when every provider call in this test was served from cache. */
   fromCache?: boolean;
+
+  // Statistical fields from AggregatedTestResult (REL-02/03/04, STAT-01/02/03/04).
+  // Populated for executed tests; left undefined for skipped tests.
+  runCount?: number;
+  passRate?: number;
+  passK?: number;
+  passAtK?: number;
+  passRateCI?: ConfidenceInterval;
+  latency?: LatencyStats;
+  efficiency?: EfficiencyStats;
 }
 
 export interface RunnerResult {
@@ -258,9 +275,17 @@ export function createRunner(
           status,
           assertions: representativeRun?.assertions ?? [],
           error,
-          latencyMs: agg.latencyAvgMs,
+          latencyMs: agg.latency.mean, // = agg.latencyAvgMs (back-compat)
           costUsd: agg.totalCostUsd,
           fromCache: representativeRun?.fromCache,
+          // Statistical fields:
+          runCount: agg.runCount,
+          passRate: agg.passRate,
+          passK: agg.passK,
+          passAtK: agg.passAtK,
+          passRateCI: agg.passRateCI,
+          latency: agg.latency,
+          efficiency: agg.efficiency,
         };
       });
 

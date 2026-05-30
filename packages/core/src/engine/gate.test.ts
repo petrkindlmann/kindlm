@@ -1,7 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { evaluateGates } from "./gate.js";
 import type { GatesConfig } from "../types/config.js";
-import type { AggregatedTestResult } from "./aggregator.js";
+import type { AggregatedTestResult, ConfidenceInterval } from "./aggregator.js";
+
+const ci = (lo: number, hi: number): ConfidenceInterval => ({
+  lo,
+  hi,
+  level: 0.95,
+  method: "bootstrap-percentile",
+  resamples: 1000,
+});
+
+function makeScore(
+  overrides: Partial<AggregatedTestResult["assertionScores"][string]> = {},
+): AggregatedTestResult["assertionScores"][string] {
+  return { mean: 1, min: 1, max: 1, stdDev: 0, ci: ci(1, 1), ...overrides };
+}
 
 function makeGatesConfig(overrides: Partial<GatesConfig> = {}): GatesConfig {
   return {
@@ -21,11 +35,22 @@ function makeResult(overrides: Partial<AggregatedTestResult> = {}): AggregatedTe
     passed: true,
     errored: false,
     passRate: 1,
+    passRateCI: ci(1, 1),
+    passRateStdDev: 0,
+    passK: 1,
+    passAtK: 1,
     assertionScores: {},
     failureCodes: [],
+    latency: { mean: 100, p50: 100, p95: 100, p99: 100, min: 100, max: 100 },
     latencyAvgMs: 100,
     totalCostUsd: 0.01,
     totalTokens: 100,
+    efficiency: {
+      costPerTaskUsd: 0.01,
+      tokensPerTask: 100,
+      toolCallsPerTask: 0,
+      costCI: ci(0.01, 0.01),
+    },
     runs: [],
     ...overrides,
   };
@@ -82,8 +107,8 @@ describe("evaluateGates", () => {
     const results = [
       makeResult({
         assertionScores: {
-          "judge:Is empathetic": { mean: 0.6, min: 0.5, max: 0.7 },
-          "judge:Is accurate": { mean: 0.7, min: 0.6, max: 0.8 },
+          "judge:Is empathetic": makeScore({ mean: 0.6, min: 0.5, max: 0.7 }),
+          "judge:Is accurate": makeScore({ mean: 0.7, min: 0.6, max: 0.8 }),
         },
       }),
     ];
@@ -98,7 +123,7 @@ describe("evaluateGates", () => {
   it("evaluates optional driftScoreMax gate with composite keys", () => {
     const config = makeGatesConfig({ driftScoreMax: 0.1 });
     const results = [
-      makeResult({ assertionScores: { "drift:baseline comparison": { mean: 0.15, min: 0.1, max: 0.2 } } }),
+      makeResult({ assertionScores: { "drift:baseline comparison": makeScore({ mean: 0.15, min: 0.1, max: 0.2 }) } }),
     ];
     const evaluation = evaluateGates(config, results);
     const gate = evaluation.gates.find((g) => g.gateName === "driftScoreMax");
@@ -110,8 +135,8 @@ describe("evaluateGates", () => {
     const results = [
       makeResult({
         assertionScores: {
-          "judge": { mean: 0.8, min: 0.7, max: 0.9 },
-          "judge:Is empathetic": { mean: 0.6, min: 0.5, max: 0.7 },
+          "judge": makeScore({ mean: 0.8, min: 0.7, max: 0.9 }),
+          "judge:Is empathetic": makeScore({ mean: 0.6, min: 0.5, max: 0.7 }),
         },
       }),
     ];
@@ -190,7 +215,7 @@ describe("evaluateGates", () => {
     it("does NOT set emptyData on judgeAvgMin when judge assertions exist", () => {
       const config = makeGatesConfig({ judgeAvgMin: 0.8 });
       const results = [
-        makeResult({ assertionScores: { "judge:quality": { mean: 0.9, min: 0.8, max: 1.0 } } }),
+        makeResult({ assertionScores: { "judge:quality": makeScore({ mean: 0.9, min: 0.8, max: 1.0 }) } }),
       ];
       const evaluation = evaluateGates(config, results);
       const gate = evaluation.gates.find((g) => g.gateName === "judgeAvgMin");
@@ -210,7 +235,7 @@ describe("evaluateGates", () => {
     it("does NOT set emptyData on driftScoreMax when drift assertions exist", () => {
       const config = makeGatesConfig({ driftScoreMax: 0.1 });
       const results = [
-        makeResult({ assertionScores: { "drift:baseline": { mean: 0.95, min: 0.9, max: 1.0 } } }),
+        makeResult({ assertionScores: { "drift:baseline": makeScore({ mean: 0.95, min: 0.9, max: 1.0 }) } }),
       ];
       const evaluation = evaluateGates(config, results);
       const gate = evaluation.gates.find((g) => g.gateName === "driftScoreMax");

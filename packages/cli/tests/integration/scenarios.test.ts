@@ -892,6 +892,8 @@ describe("Scenario: Provider Response Diversity", () => {
       `
 kindlm: 1
 project: tool-call
+defaults:
+  repeat: 1
 suite:
   name: tool-suite
 providers:
@@ -1048,6 +1050,8 @@ tests:
       `
 kindlm: 1
 project: multi-tool
+defaults:
+  repeat: 1
 suite:
   name: multi-tool-suite
 providers:
@@ -1445,6 +1449,8 @@ describe("Scenario: Edge Cases", () => {
       `
 kindlm: 1
 project: args-match
+defaults:
+  repeat: 1
 suite:
   name: args-suite
 providers:
@@ -1772,6 +1778,8 @@ describe("Scenario: Real-World Patterns", () => {
       `
 kindlm: 1
 project: refund-agent
+defaults:
+  repeat: 1
 suite:
   name: refund-suite
 providers:
@@ -1952,6 +1960,8 @@ tests:
       `
 kindlm: 1
 project: tool-agent
+defaults:
+  repeat: 1
 suite:
   name: tool-agent-suite
 providers:

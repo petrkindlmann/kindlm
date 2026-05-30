@@ -11,11 +11,30 @@ function makeAggregated(overrides: Partial<AggregatedTestResult> = {}): Aggregat
     passed: true,
     errored: false,
     passRate: 1.0,
-    assertionScores: { tool_called: { mean: 1, min: 1, max: 1 } },
+    passRateCI: { lo: 1, hi: 1, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+    passRateStdDev: 0,
+    passK: 1,
+    passAtK: 1,
+    assertionScores: {
+      tool_called: {
+        mean: 1,
+        min: 1,
+        max: 1,
+        stdDev: 0,
+        ci: { lo: 1, hi: 1, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+      },
+    },
     failureCodes: [],
+    latency: { mean: 450, p50: 450, p95: 450, p99: 450, min: 450, max: 450 },
     latencyAvgMs: 450,
     totalCostUsd: 0.05,
     totalTokens: 1200,
+    efficiency: {
+      costPerTaskUsd: 0.05,
+      tokensPerTask: 1200,
+      toolCallsPerTask: 1,
+      costCI: { lo: 0.05, hi: 0.05, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+    },
     runs: [
       {
         testCaseName: "test-1",

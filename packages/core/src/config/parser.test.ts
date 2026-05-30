@@ -40,6 +40,32 @@ describe("parseConfig", () => {
     }
   });
 
+  it("default repeat is 3 when config omits the defaults block", () => {
+    const result = parseConfig(VALID_YAML, { configDir: "/tmp" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaults.repeat).toBe(3);
+    }
+  });
+
+  it("default repeat is preserved when explicitly set to 1", () => {
+    const yaml = VALID_YAML.trimEnd() + "\ndefaults:\n  repeat: 1\n";
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaults.repeat).toBe(1);
+    }
+  });
+
+  it("default repeat is preserved when explicitly set to 5", () => {
+    const yaml = VALID_YAML.trimEnd() + "\ndefaults:\n  repeat: 5\n";
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaults.repeat).toBe(5);
+    }
+  });
+
   it("returns CONFIG_PARSE_ERROR for invalid YAML syntax", () => {
     const result = parseConfig("key: [unterminated", { configDir: "/tmp" });
     expect(result.success).toBe(false);

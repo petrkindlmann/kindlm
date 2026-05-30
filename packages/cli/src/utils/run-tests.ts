@@ -115,6 +115,22 @@ async function runTestsInner(
 
   const config: KindLMConfig = parseResult.data;
 
+  // Behavioral notice: as of v2.4 the default repeat is 3 (was 1). Surface this
+  // when the user neither set defaults.repeat in the config nor passed --runs,
+  // so the 3× cost/latency increase is never silent. The Zod default(3) means
+  // the parsed config can't reveal whether repeat was explicit, so detect it
+  // from the raw YAML text (a top-level defaults: block with a repeat: key).
+  // Emitted to stderr (not stdout) so it never contaminates --reporter json /
+  // junit output, which must remain a clean machine-parseable stream on stdout.
+  if (options.runs === undefined && !hasExplicitRepeat(yamlContent)) {
+    console.error(
+      chalk.dim(
+        "ℹ  No defaults.repeat set — using default repeat=3 (each test runs 3×). " +
+          "Set defaults.repeat: 1 to restore v2.3 behavior.",
+      ),
+    );
+  }
+
   // 2b. Filter by suite name if --suite is provided
   if (options.suite !== undefined) {
     if (config.suite.name !== options.suite) {
@@ -227,6 +243,29 @@ async function runTestsInner(
     featureFlags,
     artifactPaths,
   };
+}
+
+/**
+ * Detect whether the raw config text explicitly sets `defaults.repeat`.
+ * The Zod schema applies `.default(3)`, so the parsed config can't distinguish
+ * an omitted value from an explicit `repeat: 3`. We scan the raw YAML for a
+ * top-level `defaults:` block (column 0) followed by an indented `repeat:` key
+ * before the next top-level key. This avoids matching a per-test-case `repeat:`.
+ */
+function hasExplicitRepeat(yamlContent: string): boolean {
+  const lines = yamlContent.split("\n");
+  let inDefaults = false;
+  for (const line of lines) {
+    if (/^\S/.test(line)) {
+      // A new top-level key. Are we entering the defaults block?
+      inDefaults = /^defaults\s*:/.test(line);
+      continue;
+    }
+    if (inDefaults && /^\s+repeat\s*:/.test(line)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function countExecutionUnits(config: KindLMConfig): number {

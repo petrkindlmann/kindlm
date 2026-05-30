@@ -3,6 +3,7 @@ import { noColor } from "./interface.js";
 import type { RunResult, SuiteRunResult, TestRunResult } from "../engine/runner.js";
 import type { GateEvaluation } from "../engine/gate.js";
 import type { AssertionResult } from "../assertions/interface.js";
+import type { ConfidenceInterval, LatencyStats, EfficiencyStats } from "../engine/aggregator.js";
 
 export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
   return {
@@ -26,6 +27,11 @@ export function createPrettyReporter(colorize: Colorize = noColor): Reporter {
           // Show model, latency, cost on the next line
           const meta = formatTestMeta(test, c);
           if (meta) lines.push(meta);
+
+          // Statistical reliability summary (REL-02/03, STAT-01/02/03)
+          for (const statLine of formatTestStats(test, c)) {
+            lines.push(statLine);
+          }
 
           // Group assertions by turnLabel for conversation tests
           const hasTurns = test.assertions.some(
@@ -150,6 +156,61 @@ function formatTestMeta(test: TestRunResult, c: Colorize): string | null {
 
   if (parts.length === 0) return null;
   return `      ${c.dim(parts.join(" · "))}`;
+}
+
+// CI bounds are rounded to 2dp here (not in the data layer) to hide bootstrap
+// jitter, which is sub-0.005 at B=1000 resamples.
+function formatCI(ci: ConfidenceInterval | undefined, n: number): string {
+  if (n <= 1 || !ci) return "(n=1, no CI)";
+  return `[${ci.lo.toFixed(2)}, ${ci.hi.toFixed(2)}] (n=${n})`;
+}
+
+function formatLatencyStats(lat: LatencyStats | undefined, fallbackMs: number): string {
+  if (!lat || (lat.p50 === 0 && lat.p95 === 0 && lat.p99 === 0)) {
+    return formatDuration(fallbackMs);
+  }
+  return `p50: ${Math.round(lat.p50)}ms  p95: ${Math.round(lat.p95)}ms  p99: ${Math.round(lat.p99)}ms`;
+}
+
+// toolCallsPerTask is intentionally omitted from the compact view (it is a
+// best-effort proxy and too technical by default). JSON includes it.
+function formatEfficiency(eff: EfficiencyStats | undefined): string | null {
+  if (!eff) return null;
+  const cost = eff.costPerTaskUsd > 0 ? `$${eff.costPerTaskUsd.toFixed(4)}/task` : null;
+  const tokens = eff.tokensPerTask > 0 ? `${Math.round(eff.tokensPerTask)} tokens/task` : null;
+  const joined = [cost, tokens].filter(Boolean).join("   ");
+  return joined === "" ? null : joined;
+}
+
+// Renders the reliability block (pass rate + CI, pass^k/pass@k, latency
+// percentiles, efficiency) shown below a test's meta line. For single-run
+// tests it shows an n=1 note and omits pass^k to avoid a degenerate display.
+function formatTestStats(test: TestRunResult, c: Colorize): string[] {
+  if (test.status === "skipped") return [];
+  if (test.runCount === undefined || test.passRate === undefined) return [];
+
+  const n = test.runCount;
+  const out: string[] = [];
+
+  const passRateStr = test.passRate.toFixed(2);
+  if (n > 1) {
+    const ciStr = formatCI(test.passRateCI, n);
+    const k = n;
+    const passKStr = test.passK !== undefined ? `pass^${k}: ${test.passK.toFixed(2)}` : "";
+    const passAtKStr = test.passAtK !== undefined ? `pass@${k}: ${test.passAtK.toFixed(2)}` : "";
+    const segments = [`pass rate: ${passRateStr} ${ciStr}`, passKStr, passAtKStr].filter(Boolean);
+    out.push(`      ${c.dim(segments.join("   "))}`);
+  } else {
+    out.push(`      ${c.dim(`pass rate: ${passRateStr} (n=1, no CI)`)}`);
+  }
+
+  const latencyStr = formatLatencyStats(test.latency, test.latencyMs);
+  out.push(`      ${c.dim(`latency:   ${latencyStr}`)}`);
+
+  const effStr = formatEfficiency(test.efficiency);
+  if (effStr) out.push(`      ${c.dim(`cost:      ${effStr}`)}`);
+
+  return out;
 }
 
 function extractReasoning(a: AssertionResult): string | null {
