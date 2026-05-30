@@ -35,6 +35,16 @@ export function createJsonReporter(version?: string): Reporter {
             })),
             latencyMs: test.latencyMs,
             costUsd: test.costUsd,
+            // Statistical fields (additive; present only for executed tests).
+            ...(test.runCount !== undefined && {
+              runCount: test.runCount,
+              passRate: test.passRate,
+              passK: test.passK,
+              passAtK: test.passAtK,
+              passRateCI: test.passRateCI,
+              latency: test.latency,
+              efficiency: test.efficiency,
+            }),
           })),
         })),
       };
