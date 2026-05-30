@@ -778,7 +778,7 @@ describe("argsSchema validator injection (ROADMAP #2)", () => {
           vars: { name: "World" },
           skip: false,
           expect: {
-            toolCalls: [{ tool: "transfer", argsSchema }],
+            toolCalls: [{ tool: "transfer", shouldNotCall: false, argsSchema }],
           },
         },
       ],
@@ -854,9 +854,9 @@ describe("argsSchema validator injection (ROADMAP #2)", () => {
           skip: false,
           maxTurns: 2,
           conversation: [
-            { turn: "first", expect: { toolCalls: [{ tool: "transfer", argsSchema: strictSchema }] } },
+            { turn: "first", expect: { toolCalls: [{ tool: "transfer", shouldNotCall: false, argsSchema: strictSchema }] } },
           ],
-          expect: { toolCalls: [{ tool: "transfer", argsSchema: strictSchema }] },
+          expect: { toolCalls: [{ tool: "transfer", shouldNotCall: false, argsSchema: strictSchema }] },
         },
       ],
     });
@@ -884,7 +884,7 @@ describe("argsSchema validator injection (ROADMAP #2)", () => {
           command: "echo run",
           vars: {},
           skip: false,
-          expect: { toolCalls: [{ tool: "transfer", argsSchema: strictSchema }] },
+          expect: { toolCalls: [{ tool: "transfer", shouldNotCall: false, argsSchema: strictSchema }] },
         },
       ],
     });
