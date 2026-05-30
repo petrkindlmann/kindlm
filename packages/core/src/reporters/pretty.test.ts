@@ -789,3 +789,93 @@ describe("formatAssertion tool call rich output", () => {
     expect(output.content).not.toContain("Actual tool calls:");
   });
 });
+
+describe("statistical reliability display", () => {
+  const reporter = createPrettyReporter(mockColorize);
+
+  function makeStatRun(test: Partial<RunResult["suites"][number]["tests"][number]>): RunResult {
+    return makeRunResult({
+      suites: [
+        {
+          name: "stat-suite",
+          status: "passed",
+          tests: [
+            {
+              name: "stat-test",
+              modelId: "gpt-4o",
+              status: "passed",
+              assertions: [],
+              latencyMs: 240,
+              costUsd: 0.06,
+              ...test,
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("renders pass^k, pass@k, CI, latency percentiles, and efficiency for multi-run tests", async () => {
+    const run = makeStatRun({
+      runCount: 5,
+      passRate: 0.8,
+      passK: 0.328,
+      passAtK: 0.9997,
+      passRateCI: { lo: 0.52, hi: 0.97, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+      latency: { mean: 240, p50: 240, p95: 890, p99: 1120, min: 100, max: 1200 },
+      efficiency: {
+        costPerTaskUsd: 0.012,
+        tokensPerTask: 3847,
+        toolCallsPerTask: 2,
+        costCI: { lo: 0.01, hi: 0.014, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+      },
+    });
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).toContain("pass rate: 0.80 [0.52, 0.97] (n=5)");
+    expect(output.content).toContain("pass^5: 0.33");
+    expect(output.content).toContain("pass@5: 1.00");
+    expect(output.content).toContain("p50: 240ms");
+    expect(output.content).toContain("p95: 890ms");
+    expect(output.content).toContain("p99: 1120ms");
+    expect(output.content).toContain("$0.0120/task");
+    expect(output.content).toContain("3847 tokens/task");
+    // toolCallsPerTask is intentionally omitted from the compact view.
+    expect(output.content).not.toContain("tool calls/task");
+  });
+
+  it("surfaces flakiness: a 6/10 test shows a low pass^k and a wide CI", async () => {
+    const run = makeStatRun({
+      status: "failed",
+      runCount: 10,
+      passRate: 0.6,
+      passK: 0.006,
+      passAtK: 1.0,
+      passRateCI: { lo: 0.3, hi: 0.9, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+      latency: { mean: 120, p50: 120, p95: 480, p99: 920, min: 80, max: 1000 },
+    });
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).toContain("pass rate: 0.60 [0.30, 0.90] (n=10)");
+    expect(output.content).toContain("pass^10: 0.01");
+  });
+
+  it("renders n=1 note instead of a degenerate CI for single-run tests", async () => {
+    const run = makeStatRun({
+      runCount: 1,
+      passRate: 1,
+      passK: 1,
+      passAtK: 1,
+      passRateCI: { lo: 1, hi: 1, level: 0.95, method: "bootstrap-percentile", resamples: 1000 },
+      latency: { mean: 120, p50: 120, p95: 120, p99: 120, min: 120, max: 120 },
+    });
+    const output = await reporter.generate(run, makeGateEval());
+    expect(output.content).toContain("pass rate: 1.00 (n=1, no CI)");
+    expect(output.content).not.toContain("pass^");
+    expect(output.content).not.toContain("pass@");
+  });
+
+  it("does not render a stats block for tests without statistical fields", async () => {
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
+    expect(output.content).not.toContain("pass rate:");
+    expect(output.content).not.toContain("pass^");
+  });
+});
