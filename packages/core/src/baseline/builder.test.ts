@@ -1,9 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { buildBaselineData } from "./builder.js";
 import { BASELINE_VERSION } from "./store.js";
-import type { AggregatedTestResult } from "../engine/aggregator.js";
+import type {
+  AggregatedTestResult,
+  ConfidenceInterval,
+} from "../engine/aggregator.js";
 import type { TestCaseRunResult } from "../engine/aggregator.js";
 import type { AssertionResult } from "../assertions/interface.js";
+
+const ci = (lo: number, hi: number): ConfidenceInterval => ({
+  lo,
+  hi,
+  level: 0.95,
+  method: "bootstrap-percentile",
+  resamples: 1000,
+});
 
 function makeAssertion(overrides: Partial<AssertionResult> = {}): AssertionResult {
   return {
@@ -37,11 +48,22 @@ function makeAggregated(overrides: Partial<AggregatedTestResult> = {}): Aggregat
     passed: true,
     errored: false,
     passRate: 1,
+    passRateCI: ci(1, 1),
+    passRateStdDev: 0,
+    passK: 1,
+    passAtK: 1,
     assertionScores: {},
     failureCodes: [],
+    latency: { mean: 150, p50: 150, p95: 150, p99: 150, min: 150, max: 150 },
     latencyAvgMs: 150,
     totalCostUsd: 0.03,
     totalTokens: 300,
+    efficiency: {
+      costPerTaskUsd: 0.01,
+      tokensPerTask: 100,
+      toolCallsPerTask: 1,
+      costCI: ci(0.03, 0.03),
+    },
     runs: [
       makeRun({ runIndex: 0, outputText: "Passing output" }),
       makeRun({ runIndex: 1, outputText: "Second output" }),

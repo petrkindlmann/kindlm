@@ -66,14 +66,14 @@ describe("aggregateRuns", () => {
     const runs = [
       makeRun({
         assertions: [
-          makeAssertion({ passed: false, failureCode: "OUTPUT_MISMATCH" }),
+          makeAssertion({ passed: false, failureCode: "TOOL_CALL_MISSING" }),
         ],
       }),
     ];
     const result = aggregateRuns(runs);
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.data.failureCodes).toContain("OUTPUT_MISMATCH");
+    expect(result.data.failureCodes).toContain("TOOL_CALL_MISSING");
   });
 });
 
