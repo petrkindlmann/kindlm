@@ -67,10 +67,10 @@ None — implemented to RESEARCH.md shape. interface.ts was NOT re-touched (Fail
 ## Commits
 
 - 2066269 feat(20-02): add TrajectoryExpectSchema to STRICT ExpectSchema
-- 9b6814f feat(20-02): wire trajectory metrics into config schema + assertion registry
+- 78045f6 feat(20-02): wire trajectory metrics into config schema + assertion registry
 
 ## Self-Check: PASSED
 
 - 5/5 modified files committed.
-- Both commit SHAs (2066269, 9b6814f) exist on phase-20-trajectory-metrics.
+- Both feature commit SHAs (2066269, 78045f6) exist on phase-20-trajectory-metrics.
 - interface.ts NOT in the 20-02 diff (856c467..HEAD = exactly the 5 planned files).
