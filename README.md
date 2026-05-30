@@ -38,7 +38,7 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 
 - **Tool call assertions** — verify agents call the right tools with the right arguments, in the right order
 - **Schema validation** — structured output checked against JSON Schema (AJV)
-- **PII detection** — catch leaked SSNs, credit cards, emails, phone numbers, IBANs
+- **PII detection** — named, configurable detectors: `ssn`, `credit_card` (Luhn-checked), `email`, `phone` (US + E.164), `iban` (mod-97-checked), `ip`, `jwt`, `api_key` (AKIA/sk-/ghp_/xox)
 - **LLM-as-judge** — score responses against natural-language criteria (0.0–1.0)
 - **Drift detection** — semantic + field-level comparison against saved baselines
 - **Keyword guards** — require or forbid specific phrases in output
@@ -116,6 +116,9 @@ tests:
       guardrails:
         pii:
           enabled: true
+          # Optional: select named built-in detectors. Omit `detectors` to keep
+          # the back-compat default (SSN, credit card, email via denyPatterns).
+          detectors: [ssn, credit_card, email, phone, iban, ip, jwt, api_key]
       judge:
         - criteria: "Response is helpful and mentions shipping status"
           minScore: 0.8

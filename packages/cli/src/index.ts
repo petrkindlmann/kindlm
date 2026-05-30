@@ -7,6 +7,7 @@ import { registerLoginCommand } from "./commands/login.js";
 import { registerUploadCommand } from "./commands/upload.js";
 import { registerTraceCommand } from "./commands/trace.js";
 import { registerCacheCommand } from "./commands/cache.js";
+import { registerRedTeamCommand } from "./commands/redteam.js";
 
 declare const KINDLM_VERSION: string;
 
@@ -26,6 +27,7 @@ export function createProgram(): Command {
   registerUploadCommand(program);
   registerTraceCommand(program);
   registerCacheCommand(program);
+  registerRedTeamCommand(program);
 
   return program;
 }

@@ -1,10 +1,26 @@
 import { describe, it, expect } from "vitest";
 import type { Expect } from "../types/config.js";
+import type { AssertionContext } from "./interface.js";
+import type { ProviderToolCall } from "../types/provider.js";
 import { createAssertionsFromExpect } from "./registry.js";
 
 function makeExpect(overrides: Partial<Expect> = {}): Expect {
   return {
     ...overrides,
+  };
+}
+
+/** Build a fully-typed ProviderToolCall for assertion evaluation in tests. */
+function toolCall(name: string, index: number): ProviderToolCall {
+  return { id: `call_${index}`, index, name, arguments: {} };
+}
+
+/** Build a minimal but type-complete AssertionContext from a tool-call sequence. */
+function ctxWithToolCalls(names: string[]): AssertionContext {
+  return {
+    outputText: "",
+    toolCalls: names.map((name, index) => toolCall(name, index)),
+    configDir: ".",
   };
 }
 
@@ -113,6 +129,116 @@ describe("createAssertionsFromExpect", () => {
       );
       expect(assertions).toHaveLength(1);
       expect(assertions[0]?.type).toBe("tool_order");
+    });
+
+    // ----------------------------------------------------------------
+    // #3: opt-in ordered tool-call sequence (toolCallsOrdered: true)
+    // ----------------------------------------------------------------
+
+    it("builds a single tool_order assertion when toolCallsOrdered is true", () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCallsOrdered: true,
+          toolCalls: [
+            { tool: "lookup", shouldNotCall: false },
+            { tool: "refund", shouldNotCall: false },
+          ],
+        }),
+      );
+      expect(assertions).toHaveLength(1);
+      expect(assertions[0]?.type).toBe("tool_order");
+    });
+
+    it("ordered opt-in PASSES when tool calls occur in declared order", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCallsOrdered: true,
+          toolCalls: [
+            { tool: "lookup", shouldNotCall: false },
+            { tool: "refund", shouldNotCall: false },
+          ],
+        }),
+      );
+      const results = await assertions[0]!.evaluate(
+        ctxWithToolCalls(["lookup", "refund"]),
+      );
+      expect(results.every((r) => r.passed)).toBe(true);
+    });
+
+    it("ordered opt-in FAILS when tool calls occur out of declared order", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCallsOrdered: true,
+          toolCalls: [
+            { tool: "lookup", shouldNotCall: false },
+            { tool: "refund", shouldNotCall: false },
+          ],
+        }),
+      );
+      // Actual sequence is refund-then-lookup — the unsafe order.
+      const results = await assertions[0]!.evaluate(
+        ctxWithToolCalls(["refund", "lookup"]),
+      );
+      const orderResults = results.filter((r) =>
+        r.label.includes("at position"),
+      );
+      expect(orderResults.length).toBeGreaterThan(0);
+      expect(orderResults.some((r) => !r.passed)).toBe(true);
+      expect(
+        orderResults.some((r) => r.failureCode === "TOOL_CALL_ORDER_WRONG"),
+      ).toBe(true);
+    });
+
+    it("back-compat: plain list (no ordered, no numeric order) stays presence-only and passes regardless of order", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCalls: [
+            { tool: "lookup", shouldNotCall: false },
+            { tool: "refund", shouldNotCall: false },
+          ],
+        }),
+      );
+      // Two separate tool_called assertions, no positional checks.
+      expect(assertions).toHaveLength(2);
+      expect(assertions.every((a) => a.type === "tool_called")).toBe(true);
+      // Calls in the "wrong" order still pass — presence-only.
+      const ctx = ctxWithToolCalls(["refund", "lookup"]);
+      for (const a of assertions) {
+        const results = await a.evaluate(ctx);
+        expect(results.every((r) => r.passed)).toBe(true);
+      }
+    });
+
+    it("back-compat: numeric order: still produces positional matching unchanged", () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCalls: [
+            { tool: "first", order: 0, shouldNotCall: false },
+            { tool: "second", order: 1, shouldNotCall: false },
+          ],
+        }),
+      );
+      expect(assertions).toHaveLength(1);
+      expect(assertions[0]?.type).toBe("tool_order");
+    });
+
+    it("ordered opt-in synthesizes positions skipping shouldNotCall entries", async () => {
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          toolCallsOrdered: true,
+          toolCalls: [
+            { tool: "lookup", shouldNotCall: false },
+            { tool: "danger", shouldNotCall: true },
+            { tool: "refund", shouldNotCall: false },
+          ],
+        }),
+      );
+      expect(assertions).toHaveLength(1);
+      // lookup -> position 0, refund -> position 1, danger must NOT be called.
+      const results = await assertions[0]!.evaluate(
+        ctxWithToolCalls(["lookup", "refund"]),
+      );
+      expect(results.every((r) => r.passed)).toBe(true);
     });
   });
 

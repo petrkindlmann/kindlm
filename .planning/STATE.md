@@ -1,89 +1,66 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.3.0
-milestone_name: Developer Experience & Depth
-status: complete
-stopped_at: Shipped v2.3.0
-last_updated: "2026-04-04T00:00:00.000Z"
-last_activity: 2026-04-04
+milestone: v2.4.0
+milestone_name: Rigor & Reach
+status: Phase 18.1 COMPLETE (verified 6/6) — ready for v2.3.1 release; Phase 19 next
+last_updated: "2026-05-30T06:30:00.000Z"
+last_activity: 2026-05-30 — Phase 18.1 executed + verified (v2.3.1 false-green bugfixes, 6 plans)
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
+  total_phases: 11
+  completed_phases: 1
+  total_plans: 10
+  completed_plans: 6
+  percent: 9
 ---
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-03 - Completed quick task 260403-voa: fix dashboard version shows 0.0.0
+Phase: 18.1 (v2.3.1 False-Green Bugfixes) — ✅ COMPLETE (VERIFICATION status: passed, 6/6 criteria)
+Plan: 6/6 plans executed (01-06)
+Status: Executed + verified. Changeset staged (core+cli patch → v2.3.1). Phase 19 is next (already planned 19-01..19-04).
+Last activity: 2026-05-30 — Phase 18.1 executed; all 6 success criteria verified TRUE in source + tests
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] ~9% (1 of 11 phases this milestone)
+
+**Next recommended run:** `/gsd-execute-phase 19` (or `/gsd-progress` to review)
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-04-02)
+See: `.planning/PROJECT.md` (updated 2026-04-09)
 
 **Core value:** Reliably test AI agent behavior end-to-end — from YAML config to provider call to assertion verdict to exit code
-**Current focus:** Phase 18 — dashboard-team-features
+**Current focus:** v2.4.0 Phase 19 — Reliability & Statistical Foundations (Phase 18.1 v2.3.1 patch complete + verified)
 
 ## Tech Debt
 
-- Stripe live-mode products need sk_live_ key (user action required)
+- ⚠️ STALE CLAIM: the "5 pre-existing `scenarios.test.ts` failures" (Phase 28 premise) did NOT reproduce during Phase 18.1 — full suite is green (cli 344 passed / 3 skipped, scenarios.test.ts passing; core 921 passed). Verify and re-scope Phase 28 before executing it; it may already be satisfied or need a different target.
 
 ## Decisions
 
-Recent decisions affecting v2.3.0 work:
+Recent decisions affecting v2.4.0 work:
 
-- `Colorize` interface for all formatter output — no direct chalk in core (zero-I/O boundary)
-- Cache key = SHA-256(model + sortedParams + messages + tools) — sorted keys prevent insertion-order collisions
-- Conversation runner in `@kindlm/core` as pure state machine — I/O injected via interfaces
-- GitHub Action as JS action (`node20`), not Docker — works on ubuntu/macos/windows runners
+- Phase 18.1 (v2.3.1) ships verified false-green bugfixes BEFORE Phase 19. Items #1-#5 from external fix-plan are real (re-verified vs local source 2026-05-30); #6 already fixed (regression test only); #7 flakiness folds into Phase 19. Scope for #3/#5 is broad. Evidence: `.planning/research/v2.3.1-bugfix-verification.md`.
+- Phase 19 is the foundation: repeat default, aggregator, CIs, efficiency metrics must land before other phases
+- Phases 20, 21, 22, 25, 26, 28 can run in parallel after 19; Phase 23 depends on 22; Phase 24 depends on 20; Phase 27 depends on 19+20+22
 
 Full decision log: `.planning/PROJECT.md` Key Decisions table.
 
-- [Phase 13-01]: Assertion layer populates metadata; reporter reads it — zero coupling between assertion format and reporter display
-- [Phase 14]: deepSortKeys for cache key determinism — sort before JSON.stringify prevents insertion-order collisions
-- [Phase 14]: isCacheable guard — never write error or empty responses to cache to prevent cache poisoning
-- [Phase 14]: registerCacheCommand follows baseline.ts subcommand pattern for consistency
-- [Phase 14]: [cached] badge uses c.dim(c.cyan()) chained via Colorize — zero-I/O boundary in core preserved
-- [Phase 15]: chokidar 4.x (not 5.x): 5.x requires Node >= 20.19.0
-- [Phase 15]: awaitWriteFinish stabilityThreshold 300ms default — chokidar handles debounce, no setTimeout needed
-- [Phase 15]: abortRef signals in-flight run but does not force-kill it — run finishes its current test naturally, new run won't stack
-- [Phase 15]: executeTestRun return type changed to return cost data for watch session accumulation; non-watch path unchanged (process.exit before return)
-- [Phase 16]: .superRefine() consolidates prompt/command exclusivity and unique turn-label validation in one pass
-- [Phase 16]: Per-turn AssertionContext uses only that turn's toolCalls not allToolCalls for assertion isolation
-- [Phase 16]: Synthetic MAX_TURNS_EXCEEDED assertion uses assertionType=conversation for reporter filtering
-- [Phase 16]: Turn separator uses c.dim() to match existing metadata styling
-- [Phase 16]: JUnit turnLabel uses message prefix [Turn: label] — simplest approach without breaking XML parsers
-- [Phase 17-01]: Run kindlm test with --reporter json only (not dual reporters) — CLI supports single --reporter flag; JUnit deferred to plan-02
-- [Phase 17-01]: parseJsonReport exported as separate function for unit testability — avoids mocking full exec layer
-- [Phase 17-02]: Exclude *.test.ts from tsconfig.json to fix ncc build — ncc compiles all included files, not just entry point imports
-- [Phase 17-02]: JUnit XML generated from JSON report inside the action — no second CLI invocation needed
-- [Phase 18-01]: Trends route registered before list runs route to prevent Hono wildcard collision
-- [Phase 18-01]: Run-to-run compare treats runA as baseline, runB as current for semantic consistency
-- [Phase 18-02]: RunTable selectedRunIds/onToggleRun made optional with defaults for backward compatibility with ProjectPageClient
-- [Phase 18-02]: dynamic import ssr: false wraps recharts to avoid window undefined errors in Next.js SSR
-- [Phase 18-03]: Wrap CompareContent in Suspense because useSearchParams requires it in Next.js App Router
-- [Phase 18-03]: Map RunComparisonData to ComparisonData (hasBaseline: true) to reuse ComparisonView unchanged
-
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 18.1 inserted after Phase 18: v2.3.1 false-green bugfixes (verified regressions #1-#5 + #6 test) before resuming Phase 19 (URGENT)
+
+### Research
+
+Deep market & technical research at `.planning/research/v2.4-market-signal.md` covering trajectory metrics formulas, pass^k reliability, judge bias magnitudes, Anthropic statistical eval methodology, EU AI Act Annex IV deadline (Aug 2, 2026).
 
 ### Blockers/Concerns
 
 None.
 
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260403-voa | fix dashboard version shows 0.0.0 | 2026-04-03 | be905de | [260403-voa-fix-dashboard-version-shows-0-0-0](./quick/260403-voa-fix-dashboard-version-shows-0-0-0/) |
-
 ## Session Continuity
 
-Last session: 2026-04-03T08:52:53.464Z
-Stopped at: Completed 18-03-PLAN.md
+Last session: 2026-04-09
+Stopped at: Roadmap created for v2.4.0 Rigor & Reach
 Resume file: None

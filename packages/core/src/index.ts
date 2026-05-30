@@ -21,3 +21,6 @@ export * from "./baseline/index.js";
 
 // Trace
 export * from "./trace/index.js";
+
+// Red Team
+export * from "./redteam/index.js";

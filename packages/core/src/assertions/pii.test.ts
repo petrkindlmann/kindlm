@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type { AssertionContext } from "./interface.js";
-import { createPiiAssertion } from "./pii.js";
+import {
+  createPiiAssertion,
+  luhnValid,
+  ibanMod97Valid,
+  PII_DETECTORS,
+  DETECTOR_NAMES,
+} from "./pii.js";
+import type { DetectorName } from "./pii.js";
 
 function ctx(outputText: string): AssertionContext {
   return { outputText, toolCalls: [], configDir: "/tmp" };
@@ -12,7 +19,20 @@ const DEFAULT_PATTERNS = [
   "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
 ];
 
-describe("createPiiAssertion", () => {
+async function fired(detector: DetectorName, text: string): Promise<boolean> {
+  const assertion = createPiiAssertion({
+    denyPatterns: [],
+    detectors: [detector],
+  });
+  const results = await assertion.evaluate(ctx(text));
+  return results[0]?.passed === false;
+}
+
+// ============================================================
+// Legacy denyPatterns behavior (back-compat — must not change)
+// ============================================================
+
+describe("createPiiAssertion — legacy denyPatterns", () => {
   it("passes for clean text", async () => {
     const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
     const results = await assertion.evaluate(ctx("This is a normal sentence."));
@@ -21,9 +41,7 @@ describe("createPiiAssertion", () => {
 
   it("detects SSN pattern", async () => {
     const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
-    const results = await assertion.evaluate(
-      ctx("My SSN is 123-45-6789"),
-    );
+    const results = await assertion.evaluate(ctx("My SSN is 123-45-6789"));
     expect(results[0]).toMatchObject({
       passed: false,
       failureCode: "PII_DETECTED",
@@ -34,9 +52,7 @@ describe("createPiiAssertion", () => {
 
   it("detects credit card pattern", async () => {
     const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
-    const results = await assertion.evaluate(
-      ctx("Card: 4111 1111 1111 1111"),
-    );
+    const results = await assertion.evaluate(ctx("Card: 4111 1111 1111 1111"));
     expect(results[0]).toMatchObject({
       passed: false,
       failureCode: "PII_DETECTED",
@@ -45,9 +61,7 @@ describe("createPiiAssertion", () => {
 
   it("detects email pattern", async () => {
     const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
-    const results = await assertion.evaluate(
-      ctx("Contact me at user@example.com"),
-    );
+    const results = await assertion.evaluate(ctx("Contact me at user@example.com"));
     expect(results[0]).toMatchObject({ passed: false });
   });
 
@@ -85,9 +99,7 @@ describe("createPiiAssertion", () => {
 
   it("redacts matched values in failure message", async () => {
     const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
-    const results = await assertion.evaluate(
-      ctx("SSN: 123-45-6789"),
-    );
+    const results = await assertion.evaluate(ctx("SSN: 123-45-6789"));
     const msg = (results[0] as { failureMessage?: string }).failureMessage ?? "";
     expect(msg).not.toContain("123-45-6789");
     expect(msg).toContain("****");
@@ -117,16 +129,11 @@ describe("createPiiAssertion", () => {
   });
 
   it("limits matches to prevent runaway scanning", async () => {
-    // Pattern that matches every single character
-    const assertion = createPiiAssertion({
-      denyPatterns: ["[a-z]"],
-    });
-    // Long input
+    const assertion = createPiiAssertion({ denyPatterns: ["[a-z]"] });
     const longText = "a".repeat(5000);
     const results = await assertion.evaluate(ctx(longText));
     expect(results[0]).toMatchObject({ passed: false });
     const metadata = results[0]?.metadata as { matches: unknown[] } | undefined;
-    // Should be capped at 1000
     expect(metadata?.matches.length).toBeLessThanOrEqual(1000);
   });
 
@@ -134,5 +141,138 @@ describe("createPiiAssertion", () => {
     const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
     const results = await assertion.evaluate(ctx(""));
     expect(results[0]).toMatchObject({ passed: true });
+  });
+});
+
+// ============================================================
+// Checksum validators
+// ============================================================
+
+describe("luhnValid", () => {
+  it("accepts a Luhn-valid card number", () => {
+    expect(luhnValid("4111111111111111")).toBe(true);
+    expect(luhnValid("4111 1111 1111 1111")).toBe(true);
+  });
+  it("rejects a Luhn-invalid card number", () => {
+    expect(luhnValid("4111111111111112")).toBe(false);
+    expect(luhnValid("1234567812345678")).toBe(false);
+  });
+});
+
+describe("ibanMod97Valid", () => {
+  it("accepts a mod-97-valid IBAN", () => {
+    expect(ibanMod97Valid("GB82WEST12345698765432")).toBe(true);
+    expect(ibanMod97Valid("DE89370400440532013000")).toBe(true);
+  });
+  it("rejects a mod-97-invalid IBAN", () => {
+    expect(ibanMod97Valid("GB82WEST12345698765433")).toBe(false);
+    expect(ibanMod97Valid("DE89370400440532013001")).toBe(false);
+  });
+});
+
+// ============================================================
+// Named-detector registry — positive + negative control each
+// ============================================================
+
+describe("named PII detector registry", () => {
+  it("exposes all 8 detector names", () => {
+    expect(DETECTOR_NAMES.sort()).toEqual(
+      [
+        "api_key",
+        "credit_card",
+        "email",
+        "iban",
+        "ip",
+        "jwt",
+        "phone",
+        "ssn",
+      ].sort(),
+    );
+    expect(PII_DETECTORS.credit_card.validate).toBe(luhnValid);
+    expect(PII_DETECTORS.iban.validate).toBe(ibanMod97Valid);
+  });
+
+  it("ssn: matches dashed and undashed, ignores a clean control", async () => {
+    expect(await fired("ssn", "ssn 123-45-6789")).toBe(true);
+    expect(await fired("ssn", "ssn 123456789")).toBe(true);
+    expect(await fired("ssn", "the year was 2024 and all was well")).toBe(false);
+  });
+
+  it("credit_card: matches a Luhn-valid number, rejects a Luhn-invalid one", async () => {
+    expect(await fired("credit_card", "card 4111 1111 1111 1111")).toBe(true);
+    expect(await fired("credit_card", "card 4111 1111 1111 1112")).toBe(false);
+  });
+
+  it("email: matches an address, ignores plain text", async () => {
+    expect(await fired("email", "reach me at jane.doe@example.com")).toBe(true);
+    expect(await fired("email", "no address here at all")).toBe(false);
+  });
+
+  it("phone: matches US format and E.164, ignores a short number", async () => {
+    expect(await fired("phone", "call (415) 555-2671")).toBe(true);
+    expect(await fired("phone", "call +14155552671")).toBe(true);
+    expect(await fired("phone", "press 5 to continue")).toBe(false);
+  });
+
+  it("iban: matches a mod-97-valid IBAN, rejects a mod-97-invalid one", async () => {
+    expect(await fired("iban", "pay to GB82WEST12345698765432 please")).toBe(true);
+    expect(await fired("iban", "pay to GB82WEST12345698765433 please")).toBe(false);
+  });
+
+  it("ip: matches an IPv4 address, ignores an out-of-range quad", async () => {
+    expect(await fired("ip", "server at 192.168.1.42")).toBe(true);
+    expect(await fired("ip", "version 999.999.999.999 build")).toBe(false);
+  });
+
+  it("jwt: matches a three-segment token, ignores a two-segment string", async () => {
+    expect(
+      await fired(
+        "jwt",
+        "token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NX0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+      ),
+    ).toBe(true);
+    expect(await fired("jwt", "header.payload only here")).toBe(false);
+  });
+
+  it("api_key: matches AKIA/sk-/ghp_/xox prefixes, ignores random text", async () => {
+    expect(await fired("api_key", "key AKIAIOSFODNN7EXAMPLE")).toBe(true);
+    expect(await fired("api_key", "key sk-abcdefghijklmnop1234")).toBe(true);
+    expect(await fired("api_key", "key ghp_abcdefghijklmnopqrstuvwxyz1234")).toBe(
+      true,
+    );
+    expect(await fired("api_key", "key xoxb-1234567890-abcdEFGH")).toBe(true);
+    expect(await fired("api_key", "nothing secret in this sentence")).toBe(false);
+  });
+
+  it("runs only the selected detectors (does not fire on others' PII)", async () => {
+    // email-only selection must not flag an SSN
+    expect(await fired("email", "ssn 123-45-6789")).toBe(false);
+  });
+
+  it("back-compat: absent detectors runs legacy denyPatterns unchanged", async () => {
+    // No `detectors` field → legacy path: the 3 default patterns fire.
+    const assertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
+    const ssn = await assertion.evaluate(ctx("ssn 123-45-6789"));
+    expect(ssn[0]).toMatchObject({ passed: false });
+    const ccAssertion = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
+    const cc = await ccAssertion.evaluate(ctx("card 4111 1111 1111 1111"));
+    expect(cc[0]).toMatchObject({ passed: false });
+    // Undashed SSN was NOT covered by the legacy default — must stay uncovered.
+    const undashed = createPiiAssertion({ denyPatterns: DEFAULT_PATTERNS });
+    const u = await undashed.evaluate(ctx("ssn 123456789"));
+    expect(u[0]).toMatchObject({ passed: true });
+  });
+
+  it("preserves the ReDoS guard for custom patterns when detectors are set", async () => {
+    const assertion = createPiiAssertion({
+      denyPatterns: [],
+      detectors: ["email"],
+      customPatterns: [{ name: "evil", pattern: "(a+)+$" }],
+    });
+    const results = await assertion.evaluate(ctx("aaaa"));
+    expect(results[0]).toMatchObject({
+      passed: false,
+      failureCode: "INVALID_PATTERN",
+    });
   });
 });

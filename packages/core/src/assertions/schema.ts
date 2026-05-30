@@ -1,15 +1,75 @@
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
 import type { Assertion, AssertionContext, AssertionResult } from "./interface.js";
 
 interface AjvInstance {
   compile(schema: object): AjvValidateFunction;
-  getSchema(key: string): AjvValidateFunction | undefined;
-  addSchema(schema: object, key: string): AjvInstance;
   errorsText(errors: unknown[] | null | undefined): string;
 }
 
 interface AjvValidateFunction {
   (data: unknown): boolean;
   errors: unknown[] | null;
+}
+
+/**
+ * Result of validating a value against a JSON Schema. Matches the
+ * `AssertionContext.validateJsonSchema` contract in interface.ts.
+ */
+export type JsonSchemaValidationResult =
+  | { valid: true }
+  | { valid: false; errors: string[]; compileError?: boolean };
+
+/**
+ * Single source of truth for AJV configuration. Returns a synchronous
+ * validator that compiles (and caches) each schema lazily, with
+ * `ajv-formats` enabled. Both the output-schema assertion and the runner's
+ * injected `AssertionContext.validateJsonSchema` consume this so AJV behavior
+ * (options + formats + caching) never diverges. AJV is a pure dependency, so
+ * this keeps core I/O-free.
+ */
+export function createJsonSchemaValidator(): (
+  schema: Record<string, unknown>,
+  data: unknown,
+) => JsonSchemaValidationResult {
+  // `Ajv`/`addFormats` are exported as CJS default constructs; cast to the
+  // minimal shapes we use to keep strict typing without pulling AJV's types.
+  const AjvCtor = Ajv as unknown as { new (opts: object): AjvInstance };
+  const applyFormats = addFormats as unknown as (ajv: AjvInstance) => void;
+  const ajv = new AjvCtor({ allErrors: true, strict: false });
+  applyFormats(ajv);
+
+  const validatorCache = new Map<string, AjvValidateFunction>();
+
+  function getOrCompileValidator(
+    schema: Record<string, unknown>,
+  ): AjvValidateFunction | { compileError: string } {
+    const key = JSON.stringify(schema);
+    const cached = validatorCache.get(key);
+    if (cached) return cached;
+    try {
+      const validate = ajv.compile(schema);
+      validatorCache.set(key, validate);
+      return validate;
+    } catch (e) {
+      return { compileError: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  return (schema, data) => {
+    const validateOrError = getOrCompileValidator(schema);
+    if ("compileError" in validateOrError) {
+      return {
+        valid: false,
+        errors: [validateOrError.compileError],
+        compileError: true,
+      };
+    }
+    const validate = validateOrError;
+    const valid = validate(data);
+    if (valid) return { valid: true };
+    return { valid: false, errors: [ajv.errorsText(validate.errors)] };
+  };
 }
 
 export interface SchemaAssertionConfig {
@@ -22,36 +82,9 @@ export interface SchemaAssertionConfig {
 }
 
 export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion {
-  // AJV instance and validator cache are local to each assertion handler,
-  // avoiding module-level mutable state and keeping core pure.
-  let ajvInstance: AjvInstance | undefined;
-
-  async function getAjvInstance(): Promise<AjvInstance> {
-    if (ajvInstance) return ajvInstance;
-    const ajvMod = await import("ajv");
-    const formatsMod = await import("ajv-formats");
-    const Ajv = (ajvMod as unknown as { default: { new (opts: object): AjvInstance } }).default;
-    const addFormats = (formatsMod as unknown as { default: (ajv: AjvInstance) => void }).default;
-    const instance = new Ajv({ allErrors: true, strict: false });
-    addFormats(instance);
-    ajvInstance = instance;
-    return instance;
-  }
-
-  const validatorCache = new Map<string, AjvValidateFunction>();
-
-  function getOrCompileValidator(ajv: AjvInstance, schema: Record<string, unknown>): AjvValidateFunction | { compileError: string } {
-    const key = JSON.stringify(schema);
-    const cached = validatorCache.get(key);
-    if (cached) return cached;
-    try {
-      const validate = ajv.compile(schema);
-      validatorCache.set(key, validate);
-      return validate;
-    } catch (e) {
-      return { compileError: e instanceof Error ? e.message : String(e) };
-    }
-  }
+  // Reuse the single shared AJV configuration. The validator is local to each
+  // assertion handler, avoiding module-level mutable state and keeping core pure.
+  const validateSchema = createJsonSchemaValidator();
   return {
     type: "schema",
     async evaluate(context: AssertionContext): Promise<AssertionResult[]> {
@@ -81,32 +114,23 @@ export function createSchemaAssertion(config: SchemaAssertionConfig): Assertion 
       }
 
       if (config.schemaContent) {
-        const ajv = await getAjvInstance();
-        const validateOrError = getOrCompileValidator(ajv, config.schemaContent);
-        if ("compileError" in validateOrError) {
-          results.push({
-            assertionType: "schema",
-            label: "Output matches JSON Schema",
-            passed: false,
-            score: 0,
-            failureCode: "SCHEMA_INVALID",
-            failureMessage: `Schema compilation failed: ${validateOrError.compileError}`,
-          });
-        } else {
-          const validate = validateOrError;
-          const valid = validate(parsed ?? context.outputText);
-          results.push({
-            assertionType: "schema",
-            label: "Output matches JSON Schema",
-            passed: valid,
-            score: valid ? 1 : 0,
-            failureCode: valid ? undefined : "SCHEMA_INVALID",
-            failureMessage: valid
-              ? undefined
-              : `Schema validation failed: ${ajv.errorsText(validate.errors)}`,
-            metadata: valid ? undefined : { errors: validate.errors },
-          });
-        }
+        const result = validateSchema(
+          config.schemaContent,
+          parsed ?? context.outputText,
+        );
+        results.push({
+          assertionType: "schema",
+          label: "Output matches JSON Schema",
+          passed: result.valid,
+          score: result.valid ? 1 : 0,
+          failureCode: result.valid ? undefined : "SCHEMA_INVALID",
+          failureMessage: result.valid
+            ? undefined
+            : result.compileError
+              ? `Schema compilation failed: ${result.errors.join("; ")}`
+              : `Schema validation failed: ${result.errors.join("; ")}`,
+          metadata: result.valid ? undefined : { errors: result.errors },
+        });
       }
 
       if (config.contains) {

@@ -318,6 +318,10 @@
           "items": { "$ref": "#/$defs/toolCallExpect" },
           "description": "Expected tool/function calls in the model response."
         },
+        "toolCallsOrdered": {
+          "type": "boolean",
+          "description": "Opt-in: enforce that tool calls occur in the SEQUENCE declared in toolCalls (out-of-order FAILS). When omitted, a plain toolCalls list is presence-only (passes regardless of order). Ignored if any entry sets a numeric `order:` (numeric order takes precedence as positional matching)."
+        },
         "judge": {
           "type": "array",
           "items": { "$ref": "#/$defs/judgeCriterion" },

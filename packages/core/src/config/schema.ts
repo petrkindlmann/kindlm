@@ -2,6 +2,16 @@ import { z } from "zod";
 import type { Result, KindlmError } from "../types/result.js";
 import { ok, err } from "../types/result.js";
 import { TraceConfigSchema } from "../trace/types.js";
+import { RedTeamConfigSchema } from "../redteam/schema.js";
+import type { RedTeamConfig } from "../redteam/schema.js";
+import { DETECTOR_NAMES } from "../assertions/pii.js";
+import { formatZodPath } from "./zod-path.js";
+
+// Re-export formatZodPath so existing `import { formatZodPath } from "./schema.js"`
+// call sites (and the public `@kindlm/core` surface via the config barrel)
+// keep working after the helper moved to ./zod-path.ts to break a
+// schema↔schema cycle with ../redteam/schema.js.
+export { formatZodPath };
 
 // ============================================================
 // Primitive / Reusable Schemas
@@ -221,6 +231,7 @@ const OutputExpectSchema = z
       .optional()
       .describe("Maximum character length of the output"),
   })
+  .strict()
   .refine(
     (output) => {
       if (output.format === "json" && !output.schemaFile) {
@@ -233,6 +244,13 @@ const OutputExpectSchema = z
 
 const PIIGuardrailSchema = z.object({
   enabled: z.boolean().default(true),
+  detectors: z
+    .array(z.enum(DETECTOR_NAMES))
+    .optional()
+    .describe(
+      "Named built-in detectors to run (ssn, credit_card, email, phone, iban, ip, jwt, api_key). " +
+        "When omitted, the default denyPatterns set (SSN, credit card, email) is used for back-compat.",
+    ),
   denyPatterns: z
     .array(RegexPattern)
     .default([
@@ -252,7 +270,7 @@ const PIIGuardrailSchema = z.object({
     )
     .optional()
     .describe("Named custom PII patterns for reporting clarity"),
-});
+}).strict();
 
 const KeywordGuardrailSchema = z.object({
   deny: z
@@ -267,7 +285,7 @@ const KeywordGuardrailSchema = z.object({
     .describe(
       "If set, output MUST contain at least one of these words/phrases",
     ),
-});
+}).strict();
 
 const JudgeCriterionSchema = z.object({
   criteria: NonEmptyString.describe(
@@ -288,7 +306,7 @@ const JudgeCriterionSchema = z.object({
     .describe(
       "Detailed rubric for the judge. If omitted, a default rubric is generated from criteria.",
     ),
-});
+}).strict();
 
 const ToolCallExpectSchema = z.object({
   tool: NonEmptyString.describe("Expected tool/function name"),
@@ -323,7 +341,7 @@ const ToolCallExpectSchema = z.object({
     .describe(
       "Expected position in the sequence of tool calls (0-indexed)",
     ),
-});
+}).strict();
 
 const BaselineDriftSchema = z.object({
   maxScore: Score01.default(0.15).describe(
@@ -341,12 +359,12 @@ const BaselineDriftSchema = z.object({
     .describe(
       "For field-diff method: JSON paths to compare (e.g., ['response.action', 'response.message'])",
     ),
-});
+}).strict();
 
 const GuardrailsSchema = z.object({
   pii: PIIGuardrailSchema.optional(),
   keywords: KeywordGuardrailSchema.optional(),
-});
+}).strict();
 
 const ExpectSchema = z.object({
   output: OutputExpectSchema.optional(),
@@ -361,24 +379,35 @@ const ExpectSchema = z.object({
     .array(ToolCallExpectSchema)
     .optional()
     .describe("Expected tool/function calls in the model response"),
+  toolCallsOrdered: z
+    .boolean()
+    .optional()
+    .describe(
+      "Opt-in: enforce that tool calls occur in the SEQUENCE declared in toolCalls (out-of-order FAILS). " +
+        "When omitted, a plain toolCalls list is presence-only (passes regardless of call order). " +
+        "Ignored if any entry sets a numeric `order:` (numeric order takes precedence as positional matching).",
+    ),
   baseline: z
     .object({
       drift: BaselineDriftSchema.optional(),
     })
+    .strict()
     .optional(),
   latency: z
     .object({
       maxMs: z.number().positive().describe("Maximum allowed latency in milliseconds"),
     })
+    .strict()
     .optional()
     .describe("Assert response latency is within threshold"),
   cost: z
     .object({
       maxUsd: z.number().positive().describe("Maximum allowed cost in USD"),
     })
+    .strict()
     .optional()
     .describe("Assert response cost is within budget"),
-});
+}).strict();
 
 // ============================================================
 // Tool Simulation Schema (for agent testing)
@@ -659,6 +688,9 @@ export const KindLMConfigSchema = z.object({
   trace: TraceConfigSchema.optional().describe(
     "OpenTelemetry trace ingestion configuration for the 'kindlm trace' command",
   ),
+  redteam: RedTeamConfigSchema.optional().describe(
+    "Optional red team suite. When present, the `kindlm redteam` command uses this block; the main `kindlm run` flow ignores it.",
+  ),
   upload: UploadSchema.default({}),
   defaults: z
     .object({
@@ -709,16 +741,17 @@ export type ComplianceConfig = z.infer<typeof ComplianceSchema>;
 export type HttpProviderSchemaConfig = z.infer<typeof HttpProviderConfigSchema>;
 export type McpProviderSchemaConfig = z.infer<typeof McpProviderConfigSchema>;
 
+/**
+ * Re-exported for consumers that access the red team config through the
+ * top-level `KindLMConfig.redteam` field. The canonical definition lives
+ * in `../redteam/schema.js`; we re-export the type here so a single
+ * `import { KindLMConfig, RedTeamConfig } from "@kindlm/core"` works.
+ */
+export type { RedTeamConfig };
+
 // ============================================================
 // Validation
 // ============================================================
-
-export function formatZodPath(path: (string | number)[]): string {
-  return path.reduce<string>((acc, segment, i) => {
-    if (typeof segment === "number") return `${acc}[${segment}]`;
-    return i === 0 ? segment : `${acc}.${segment}`;
-  }, "");
-}
 
 export function validateConfig(
   raw: unknown,

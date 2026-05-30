@@ -6,6 +6,7 @@ import type { FileReader } from "../config/parser.js";
 import type { AssertionContext, AssertionResult } from "../assertions/interface.js";
 import { createAssertionsFromExpect } from "../assertions/registry.js";
 import type { AssertionOverrides } from "../assertions/registry.js";
+import { createJsonSchemaValidator } from "../assertions/schema.js";
 import { interpolate } from "../config/interpolation.js";
 import { runConversation } from "../providers/conversation.js";
 import type { ConversationResult } from "../types/provider.js";
@@ -14,6 +15,13 @@ import { aggregateRuns } from "./aggregator.js";
 import type { BaselineData } from "../baseline/store.js";
 import type { CommandExecutor } from "./command.js";
 import { parseCommandOutput } from "./command.js";
+import { runWithConcurrency } from "./concurrency.js";
+
+// Single shared JSON Schema validator (AJV) injected into every
+// AssertionContext so tool-call `argsSchema` assertions can validate args.
+// One instance keeps AJV config + compiled-schema cache unified across all
+// context-construction sites. AJV is pure, so this preserves core's zero-I/O.
+const validateJsonSchema = createJsonSchemaValidator();
 
 // ============================================================
 // Public Types
@@ -395,6 +403,7 @@ function buildAssertionContext(
     getEmbedding: adapter.embed
       ? ((fn) => (text: string) => fn(text))(adapter.embed)
       : undefined,
+    validateJsonSchema,
     betaJudge: deps.betaJudge,
   };
 
@@ -483,6 +492,7 @@ async function executeUnit(
           toolCalls: turnResponse.response.toolCalls,
           configDir: deps.configDir,
           latencyMs: turnResponse.response.latencyMs,
+          validateJsonSchema,
         };
 
         const turnAssertions = createAssertionsFromExpect(turnDef.expect);
@@ -623,6 +633,7 @@ async function executeCommandUnit(
       getEmbedding: judgeAdapter?.embed
         ? ((fn) => (text: string) => fn(text))(judgeAdapter.embed)
         : undefined,
+      validateJsonSchema,
       betaJudge: deps.betaJudge,
     };
 
@@ -735,33 +746,6 @@ function errorResult(
     errored: true,
     error: { code: "UNKNOWN_ERROR", message },
   };
-}
-
-// ============================================================
-// Concurrency Helper
-// ============================================================
-
-async function runWithConcurrency<T>(
-  tasks: (() => Promise<T>)[],
-  limit: number,
-): Promise<T[]> {
-  const results: T[] = Array.from({ length: tasks.length }) as T[];
-  let nextIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (nextIndex < tasks.length) {
-      const index = nextIndex++;
-      const task = tasks[index];
-      if (task === undefined) {
-        throw new Error(`Task at index ${index} is undefined`);
-      }
-      results[index] = await task();
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
 }
 
 // ============================================================

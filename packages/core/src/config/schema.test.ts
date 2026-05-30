@@ -247,6 +247,234 @@ describe("validateConfig", () => {
   });
 });
 
+describe("validateConfig — redteam field", () => {
+  it("accepts a minimal config without a redteam section (backward compat)", () => {
+    const result = validateConfig(minimalConfig());
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Field is optional — must be undefined when omitted
+      expect(result.data.redteam).toBeUndefined();
+    }
+  });
+
+  it("accepts a config with a minimal valid redteam section", () => {
+    const result = validateConfig(
+      minimalConfig({
+        redteam: {
+          purpose: "Customer support chatbot for a banking app",
+          target: { model: "gpt-4o" },
+          plugins: [{ id: "prompt-injection" }],
+        },
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.redteam).toBeDefined();
+      expect(result.data.redteam?.purpose).toContain("chatbot");
+      expect(result.data.redteam?.target.model).toBe("gpt-4o");
+      expect(result.data.redteam?.plugins).toHaveLength(1);
+      expect(result.data.redteam?.plugins[0]?.id).toBe("prompt-injection");
+      // numTests default should populate from RedTeamPluginEntrySchema
+      expect(result.data.redteam?.plugins[0]?.numTests).toBe(5);
+      // strategy/gates defaults should populate
+      expect(result.data.redteam?.strategy.concurrency).toBe(4);
+      expect(result.data.redteam?.gates.maxCriticalFailures).toBe(0);
+    }
+  });
+});
+
+describe("strict expect schema (#1 false-green)", () => {
+  it("rejects a typo'd top-level expect key (tooCalls) with unrecognized_keys", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "typo-test",
+            prompt: "greeting",
+            expect: { tooCalls: [{ tool: "search" }] },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = (result.error.details?.errors ?? []) as string[];
+      // The unrecognized key name must surface in the rendered error
+      expect(errors.some((e) => e.includes("tooCalls"))).toBe(true);
+    }
+  });
+
+  it("rejects an unknown key under output (strict nested sub-schema)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "out-typo",
+            prompt: "greeting",
+            expect: { output: { contian: ["x"] } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key under guardrails.pii (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-typo",
+            prompt: "greeting",
+            expect: { guardrails: { pii: { enabld: true } } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key on a toolCalls entry (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "tc-typo",
+            prompt: "greeting",
+            expect: { toolCalls: [{ tool: "search", argMatch: { q: 1 } }] },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key on a judge entry (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "judge-typo",
+            prompt: "greeting",
+            expect: { judge: [{ criteria: "be nice", minScrore: 0.5 }] },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("GATING back-compat: a valid config with a tool-call carrying argsSchema still parses", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "argsschema-test",
+            prompt: "greeting",
+            expect: {
+              toolCalls: [
+                {
+                  tool: "search",
+                  argsMatch: { query: "x" },
+                  argsSchema: "./tool-schema.json",
+                  order: 0,
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("allows the parser-populated argsSchemaResolved field under strict", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "resolved-test",
+            prompt: "greeting",
+            expect: {
+              toolCalls: [
+                {
+                  tool: "search",
+                  argsSchema: "./tool-schema.json",
+                  argsSchemaResolved: { type: "object" },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("guardrails.pii.detectors (#5 named-detector registry)", () => {
+  it("accepts a detectors list of valid names", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-detectors",
+            prompt: "greeting",
+            expect: {
+              guardrails: {
+                pii: { detectors: ["ssn", "credit_card", "iban"] },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const pii = result.data.tests[0]?.expect.guardrails?.pii;
+      expect(pii?.detectors).toEqual(["ssn", "credit_card", "iban"]);
+    }
+  });
+
+  it("rejects an unknown detector name (enum-gated)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-bad-detector",
+            prompt: "greeting",
+            expect: {
+              guardrails: { pii: { detectors: ["ssn", "not_a_detector"] } },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("is back-compat: a pii block with no detectors still parses with default denyPatterns", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-default",
+            prompt: "greeting",
+            expect: { guardrails: { pii: { enabled: true } } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const pii = result.data.tests[0]?.expect.guardrails?.pii;
+      expect(pii?.detectors).toBeUndefined();
+      // The 3 default denyPatterns must still populate for existing suites.
+      expect(pii?.denyPatterns).toHaveLength(3);
+    }
+  });
+});
+
 describe("formatZodPath", () => {
   it("returns empty string for empty path", () => {
     expect(formatZodPath([])).toBe("");

@@ -64,7 +64,7 @@ function detectContext(
   // Scan backwards to find enclosing context
   let inExpect = false;
   let expectSection: ExpectSection | null = null;
-  let topLevel = currentIndent === 0 || currentIndent === -1;
+  const topLevel = currentIndent === 0 || currentIndent === -1;
 
   for (let i = position.line; i >= Math.max(0, position.line - 50); i--) {
     const line = document.lineAt(i).text;
@@ -212,6 +212,7 @@ export function createCompletionProvider(): vscode.CompletionItemProvider {
         const expectSubKeys: Array<{ label: string; insert: string; detail: string }> = [
           { label: "output", insert: "output:\n    format: text", detail: "Output format and content assertions" },
           { label: "toolCalls", insert: "toolCalls:\n    - tool: ", detail: "Expected tool/function calls" },
+          { label: "toolCallsOrdered", insert: "toolCallsOrdered: ${1:true}", detail: "Opt-in: enforce tool call sequence (out-of-order fails)" },
           { label: "judge", insert: "judge:\n    - criteria: \"${1:Response is helpful}\"\n      minScore: ${2:0.8}", detail: "LLM-as-judge evaluation criteria" },
           { label: "guardrails", insert: "guardrails:\n    pii:\n      enabled: true", detail: "PII and keyword safety guardrails" },
           { label: "baseline", insert: "baseline:\n    drift:\n      maxScore: 0.15\n      method: judge", detail: "Behavioral drift detection against saved baseline" },

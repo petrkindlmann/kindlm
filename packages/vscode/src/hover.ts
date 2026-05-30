@@ -143,7 +143,8 @@ const PROPERTY_DOCS: Record<string, string> = {
   tags: "Tags for filtering in CLI (e.g., `kindlm test --tags regression`).",
   // expect fields
   output: "Output format and content assertions — format, schema, contains, notContains, maxLength.",
-  toolCalls: "Expected tool/function calls. Each entry asserts a tool was called (or not called) with specific arguments.",
+  toolCalls: "Expected tool/function calls. Each entry asserts a tool was called (or not called) with specific arguments. Three ordering modes: plain list (presence-only), numeric `order:` (positional), or `toolCallsOrdered: true` (enforce declared sequence).",
+  toolCallsOrdered: "Opt-in boolean. When `true`, tools in `toolCalls` must be called in the declared order — an out-of-order sequence FAILS. Omit for presence-only matching. Ignored when any entry sets a numeric `order:` (numeric order takes precedence).",
   judge: "LLM-as-judge evaluations. Each criterion is scored independently by a judge model.",
   guardrails: "Safety guardrails — PII detection and keyword policies.",
   baseline: "Baseline comparison — detects behavioral drift against a saved baseline.",

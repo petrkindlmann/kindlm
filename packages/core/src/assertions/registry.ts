@@ -25,15 +25,34 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
   const assertions: Assertion[] = [];
 
   if (expect.toolCalls) {
-    const hasOrder = expect.toolCalls.some((tc) => tc.order !== undefined);
+    const hasNumericOrder = expect.toolCalls.some(
+      (tc) => tc.order !== undefined,
+    );
+    // The opt-in `toolCallsOrdered: true` enforces the declared SEQUENCE by
+    // synthesizing order indices from array position. A numeric `order:` on any
+    // entry takes precedence (back-compat positional matching) — when present we
+    // pass entries through untouched and never synthesize.
+    const useOrdered = hasNumericOrder || expect.toolCallsOrdered === true;
 
-    if (hasOrder) {
-      const mapped = expect.toolCalls.map((tc) => ({
-        ...tc,
-        argsSchema: tc.argsSchemaResolved
-          ? JSON.stringify(tc.argsSchemaResolved)
-          : tc.argsSchema,
-      }));
+    if (useOrdered) {
+      // When relying solely on the opt-in (no numeric order anywhere), derive the
+      // expected position from the entry's index among the positive calls,
+      // skipping shouldNotCall negatives (those are name-presence checks, not
+      // positional). When numeric order is present we leave entries as-is.
+      let synthesizedPosition = 0;
+      const mapped = expect.toolCalls.map((tc) => {
+        const order =
+          hasNumericOrder || tc.shouldNotCall
+            ? tc.order
+            : synthesizedPosition++;
+        return {
+          ...tc,
+          order,
+          argsSchema: tc.argsSchemaResolved
+            ? JSON.stringify(tc.argsSchemaResolved)
+            : tc.argsSchema,
+        };
+      });
       assertions.push(createToolOrderAssertion(mapped));
     } else {
       for (const tc of expect.toolCalls) {
@@ -73,6 +92,7 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
       createPiiAssertion({
         denyPatterns: expect.guardrails.pii.denyPatterns,
         customPatterns: expect.guardrails.pii.customPatterns,
+        detectors: expect.guardrails.pii.detectors,
       }),
     );
   }

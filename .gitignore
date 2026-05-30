@@ -16,3 +16,30 @@ out/
 .open-next/
 .playwright-mcp/
 .wrangler/
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+.gsd-id
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env.*
+!.env.example
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+target/
+vendor/
+*.log
+coverage/
+.cache/
+tmp/
+
+# ── GSD baseline (auto-generated) ──
+.bg-shell/

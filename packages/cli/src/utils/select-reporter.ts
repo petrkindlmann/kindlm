@@ -20,10 +20,10 @@ const chalkColorize: Colorize = {
 
 const KNOWN_REPORTERS = ["pretty", "json", "junit"] as const;
 
-export function selectReporter(type: string): Reporter {
+export function selectReporter(type: string, version?: string): Reporter {
   switch (type) {
     case "json":
-      return createJsonReporter();
+      return createJsonReporter(version);
     case "junit":
       return createJunitReporter();
     case "pretty":

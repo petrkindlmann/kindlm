@@ -451,3 +451,189 @@ describe("safePath", () => {
     }
   });
 });
+
+describe("parseConfig — redteam cross-reference validation", () => {
+  // Multi-model base config so the "close match" suggestions have a real
+  // candidate pool. Uses the same explicit-YAML pattern as other cases in
+  // this file rather than JSON fixtures.
+  const MULTI_MODEL_YAML = `
+kindlm: 1
+project: "rt-project"
+suite:
+  name: "rt-suite"
+providers:
+  openai:
+    apiKeyEnv: "OPENAI_API_KEY"
+  anthropic:
+    apiKeyEnv: "ANTHROPIC_API_KEY"
+models:
+  - id: "gpt-4o"
+    provider: "openai"
+    model: "gpt-4o"
+  - id: "claude-sonnet-4-5"
+    provider: "anthropic"
+    model: "claude-sonnet-4-5-20250929"
+prompts:
+  greeting:
+    user: "Hello"
+tests:
+  - name: "t1"
+    prompt: "greeting"
+    expect: {}
+`;
+
+  it("fails with a Levenshtein 'did you mean' hint when redteam.target.model is a close typo", () => {
+    const yaml =
+      MULTI_MODEL_YAML.trimEnd() +
+      `
+redteam:
+  purpose: "Banking support assistant"
+  target:
+    model: "gpt-4oo"
+  plugins:
+    - id: "prompt-injection"
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("CONFIG_VALIDATION_ERROR");
+      const errors = getErrors(result.error.details);
+      const targetError = errors.find((e) =>
+        e.includes("redteam.target.model"),
+      );
+      expect(targetError).toBeDefined();
+      expect(targetError).toContain('"gpt-4oo"');
+      expect(targetError).toContain('Did you mean: "gpt-4o"');
+    }
+  });
+
+  it("fails with a suggestion when an unknown plugin id is close to a known one", () => {
+    // "prompt-injecton" is distance 1 from "prompt-injection".
+    // (Per registry tests: threshold = max(2, floor(0.4*len)), so "prompt-inj"
+    // at length 10 has budget 4 but distance 6 and gets NO hint — use a
+    // single-char typo here so we stay safely under the suggester threshold.)
+    const yaml =
+      MULTI_MODEL_YAML.trimEnd() +
+      `
+redteam:
+  purpose: "Banking support assistant"
+  target:
+    model: "gpt-4o"
+  plugins:
+    - id: "prompt-injecton"
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("CONFIG_VALIDATION_ERROR");
+      const errors = getErrors(result.error.details);
+      const pluginError = errors.find((e) =>
+        e.includes("Unknown red team plugin"),
+      );
+      expect(pluginError).toBeDefined();
+      expect(pluginError).toContain('"prompt-injecton"');
+      expect(pluginError).toContain('Did you mean: "prompt-injection"');
+      // Registry errors are prefixed with `redteam.` in the parser fold
+      expect(pluginError).toMatch(/^redteam\./);
+    }
+  });
+
+  it("accepts a full redteam config with judge model and multiple policy plugins end-to-end", () => {
+    const yaml =
+      MULTI_MODEL_YAML.trimEnd() +
+      `
+redteam:
+  purpose: "Financial advisor that must never discuss competitors or recommend specific stocks"
+  target:
+    model: "gpt-4o"
+    prompt: "You are a careful financial assistant."
+  judge:
+    model: "claude-sonnet-4-5"
+  plugins:
+    - id: "prompt-injection"
+      numTests: 3
+    - id: "pii-disclosure"
+      severity: "high"
+    - id: "policy"
+      config:
+        policy: "Never recommend specific stocks by ticker."
+    - id: "policy"
+      config:
+        policy: "Never discuss competitor brokerages by name."
+  strategy:
+    concurrency: 2
+    maxBudgetUsd: 5.00
+  gates:
+    maxCriticalFailures: 0
+    maxHighFailures: 1
+    minOverallPassRate: 0.85
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.redteam).toBeDefined();
+      expect(result.data.redteam?.target.model).toBe("gpt-4o");
+      expect(result.data.redteam?.judge?.model).toBe("claude-sonnet-4-5");
+      expect(result.data.redteam?.plugins).toHaveLength(4);
+      expect(result.data.redteam?.strategy.concurrency).toBe(2);
+      expect(result.data.redteam?.gates.maxHighFailures).toBe(1);
+      // Both policy plugins coexist — the registry keys them by id#index
+      const policyPlugins = result.data.redteam?.plugins.filter(
+        (p) => p.id === "policy",
+      );
+      expect(policyPlugins).toHaveLength(2);
+    }
+  });
+
+  it("fails when redteam.judge.model references an unknown model id", () => {
+    const yaml =
+      MULTI_MODEL_YAML.trimEnd() +
+      `
+redteam:
+  purpose: "Banking support assistant"
+  target:
+    model: "gpt-4o"
+  judge:
+    model: "claude-nope"
+  plugins:
+    - id: "prompt-injection"
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      const judgeError = errors.find((e) =>
+        e.includes("redteam.judge.model"),
+      );
+      expect(judgeError).toBeDefined();
+      expect(judgeError).toContain('"claude-nope"');
+    }
+  });
+
+  it("aggregates main-config and redteam errors in a single parse pass", () => {
+    // Both a top-level error (duplicate test name) and a redteam error
+    // should surface together — the cross-ref pass must not short-circuit.
+    const yaml =
+      MULTI_MODEL_YAML.trimEnd() +
+      `
+  - name: "t1"
+    prompt: "greeting"
+    expect: {}
+redteam:
+  purpose: "Banking support assistant"
+  target:
+    model: "nonexistent-model"
+  plugins:
+    - id: "prompt-injection"
+`;
+    const result = parseConfig(yaml, { configDir: "/tmp" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = getErrors(result.error.details);
+      expect(errors.some((e) => e.includes("Duplicate test name"))).toBe(true);
+      expect(
+        errors.some((e) => e.includes("redteam.target.model")),
+      ).toBe(true);
+    }
+  });
+});
