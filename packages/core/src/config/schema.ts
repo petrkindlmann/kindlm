@@ -379,6 +379,14 @@ const ExpectSchema = z.object({
     .array(ToolCallExpectSchema)
     .optional()
     .describe("Expected tool/function calls in the model response"),
+  toolCallsOrdered: z
+    .boolean()
+    .optional()
+    .describe(
+      "Opt-in: enforce that tool calls occur in the SEQUENCE declared in toolCalls (out-of-order FAILS). " +
+        "When omitted, a plain toolCalls list is presence-only (passes regardless of call order). " +
+        "Ignored if any entry sets a numeric `order:` (numeric order takes precedence as positional matching).",
+    ),
   baseline: z
     .object({
       drift: BaselineDriftSchema.optional(),
