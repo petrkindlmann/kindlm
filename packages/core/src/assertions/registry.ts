@@ -73,6 +73,7 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
       createPiiAssertion({
         denyPatterns: expect.guardrails.pii.denyPatterns,
         customPatterns: expect.guardrails.pii.customPatterns,
+        detectors: expect.guardrails.pii.detectors,
       }),
     );
   }

@@ -4,6 +4,7 @@ import { ok, err } from "../types/result.js";
 import { TraceConfigSchema } from "../trace/types.js";
 import { RedTeamConfigSchema } from "../redteam/schema.js";
 import type { RedTeamConfig } from "../redteam/schema.js";
+import { DETECTOR_NAMES } from "../assertions/pii.js";
 import { formatZodPath } from "./zod-path.js";
 
 // Re-export formatZodPath so existing `import { formatZodPath } from "./schema.js"`
@@ -243,6 +244,13 @@ const OutputExpectSchema = z
 
 const PIIGuardrailSchema = z.object({
   enabled: z.boolean().default(true),
+  detectors: z
+    .array(z.enum(DETECTOR_NAMES))
+    .optional()
+    .describe(
+      "Named built-in detectors to run (ssn, credit_card, email, phone, iban, ip, jwt, api_key). " +
+        "When omitted, the default denyPatterns set (SSN, credit card, email) is used for back-compat.",
+    ),
   denyPatterns: z
     .array(RegexPattern)
     .default([

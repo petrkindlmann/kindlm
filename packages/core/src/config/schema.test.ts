@@ -412,6 +412,69 @@ describe("strict expect schema (#1 false-green)", () => {
   });
 });
 
+describe("guardrails.pii.detectors (#5 named-detector registry)", () => {
+  it("accepts a detectors list of valid names", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-detectors",
+            prompt: "greeting",
+            expect: {
+              guardrails: {
+                pii: { detectors: ["ssn", "credit_card", "iban"] },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const pii = result.data.tests[0]?.expect.guardrails?.pii;
+      expect(pii?.detectors).toEqual(["ssn", "credit_card", "iban"]);
+    }
+  });
+
+  it("rejects an unknown detector name (enum-gated)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-bad-detector",
+            prompt: "greeting",
+            expect: {
+              guardrails: { pii: { detectors: ["ssn", "not_a_detector"] } },
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("is back-compat: a pii block with no detectors still parses with default denyPatterns", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-default",
+            prompt: "greeting",
+            expect: { guardrails: { pii: { enabled: true } } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const pii = result.data.tests[0]?.expect.guardrails?.pii;
+      expect(pii?.detectors).toBeUndefined();
+      // The 3 default denyPatterns must still populate for existing suites.
+      expect(pii?.denyPatterns).toHaveLength(3);
+    }
+  });
+});
+
 describe("formatZodPath", () => {
   it("returns empty string for empty path", () => {
     expect(formatZodPath([])).toBe("");
