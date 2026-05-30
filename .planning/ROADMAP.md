@@ -65,7 +65,7 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
 **Milestone Goal:** Close the methodological rigor gap and CI UX gap to make KindLM the provably-correct choice for serious agent testing teams.
 
 - [x] **Phase 18.1: v2.3.1 False-Green Bugfixes** (6/6 plans) — completed 2026-05-30 — strict expect-key validation, argsSchema validator injection, opt-in tool-call ordering, real version stamp, expanded PII detectors, --no-cache regression test (verified 6/6)
-- [ ] **Phase 19: Reliability & Statistical Foundations** - Default repeat=3, pass^k/pass@k metrics, percentile latency, bootstrap CIs, efficiency metrics
+- [x] **Phase 19: Reliability & Statistical Foundations** (4/4 plans) — completed 2026-05-30 (verified 5/5) — Default repeat=3, pass^k/pass@k metrics, percentile latency, bootstrap CIs, efficiency metrics
 - [ ] **Phase 20: Trajectory Metrics** - Precision, recall, exact_match assertions against reference tool-call sequences
 - [ ] **Phase 21: Judge Rigor** - Different-family default, position randomization, bootstrap CI for judge reliability
 - [ ] **Phase 22: Failure-First Terminal** - Failures first in reporter, repro commands, failure clustering, significance display, per-evaluator percentiles
@@ -109,7 +109,8 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
   3. Latency is reported as p50/p95/p99 (not just mean) in all reporter formats
   4. All aggregate scores display bootstrap 95% confidence intervals [lo, hi]
   5. Cost-per-task, tokens-per-task, and tool-calls-per-task appear as efficiency metrics in output
-**Plans**: 19-01 (stats.ts), 19-02 (aggregator), 19-03 (schema/runner/CLI), 19-04 (reporters/gate)
+**Status**: ✅ COMPLETE — verified 5/5 (`19-VERIFICATION.md` status: passed), 2026-05-30, branch `phase-19-reliability`. Caveat: STAT-04 toolCallsPerTask via documented proxy (future: thread ProviderResponse.toolCalls).
+**Plans**: 19-01 (stats.ts), 19-02 (aggregator), 19-03 (schema/runner/CLI), 19-04 (reporters) — all complete
 
 ### Phase 20: Trajectory Metrics
 **Goal**: Users can assert on the quality of an agent's tool-call trajectory against a reference sequence
