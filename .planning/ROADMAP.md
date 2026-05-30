@@ -121,7 +121,9 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
   2. User can add `trajectory_recall` to expect block and see recall score computed against a reference
   3. User can add `trajectory_exact_match` and get a binary 0/1 score for exact sequence match
   4. Setting `ordered: false` on any trajectory assertion switches from ordered to any-order matching
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 20-01-PLAN.md — pure trajectory metric module (fingerprint, multiset, precision/recall/exact_match) + unit tests (TDD)
+- [ ] 20-02-PLAN.md — Zod schema + registry wiring + FailureCodes + barrel export + integration/schema tests
 
 ### Phase 21: Judge Rigor
 **Goal**: LLM-as-judge evaluations are bias-mitigated and report their own reliability
