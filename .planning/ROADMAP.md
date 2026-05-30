@@ -64,6 +64,7 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
 
 **Milestone Goal:** Close the methodological rigor gap and CI UX gap to make KindLM the provably-correct choice for serious agent testing teams.
 
+- [ ] **Phase 18.1: v2.3.1 False-Green Bugfixes** — strict expect-key validation, argsSchema validator injection, opt-in tool-call ordering, real version stamp, expanded PII detectors, --no-cache regression test (INSERTED — urgent patch before Phase 19)
 - [ ] **Phase 19: Reliability & Statistical Foundations** - Default repeat=3, pass^k/pass@k metrics, percentile latency, bootstrap CIs, efficiency metrics
 - [ ] **Phase 20: Trajectory Metrics** - Precision, recall, exact_match assertions against reference tool-call sequences
 - [ ] **Phase 21: Judge Rigor** - Different-family default, position randomization, bootstrap CI for judge reliability
@@ -76,6 +77,26 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
 - [ ] **Phase 28: Tech Debt Cleanup** - Fix 5 pre-existing scenarios.test.ts failures
 
 ## Phase Details
+
+### Phase 18.1: v2.3.1 False-Green Bugfixes (INSERTED — urgent)
+**Goal**: Eliminate every verified regression that produces a false-green test result, so a passing `kindlm` run can be trusted. Shipped as a v2.3.1 patch before resuming v2.4.0.
+**Depends on**: Phase 18 (v2.3.0 complete)
+**Source**: External fix-plan re-verified against local source — see `.planning/research/v2.3.1-bugfix-verification.md`
+**Success Criteria** (what must be TRUE):
+  1. A config with a typo'd/unknown `expect` key (e.g. `tooCalls`) makes `kindlm validate` exit non-zero with an `unrecognized_keys` error naming the bad key (#1)
+  2. A tool-call `argsSchema` with `additionalProperties:false` FAILS on leaked args and PASSES on a permissive schema — never "no validator injected" (#2)
+  3. An opt-in ordered tool-call expectation FAILS when calls occur out of declared sequence; presence-only remains the default (#3)
+  4. The `version` stamped in JSON + compliance reports equals `package.json` version, for both `npm run` and an installed binary (#4)
+  5. PII detection covers a documented, configurable detector set (phone, IBAN+mod97, IP, JWT, API-key, undashed SSN, locale packs); README lists only what actually fires (#5)
+  6. Two consecutive `--no-cache` runs against a counter-incrementing provider return distinct responses (regression test; behavior already correct) (#6)
+**Out of scope**: Flakiness/pass^k surfacing (#7) — handled in Phase 19.
+**Plans**: 6 plans
+- [ ] 18.1-01-PLAN.md — strict expect-key schema + did-you-mean (#1), JSON reporter version stamp (#4)
+- [ ] 18.1-02-PLAN.md — inject AJV argsSchema validator into all AssertionContexts (#2)
+- [ ] 18.1-03-PLAN.md — --no-cache cache-bypass regression test (#6)
+- [ ] 18.1-04-PLAN.md — opt-in tool-call ordering across schema/registry/vscode/docs (#3)
+- [ ] 18.1-05-PLAN.md — PII named-detector framework + config + README (#5)
+- [ ] 18.1-06-PLAN.md — v2.3.1 patch changeset
 
 ### Phase 19: Reliability & Statistical Foundations
 **Goal**: Users get statistically meaningful test results by default, with confidence intervals and efficiency metrics on every run
