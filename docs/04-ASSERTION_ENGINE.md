@@ -580,6 +580,42 @@ export class ToolCallAssertion implements Assertion {
 - **`argsSchema`** — Path to a JSON Schema file to validate tool call arguments. Fails with `TOOL_CALL_ARGS_SCHEMA_INVALID` if the arguments don't match.
 - **`responseContains`** — Assert that the simulated tool response contains a specific substring. Useful for verifying the agent received the expected data from a tool.
 
+#### Three ordering modes
+
+Tool-call ordering supports three distinct modes — pick the one that matches how strict you need to be about call sequence:
+
+1. **Plain presence-only (default).** A plain `toolCalls` list with neither `toolCallsOrdered` nor numeric `order:` only checks that each tool was called (and that `shouldNotCall` tools were not). It passes regardless of the order the tools were actually called in.
+
+   ```yaml
+   expect:
+     toolCalls:
+       - tool: lookup_order
+       - tool: process_refund
+   # Passes even if process_refund runs BEFORE lookup_order.
+   ```
+
+2. **Ordered sequence (opt-in).** Set the sibling `toolCallsOrdered: true` (a field of `expect`, not a per-entry field) to require the tools to be called in the exact order declared. An out-of-order sequence FAILS with `TOOL_CALL_ORDER_WRONG`. Positions are derived from array order; `shouldNotCall` entries are skipped for positioning and still assert absence.
+
+   ```yaml
+   expect:
+     toolCallsOrdered: true
+     toolCalls:
+       - tool: lookup_order      # must be called first
+       - tool: process_refund    # must be called after lookup_order
+   # FAILS if process_refund is called before lookup_order.
+   ```
+
+3. **Numeric positional.** Set an explicit `order:` (0-indexed) on entries to assert a tool appears at a specific position. Numeric `order:` takes precedence over `toolCallsOrdered`.
+
+   ```yaml
+   expect:
+     toolCalls:
+       - tool: authenticate
+         order: 0
+       - tool: fetch_data
+         order: 1
+   ```
+
 ### 6. Baseline Drift
 
 ```typescript
