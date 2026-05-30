@@ -74,7 +74,7 @@ Requirements for v2.4.0 Rigor & Reach. Each maps to roadmap phases.
 
 ### Tech Debt
 
-- [ ] **DEBT-01**: Fix 5 pre-existing integration test failures in scenarios.test.ts (tool call mocking)
+- [ ] **DEBT-01** (RE-SCOPED 2026-05-30): Lock in green test suite + triage genuine debt. Original premise ("5 pre-existing scenarios.test.ts failures, tool call mocking") is OBSOLETE — scenarios.test.ts is 47/47 passing and the full suite is green as of Phase 18.1. Re-scoped to: keep `npm run test` green in CI, document/remove the 3 intentional skips, and triage any `[deferred]` items logged during v2.4.0 execution.
 
 ## v2.5.0 Requirements
 

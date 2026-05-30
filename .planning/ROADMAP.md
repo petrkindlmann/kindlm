@@ -196,14 +196,17 @@ See `.planning/milestones/v2.3.0-ROADMAP.md` for full details.
   3. docs/metrics.md exists with formulas, sample size guidance, and worked examples for trajectory metrics, pass^k, and CIs
 **Plans**: TBD
 
-### Phase 28: Tech Debt Cleanup
-**Goal**: Integration test suite is green -- no pre-existing failures
+### Phase 28: Tech Debt Cleanup (RE-SCOPED 2026-05-30)
+**Goal**: Verified-green test suite stays green and CI is reproducible; address real tech debt (the original "5 failing scenarios.test.ts" premise is obsolete).
 **Depends on**: Phase 19
-**Requirements**: DEBT-01
+**Requirements**: DEBT-01 (re-scoped)
+**Background**: The original premise — "5 pre-existing scenarios.test.ts failures (tool call mocking)" — did NOT reproduce during Phase 18.1 (2026-05-30). `packages/cli/tests/integration/scenarios.test.ts` is **47/47 passing**; the full suite is green (core 921, cli 344, action 34; 0 failures). At some point between v2.3.0 and now those failures were fixed (or were environment-specific). The phase is therefore re-scoped from "fix 5 failures" to "lock in green + clear genuine debt."
 **Success Criteria** (what must be TRUE):
-  1. All 5 previously-failing tests in scenarios.test.ts pass
-  2. `npm run test` exits 0 with no skipped integration tests
-**Plans**: TBD
+  1. `npm run test` exits 0 with no unexpected skips (currently 3 intentional skips — document each skip's reason or remove it)
+  2. A CI guard exists so a regression in scenarios.test.ts (or any integration suite) fails the build (it already runs; confirm it is not silently allowed to pass on failure)
+  3. Any remaining `[deferred]` items logged during v2.4.0 execution (see phase SUMMARY/deferred-items files, e.g. the flaky `__redteam_disabled__/run.test.ts` noted in 18.1-02) are triaged: fixed, quarantined, or explicitly accepted
+**Plans**: TBD (smaller than originally scoped — likely 1 plan)
+**Note**: If no genuine debt remains after triage, this phase may close as "verified green — no action needed."
 
 ## Progress
 
