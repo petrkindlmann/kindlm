@@ -3,7 +3,8 @@ export type { FailureCode, AssertionResult, AssertionContext, Assertion } from "
 export { createToolCalledAssertion, createToolNotCalledAssertion, createToolOrderAssertion } from "./tool-calls.js";
 export type { ToolCallExpectation } from "./tool-calls.js";
 
-export { createSchemaAssertion } from "./schema.js";
+export { createSchemaAssertion, createJsonSchemaValidator } from "./schema.js";
+export type { JsonSchemaValidationResult } from "./schema.js";
 export type { SchemaAssertionConfig } from "./schema.js";
 
 export { createPiiAssertion } from "./pii.js";

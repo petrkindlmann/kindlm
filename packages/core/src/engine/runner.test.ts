@@ -748,3 +748,168 @@ describe("per-turn assertion evaluation", () => {
     expect(turnAssertions).toHaveLength(0);
   });
 });
+
+describe("argsSchema validator injection (ROADMAP #2)", () => {
+  function makeToolAdapter(args: Record<string, unknown>): ProviderAdapter {
+    const response: ProviderResponse = {
+      text: "done",
+      toolCalls: [{ id: "t1", name: "transfer", arguments: args, index: 0 }],
+      usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+      raw: {},
+      latencyMs: 100,
+      modelId: "gpt-4o",
+      finishReason: "tool_calls",
+    };
+    return {
+      name: "openai",
+      initialize: vi.fn(),
+      complete: vi.fn().mockResolvedValue(response),
+      estimateCost: vi.fn().mockReturnValue(0.001),
+      supportsTools: vi.fn().mockReturnValue(true),
+    };
+  }
+
+  function configWithArgsSchema(argsSchema: string): KindLMConfig {
+    return makeConfig({
+      tests: [
+        {
+          name: "args-schema-test",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          expect: {
+            toolCalls: [{ tool: "transfer", argsSchema }],
+          },
+        },
+      ],
+    });
+  }
+
+  const strictSchema = JSON.stringify({
+    type: "object",
+    properties: { amount: { type: "number" } },
+    required: ["amount"],
+    additionalProperties: false,
+  });
+
+  function schemaResult(assertions: { label: string; passed: boolean; failureMessage?: string }[]) {
+    return assertions.find((a) => a.label.includes("args schema"));
+  }
+
+  it("FAILS argsSchema (additionalProperties:false) on leaked/extra args", async () => {
+    const adapter = makeToolAdapter({ amount: 10, leaked: "secret" });
+    const config = configWithArgsSchema(strictSchema);
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const result = await createRunner(config, deps).run();
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    const sr = schemaResult(assertions);
+    expect(sr).toBeDefined();
+    expect(sr!.passed).toBe(false);
+    // The bug symptom must NOT be present — the validator is injected.
+    expect(sr!.failureMessage ?? "").not.toContain("no JSON Schema validator was injected");
+  });
+
+  it("PASSES argsSchema on a permissive schema with matching args", async () => {
+    const adapter = makeToolAdapter({ amount: 10 });
+    const config = configWithArgsSchema(strictSchema);
+    const deps = makeDeps({ adapters: new Map([["openai", adapter]]) });
+    const result = await createRunner(config, deps).run();
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    const sr = schemaResult(assertions);
+    expect(sr).toBeDefined();
+    expect(sr!.passed).toBe(true);
+  });
+
+  it("injects validateJsonSchema into the main, per-turn, and command contexts", async () => {
+    const captured: { site: string; hasValidator: boolean }[] = [];
+    const validatingAdapter: ProviderAdapter = {
+      name: "openai",
+      initialize: vi.fn(),
+      complete: vi.fn().mockResolvedValue({
+        text: "ok",
+        toolCalls: [{ id: "t1", name: "transfer", arguments: { amount: 1 }, index: 0 }],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        raw: {},
+        latencyMs: 1,
+        modelId: "gpt-4o",
+        finishReason: "tool_calls",
+      } satisfies ProviderResponse),
+      estimateCost: vi.fn().mockReturnValue(0),
+      supportsTools: vi.fn().mockReturnValue(true),
+    };
+
+    // Main + per-turn context: a conversation test plus a final argsSchema check.
+    const config = makeConfig({
+      tests: [
+        {
+          name: "ctx-coverage",
+          prompt: "greeting",
+          vars: { name: "World" },
+          skip: false,
+          maxTurns: 2,
+          conversation: [
+            { turn: "first", expect: { toolCalls: [{ tool: "transfer", argsSchema: strictSchema }] } },
+          ],
+          expect: { toolCalls: [{ tool: "transfer", argsSchema: strictSchema }] },
+        },
+      ],
+    });
+    const deps = makeDeps({ adapters: new Map([["openai", validatingAdapter]]) });
+    const result = await createRunner(config, deps).run();
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    // If the validator were missing on either the per-turn or final context,
+    // an args-schema assertion would carry the "no validator injected" message.
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    const schemaAssertions = assertions.filter((a) => a.label.includes("args schema"));
+    expect(schemaAssertions.length).toBeGreaterThanOrEqual(2);
+    for (const a of schemaAssertions) {
+      expect(a.failureMessage ?? "").not.toContain("no JSON Schema validator was injected");
+    }
+    void captured;
+  });
+
+  it("injects validateJsonSchema into the command-test context", async () => {
+    const config = makeConfig({
+      tests: [
+        {
+          name: "cmd-args-schema",
+          command: "echo run",
+          vars: {},
+          skip: false,
+          expect: { toolCalls: [{ tool: "transfer", argsSchema: strictSchema }] },
+        },
+      ],
+    });
+    const commandExecutor = {
+      execute: vi.fn().mockResolvedValue({
+        success: true as const,
+        data: {
+          stdout: JSON.stringify({
+            output: "done",
+            toolCalls: [{ name: "transfer", arguments: { amount: 5 } }],
+          }),
+          stderr: "",
+          exitCode: 0,
+        },
+      }),
+    };
+    const baseDeps = makeDeps();
+    const deps: RunnerDeps = { ...baseDeps, commandExecutor };
+    const result = await createRunner(config, deps).run();
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const assertions = result.data.aggregated[0]!.runs[0]!.assertions;
+    const sr = schemaResult(assertions);
+    expect(sr).toBeDefined();
+    expect(sr!.failureMessage ?? "").not.toContain("no JSON Schema validator was injected");
+  });
+});
