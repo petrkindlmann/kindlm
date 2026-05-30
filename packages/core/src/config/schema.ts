@@ -230,6 +230,7 @@ const OutputExpectSchema = z
       .optional()
       .describe("Maximum character length of the output"),
   })
+  .strict()
   .refine(
     (output) => {
       if (output.format === "json" && !output.schemaFile) {
@@ -261,7 +262,7 @@ const PIIGuardrailSchema = z.object({
     )
     .optional()
     .describe("Named custom PII patterns for reporting clarity"),
-});
+}).strict();
 
 const KeywordGuardrailSchema = z.object({
   deny: z
@@ -276,7 +277,7 @@ const KeywordGuardrailSchema = z.object({
     .describe(
       "If set, output MUST contain at least one of these words/phrases",
     ),
-});
+}).strict();
 
 const JudgeCriterionSchema = z.object({
   criteria: NonEmptyString.describe(
@@ -297,7 +298,7 @@ const JudgeCriterionSchema = z.object({
     .describe(
       "Detailed rubric for the judge. If omitted, a default rubric is generated from criteria.",
     ),
-});
+}).strict();
 
 const ToolCallExpectSchema = z.object({
   tool: NonEmptyString.describe("Expected tool/function name"),
@@ -332,7 +333,7 @@ const ToolCallExpectSchema = z.object({
     .describe(
       "Expected position in the sequence of tool calls (0-indexed)",
     ),
-});
+}).strict();
 
 const BaselineDriftSchema = z.object({
   maxScore: Score01.default(0.15).describe(
@@ -350,12 +351,12 @@ const BaselineDriftSchema = z.object({
     .describe(
       "For field-diff method: JSON paths to compare (e.g., ['response.action', 'response.message'])",
     ),
-});
+}).strict();
 
 const GuardrailsSchema = z.object({
   pii: PIIGuardrailSchema.optional(),
   keywords: KeywordGuardrailSchema.optional(),
-});
+}).strict();
 
 const ExpectSchema = z.object({
   output: OutputExpectSchema.optional(),
@@ -374,20 +375,23 @@ const ExpectSchema = z.object({
     .object({
       drift: BaselineDriftSchema.optional(),
     })
+    .strict()
     .optional(),
   latency: z
     .object({
       maxMs: z.number().positive().describe("Maximum allowed latency in milliseconds"),
     })
+    .strict()
     .optional()
     .describe("Assert response latency is within threshold"),
   cost: z
     .object({
       maxUsd: z.number().positive().describe("Maximum allowed cost in USD"),
     })
+    .strict()
     .optional()
     .describe("Assert response cost is within budget"),
-});
+}).strict();
 
 // ============================================================
 // Tool Simulation Schema (for agent testing)

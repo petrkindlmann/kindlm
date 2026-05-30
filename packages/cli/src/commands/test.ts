@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import type { Command } from "commander";
 import chalk from "chalk";
 import {
@@ -22,7 +23,32 @@ import { watchFiles } from "../utils/watcher.js";
 import { createNodeFileReader } from "../utils/file-reader.js";
 import { createWorktree, WorktreeError, copyFilesToWorktree, extractConfigFilePaths } from "../utils/worktree.js";
 
+// Bundler-injected constant (tsup `define`). Declared so TypeScript compiles;
+// at bundle time it is replaced with the real version literal.
 declare const KINDLM_VERSION: string;
+
+/**
+ * Resolve the CLI version from a single source of truth.
+ *
+ * In the bundled binary, tsup replaces `KINDLM_VERSION` with the package.json
+ * version literal. Under vitest (no bundler), that token is an undefined
+ * global, so we fall back to reading package.json at runtime via createRequire.
+ * Either path yields exactly packages/cli/package.json — never a hardcoded
+ * literal and never a silent "0.0.0".
+ */
+function resolveKindlmVersion(): string {
+  try {
+    if (typeof KINDLM_VERSION === "string" && KINDLM_VERSION.length > 0) {
+      return KINDLM_VERSION;
+    }
+  } catch {
+    // ReferenceError when the bundler token was not substituted (e.g. tests).
+  }
+  const require = createRequire(import.meta.url);
+  return (require("../../package.json") as { version: string }).version;
+}
+
+const CLI_VERSION = resolveKindlmVersion();
 
 interface TestOptions {
   suite?: string;
@@ -197,8 +223,10 @@ export function registerTestCommand(program: Command): void {
   async function executeTestRun(
     options: TestOptions,
   ): Promise<{ costUsd: number; passed: number; failed: number } | undefined> {
-    // P-02: Validate reporter before running tests to fail fast
-    const reporter = selectReporter(options.reporter);
+    // P-02: Validate reporter before running tests to fail fast.
+    // Thread the resolved CLI version so the JSON reporter stamps the real
+    // installed version instead of a silent "0.0.0".
+    const reporter = selectReporter(options.reporter, CLI_VERSION);
 
     // Set up optional worktree isolation before running tests
     let worktreeCleanup: (() => Promise<void>) | undefined;
@@ -266,7 +294,7 @@ export function registerTestCommand(program: Command): void {
         const gitInfo = getGitInfo();
         const metadata: ComplianceRunMetadata = {
           runId: crypto.randomUUID(),
-          kindlmVersion: KINDLM_VERSION,
+          kindlmVersion: CLI_VERSION,
           gitCommitSha: gitInfo.commitSha ?? undefined,
           modelIds: config.models.map((m) => m.id),
           ...(config.compliance?.metadata ?? {}),

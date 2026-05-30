@@ -283,6 +283,135 @@ describe("validateConfig — redteam field", () => {
   });
 });
 
+describe("strict expect schema (#1 false-green)", () => {
+  it("rejects a typo'd top-level expect key (tooCalls) with unrecognized_keys", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "typo-test",
+            prompt: "greeting",
+            expect: { tooCalls: [{ tool: "search" }] },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = (result.error.details?.errors ?? []) as string[];
+      // The unrecognized key name must surface in the rendered error
+      expect(errors.some((e) => e.includes("tooCalls"))).toBe(true);
+    }
+  });
+
+  it("rejects an unknown key under output (strict nested sub-schema)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "out-typo",
+            prompt: "greeting",
+            expect: { output: { contian: ["x"] } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key under guardrails.pii (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "pii-typo",
+            prompt: "greeting",
+            expect: { guardrails: { pii: { enabld: true } } },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key on a toolCalls entry (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "tc-typo",
+            prompt: "greeting",
+            expect: { toolCalls: [{ tool: "search", argMatch: { q: 1 } }] },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown key on a judge entry (strict)", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "judge-typo",
+            prompt: "greeting",
+            expect: { judge: [{ criteria: "be nice", minScrore: 0.5 }] },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("GATING back-compat: a valid config with a tool-call carrying argsSchema still parses", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "argsschema-test",
+            prompt: "greeting",
+            expect: {
+              toolCalls: [
+                {
+                  tool: "search",
+                  argsMatch: { query: "x" },
+                  argsSchema: "./tool-schema.json",
+                  order: 0,
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("allows the parser-populated argsSchemaResolved field under strict", () => {
+    const result = validateConfig(
+      minimalConfig({
+        tests: [
+          {
+            name: "resolved-test",
+            prompt: "greeting",
+            expect: {
+              toolCalls: [
+                {
+                  tool: "search",
+                  argsSchema: "./tool-schema.json",
+                  argsSchemaResolved: { type: "object" },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("formatZodPath", () => {
   it("returns empty string for empty path", () => {
     expect(formatZodPath([])).toBe("");

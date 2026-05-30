@@ -103,6 +103,46 @@ describe("validate command", () => {
     expect(allErrors).toContain("not found");
   });
 
+  it("suggests the correct key for a typo'd expect key (did-you-mean)", async () => {
+    const typoYaml = `
+kindlm: 1
+project: test-project
+suite:
+  name: test-suite
+providers:
+  openai:
+    apiKeyEnv: OPENAI_API_KEY
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
+prompts:
+  greeting:
+    user: "Hello"
+tests:
+  - name: basic
+    prompt: greeting
+    expect:
+      tooCalls:
+        - tool: search
+`;
+    mockReadFileSync.mockReturnValue(typoYaml);
+
+    try {
+      await program.parseAsync(["node", "kindlm", "validate"]);
+    } catch {
+      // process.exit throws
+    }
+
+    expect(exitCode).toBe(1);
+    const allErrors = errors.join("\n");
+    // Names the offending unrecognized key
+    expect(allErrors).toContain("tooCalls");
+    // Suggests the correct key
+    expect(allErrors).toContain("toolCalls");
+    expect(allErrors.toLowerCase()).toContain("did you mean");
+  });
+
   it("reports cross-reference errors", async () => {
     const badYaml = `
 kindlm: 1
