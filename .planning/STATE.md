@@ -24,11 +24,12 @@ Progress: [███░░░░░░░] ~27% (3 of 11 phases this milestone)
 
 **Next recommended run:** `/gsd-plan-phase 21` (Judge Rigor), or merge the open PR stack first
 
-## Branches In Flight (stacked)
-- `release/v2.3.1` → PR #8 (Phase 18.1 false-green bugfixes, core+cli patch → v2.3.1). Base main.
-- `phase-19-reliability` → PR #9 (Phase 19, verified 5/5). Base main, built on pre-v2.3.1 main.
-- `phase-20-trajectory-metrics` → PR #10 (Phase 20, verified 4/4). Built on Phase 19 branch.
-- NOTE: PRs are stacked (18.1 → 19 → 20). Recommended merge order: #8, then #9, then #10. Rebase later branches if main drifts.
+## Shipped / Merged
+- **v2.3.1 PUBLISHED to npm** (2026-05-31): `@kindlm/core@2.3.1` + `@kindlm/cli@2.3.1`. Tags + GitHub Releases created. Published locally via `npm publish` with 2FA OTP (CI NPM_TOKEN secret is expired — see Blockers).
+- All feature work merged to `main` (HEAD c792865): PR #8 (18.1 false-green bugfixes), #9 (Phase 19), #12 (Phase 20; #10 auto-closed when its stacked base was deleted, re-opened as #12), #11 (version-packages bump). Feature branches deleted.
+
+## Blockers/Concerns
+- ⚠️ **CI Release workflow is broken**: repo secret `NPM_TOKEN` (dated 2026-03-28) is expired/non-automation → Release run 26705226733 failed with E404. Also, the npm account requires 2FA on publish (EOTP). Fix before next release: set a fresh **Automation** token via `gh secret set NPM_TOKEN` (automation tokens bypass 2FA). Until then, releases must be published locally with an OTP.
 
 ## Project Reference
 
