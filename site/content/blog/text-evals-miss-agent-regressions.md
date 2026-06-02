@@ -7,7 +7,7 @@ author: "Petr Kindlmann"
 
 The highest-scoring answer my agent ever produced also called the wrong tool, and that is the whole problem with text-quality evals.
 
-In 2024, "test what the agent does, not just what it says" was a contrarian thing to say. By 2026 it is close to consensus. Most serious eval tools now assert tool trajectories, not just text similarity. So the honest framing is no longer "we are the only ones who check behavior." Behavioral assertions are table stakes. The interesting question is how to think about the layers, and which tool belongs at which layer in your pipeline.
+In 2024, "test what the agent does, not just what it says" was a contrarian thing to say. By 2026, it is close to consensus. Most serious eval tools now assert tool trajectories, not just text similarity. So the honest framing is no longer "we are the only ones who check behavior." Behavioral assertions are table stakes. The interesting question is how to think about the layers, and which tool belongs at which layer in your pipeline.
 
 This post is an argument about that, and a small comparison of where each kind of tool fits.
 
@@ -27,13 +27,13 @@ This is why I do not let a judge score gate a deploy on its own. A judge tells m
 
 The reason text evals miss the regressions that hurt is structural, not a bug you can patch.
 
-Language quality and action correctness are produced by the same forward pass but they are not correlated in the way intuition suggests. A model can become more confident and more articulate after a prompt edit while its tool selection drifts. Tool choice is ranking under ambiguity over a text menu of tool names and descriptions. Prose quality is something else entirely. Optimizing or measuring one tells you very little about the other.
+Language quality and action correctness are produced by the same forward pass, but they are not correlated in the way intuition suggests. A model can become more confident and more articulate after a prompt edit while its tool selection drifts. Tool choice is ranking under ambiguity over a text menu of tool names and descriptions. Prose quality is something else entirely. Optimizing or measuring one tells you very little about the other.
 
 So the failure mode that survives a text eval is precisely the one that costs you: the agent that sounds more polished and acts slightly wrong. You do not catch it by reading transcripts, because the transcript looks better than before.
 
 ## One gate, both questions
 
-Here is the concrete version. A single test that asserts text quality with a judge, and behavior with a tool-call check plus a cost ceiling. KindLM supports mock tool responses, so the tool-call decision is deterministic and does not depend on a live backend.
+Here is the concrete version: a single test that asserts text quality with a judge, and behavior with a tool-call check plus a cost ceiling. KindLM supports mock tool responses, so the tool-call decision is deterministic and does not depend on a live backend.
 
 ```yaml
 kindlm: 1
@@ -111,7 +111,7 @@ The one genuinely differentiated piece I will name is the compliance artifact. `
 
 ## Takeaway
 
-Stop asking "did the answer get better." Ask "did the agent still do the right thing." Those are two questions, and a text-quality eval only answers the first. By 2026 every credible tool can check behavior, so the choice is not whether to test what agents do, it is where in your stack each check belongs: breadth, production, or the per-PR gate. Run all three if you can. Just do not let a fluent transcript talk you out of checking the trajectory underneath it.
+Stop asking "did the answer get better." Ask "did the agent still do the right thing." Those are two questions, and a text-quality eval only answers the first. By 2026, every credible tool can check behavior, so the choice is not whether to test what agents do, it is where in your stack each check belongs: breadth, production, or the per-PR gate. Run all three if you can. Just do not let a fluent transcript talk you out of checking the trajectory underneath it.
 
 ## References
 

@@ -7,7 +7,7 @@ author: "Petr Kindlmann"
 
 The EU AI Act gives you a documentation obligation that arrives long before any auditor does, and most teams plan to satisfy it with a doc sprint they have not scheduled yet.
 
-If you are building an AI system that lands in the high-risk category under the EU AI Act, Annex IV is the part that turns into homework. It lists the technical documentation you are expected to keep on file: a description of the system, its intended purpose, the development process, and crucially the testing you did to establish accuracy and robustness. Read it as an engineer and a pattern jumps out. A lot of Annex IV is asking you to write down things that, for a well-tested agent, you already know. You just know them as test runs and CI logs, not as a document.
+If you are building an AI system that lands in the high-risk category under the EU AI Act, Annex IV is the part that turns into homework. It lists the technical documentation you are expected to keep on file: a description of the system, its intended purpose, the development process, and, crucially, the testing you did to establish accuracy and robustness. Read it as an engineer, and a pattern jumps out. A lot of Annex IV is asking you to write down things that, for a well-tested agent, you already know. You just know them as test runs and CI logs, not as a document.
 
 The usual failure mode is to treat the documentation as a separate artifact assembled after the fact. Someone exports dashboards, screenshots a few test results, writes prose around them, and pastes in a date. The doc describes a system, but it is not tied to a specific build. By the time anyone reads it, the code has moved on. That gap between "what we tested" and "what we wrote down we tested" is where compliance documentation quietly rots.
 
@@ -15,7 +15,7 @@ The usual failure mode is to treat the documentation as a separate artifact asse
 
 I want to be precise about the overlap, because overstating it is exactly the kind of thing that gets a team in trouble.
 
-A behavioral test suite produces evidence that maps onto *parts* of a few Annex IV adjacent articles:
+A behavioral test suite produces evidence that maps onto *parts* of a few Annex IV-adjacent articles:
 
 - **Article 15** (accuracy, robustness, cybersecurity): your pass rates, your latency and cost ceilings, your adversarial and edge-case tests. This is the strongest fit. Accuracy and robustness testing is, almost definitionally, what a regression suite does.
 - **Article 12** (record-keeping): a test run is a record. If it is reproducible and tied to a commit, it is a good record.
@@ -116,10 +116,10 @@ The two properties that make this worth doing are reproducibility and tamper evi
 
 Reproducibility comes from the config plus the commit. The YAML is in your repo, the run is pinned to a git SHA, and anyone can re-run it. A reviewer asking "how do you know your agent does not leak SSNs" gets a config they can read and a command they can run, not a screenshot they have to trust.
 
-Tamper evidence comes from the SHA-256 hash over the draft content. It does not prove the test results are *correct*. It proves the document has not been altered since it was generated. That is a modest claim, and it is the right modest claim. It lets you say a specific document corresponds to a specific run, and lets anyone detect after-the-fact editing.
+Tamper evidence comes from the SHA-256 hash over the draft content. It does not prove the test results are *correct*. It proves the document has not been altered since it was generated. That is a modest claim, and it is the right modest claim. It lets you say a specific document corresponds to a specific run, and it lets anyone detect after-the-fact editing.
 
 On timing: the high-risk obligations under the Act phase in over the next couple of years rather than all at once, with later deadlines for systems already on the market. I am deliberately not quoting exact dates here, because the staging is the kind of detail worth checking against the current official text rather than a blog post. The engineering point holds regardless of the precise date: the documentation is easier to produce continuously than to reconstruct under deadline.
 
 ## The takeaway
 
-The technical file is not where you want to discover that your "robustness testing" was a few manual runs nobody recorded. If your agent is worth shipping into a high-risk setting, you are already running behavioral tests, or you should be. Wire the documentation draft to that run so the evidence is generated, versioned, and hashed at the moment it is true, instead of narrated later from memory. It will not make you compliant, and no tool can. It just means that when the question comes, your answer is a commit hash and a command, not a doc sprint.
+The technical file is not where you want to discover that your "robustness testing" was a few manual runs nobody recorded. If your agent is worth shipping into a high-risk setting, you are already running behavioral tests, or you should be. Wire the documentation draft to that run so the evidence is generated, versioned, and hashed at the moment it is true, instead of being narrated later from memory. It will not make you compliant, and no tool can. It just means that when the question comes, your answer is a commit hash and a command, not a doc sprint.

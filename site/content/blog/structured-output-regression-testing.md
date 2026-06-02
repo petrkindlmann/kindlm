@@ -107,7 +107,7 @@ The gate is the part that matters for CI. `gates.schemaFailuresMax: 0` says any 
 
 ## When the JSON comes from a tool result
 
-Often the structured payload is not the model's free-text answer, it is the argument the agent passes to a tool. A `create_ticket` call, a `schedule_event` call. There the question is two-part: did the agent call the right tool, and was the JSON it constructed valid?
+Often, the structured payload is not the model's free-text answer; it is the argument the agent passes to a tool. A `create_ticket` call, a `schedule_event` call. There, the question is two-part: did the agent call the right tool, and was the JSON it constructed valid?
 
 KindLM lets you assert both, and it lets you mock the tool so the decision is deterministic. The mock response lives on the test, and `argsMatch` checks the arguments the model produced.
 
