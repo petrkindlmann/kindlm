@@ -29,7 +29,7 @@ KindLM is a shipped open-source CLI tool that runs behavioral regression tests a
 ## Monorepo Architecture
 ### Package Manager Configuration
 - **Type:** ESM modules (`"type": "module"` in all packages)
-- **Workspace exports:** Use `"*"` for workspace dependencies (not `"workspace:*"`)
+- **Workspace deps:** Use a real semver range (e.g. `"^2.3.1"`), not `"workspace:*"` or bare `"*"`. A caret range still resolves to the local package in-monorepo, ships a correct constraint to npm, and is what Changesets rewrites on release (`updateInternalDependencies: patch`). Bare `"*"` is NOT bumped by Changesets and lets npm pull a mismatched version at install time.
 - **Export order:** `types` condition MUST come before `import`/`require`
 ## Core Languages & Frameworks
 ### @kindlm/core (Zero-I/O Business Logic)
