@@ -340,6 +340,23 @@ describe("createAssertionsFromExpect", () => {
       expect(assertions[0]?.type).toBe("pii");
     });
 
+    it("does NOT create a pii assertion when enabled is false", () => {
+      // H7: `enabled: false` must actually disable the guardrail. Previously the
+      // registry gated on object presence, so the assertion ran anyway and could
+      // flip a verdict / exit code the user had explicitly opted out of.
+      const assertions = createAssertionsFromExpect(
+        makeExpect({
+          guardrails: {
+            pii: {
+              enabled: false,
+              denyPatterns: ["\\b\\d{3}-\\d{2}-\\d{4}\\b"],
+            },
+          },
+        }),
+      );
+      expect(assertions.filter((a) => a.type === "pii")).toHaveLength(0);
+    });
+
     it("creates pii assertion with custom patterns", () => {
       const assertions = createAssertionsFromExpect(
         makeExpect({

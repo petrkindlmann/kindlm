@@ -98,17 +98,26 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
           | { ok: true; score: number; reasoning: string }
           | { ok: false; failureCode: FailureCode; failureMessage: string };
 
+        const judgeModelId = config.model ?? context.judgeModel;
+        // Accumulate cost across every billed pass (a malformed-but-billed pass
+        // still costs money), so cost gates reflect the full betaJudge spend (H6).
+        let judgeCostUsd: number | undefined;
+        const addCost = (c: number | null) => {
+          if (c !== null) judgeCostUsd = (judgeCostUsd ?? 0) + c;
+        };
+
         const passResults: PassResult[] = [];
         for (let i = 0; i < PASSES; i++) {
           try {
             const response = await context.judgeAdapter.complete({
-              model: config.model ?? context.judgeModel,
+              model: judgeModelId,
               messages: [
                 { role: "system", content: JUDGE_SYSTEM_PROMPT },
                 { role: "user", content: buildUserPrompt(context.outputText, config.criteria, config.rubric) },
               ],
               params: { temperature: 0, maxTokens: 512 },
             });
+            addCost(context.judgeAdapter.estimateCost(judgeModelId, response.usage));
             const parsed = parseJudgeResponse(response.text);
             if (parsed.ok) {
               passResults.push({ ok: true, score: parsed.score, reasoning: parsed.reasoning });
@@ -137,6 +146,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
             score: 0,
             failureCode: "JUDGE_EVAL_ERROR",
             failureMessage: `betaJudge: only ${successfulPasses.length}/${PASSES} passes succeeded (need ${MIN_QUORUM}): ${firstError.failureMessage}`,
+            metadata: { judgeCostUsd },
           }];
         }
 
@@ -154,6 +164,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
           metadata: {
             reasoning: successfulPasses[Math.floor(successfulPasses.length / 2)]?.reasoning,
             threshold: config.minScore,
+            judgeCostUsd,
             betaJudge: { passes: PASSES, successful: successfulPasses.length, scores },
           },
         }];
@@ -205,6 +216,13 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
         ];
       }
 
+      // The judge call is a real billable LLM call. Surface its cost so the
+      // runner can fold it into the test's total and cost gates don't
+      // undercount whenever judge assertions are used (H6).
+      const judgeModelId = config.model ?? context.judgeModel;
+      const judgeCostUsd =
+        context.judgeAdapter.estimateCost(judgeModelId, response.usage) ?? undefined;
+
       const passed = parsed.score >= config.minScore;
       return [
         {
@@ -216,7 +234,7 @@ export function createJudgeAssertion(config: JudgeAssertionConfig): Assertion {
           failureMessage: passed
             ? undefined
             : `Score ${parsed.score} below threshold ${config.minScore}: ${parsed.reasoning}`,
-          metadata: { reasoning: parsed.reasoning, threshold: config.minScore },
+          metadata: { reasoning: parsed.reasoning, threshold: config.minScore, judgeCostUsd },
         },
       ];
     },

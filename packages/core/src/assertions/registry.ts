@@ -88,7 +88,9 @@ export function createAssertionsFromExpect(expect: Expect, overrides?: Assertion
     );
   }
 
-  if (expect.guardrails?.pii) {
+  // `enabled` defaults to true in the schema; honor `enabled: false` as an
+  // explicit opt-out rather than gating on mere object presence (H7).
+  if (expect.guardrails?.pii?.enabled) {
     assertions.push(
       createPiiAssertion({
         denyPatterns: expect.guardrails.pii.denyPatterns,

@@ -163,6 +163,27 @@ describe("writeBaselineVersioned", () => {
     expect(latestKey).toBeDefined();
   });
 
+  it("can be read back end-to-end via readBaseline (set -> compare path)", () => {
+    // Regression for C4: `baseline set` wrote `{suite}-latest` + versioned file,
+    // but `readBaseline` read `{suite}.json` (never written) -> always
+    // BASELINE_NOT_FOUND. readBaseline must resolve the -latest pointer.
+    const store = new Map<string, string>();
+    const io = createMemoryIO(store);
+    const data = makeBaselineData();
+
+    const writeResult = writeBaselineVersioned(data, io);
+    expect(writeResult.success).toBe(true);
+
+    const readResult = readBaseline("refund-agent", io);
+    expect(readResult.success).toBe(true);
+    if (readResult.success) {
+      expect(readResult.data.suiteName).toBe("refund-agent");
+      expect(readResult.data.results["happy-path::openai:gpt-4o"]?.outputText).toBe(
+        "Order #12345 found",
+      );
+    }
+  });
+
   it("calling twice never overwrites the first versioned file", () => {
     const store = new Map<string, string>();
     const io = createMemoryIO(store);

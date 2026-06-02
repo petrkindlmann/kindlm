@@ -12,24 +12,30 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 
 - **Tool call assertions** — verify agents call the right tools with the right arguments, in the right order
 - **Schema validation** — structured output checked against JSON Schema (AJV)
-- **PII detection** — catch leaked SSNs, credit cards, emails, phone numbers, IBANs
-- **LLM-as-judge** — score responses against natural-language criteria (0.0–1.0)
+- **PII detection** — a guardrail (not a full DLP system). Default detection covers SSN, credit card, and email; phone, IBAN, IP, JWT, and API-key detectors are available via opt-in `detectors: [...]`
+- **LLM-as-judge** — score responses against natural-language criteria (0.0–1.0). Results are probabilistic; use repeated runs for critical gates
 - **Drift detection** — semantic + field-level comparison against saved baselines
 - **Keyword guards** — require or forbid specific phrases in output
-- **Latency & cost budgets** — fail tests that exceed time or token-cost thresholds
-- **EU AI Act compliance** — generate Annex IV documentation from test results
+- **Latency & cost budgets** — fail tests that exceed time thresholds, or cost thresholds for priced models (OpenAI, Anthropic, Gemini)
+- **EU AI Act documentation draft** — map test/gate results to selected EU AI Act articles. A starting-point document, **not legal advice** and not a conformity assessment
 - **CI-native** — exit code 0/1, JUnit XML reporter, GitHub Actions ready
 
 ## Supported Providers
 
-| Provider | Example config |
-|----------|---------------|
-| OpenAI | `openai:gpt-4o` |
-| Anthropic | `anthropic:claude-sonnet-4-5-20250929` |
-| Google Gemini | `google:gemini-2.0-flash` |
-| Mistral | `mistral:mistral-large-latest` |
-| Cohere | `cohere:command-r-plus` |
-| Ollama | `ollama:llama3` |
+Providers are configured under `providers:` and referenced by key from each entry in `models:` (see the Quick Start below). The `provider:` key is one of:
+
+| Provider | `provider:` key | Example model | Notes |
+|----------|-----------------|---------------|-------|
+| OpenAI | `openai` | `gpt-4o` | Azure OpenAI works via `openai` + a custom `baseUrl` |
+| Anthropic | `anthropic` | `claude-sonnet-4-5-20250929` | |
+| Google Gemini | `gemini` | `gemini-2.0-flash` | key is `gemini`, not `google` |
+| Mistral | `mistral` | `mistral-large-latest` | no cost estimation yet |
+| Cohere | `cohere` | `command-r-plus` | no cost estimation yet |
+| Ollama | `ollama` | `llama3` | local; no cost |
+| HTTP | `http` | any | generic OpenAI-compatible endpoint |
+| MCP | `mcp` | — | passthrough HTTP POST to an MCP-style tool server |
+
+**Not yet supported:** AWS Bedrock, and a first-class Azure adapter (use `openai` + `baseUrl` for Azure).
 
 ## Quick Start
 
@@ -118,23 +124,40 @@ Output:
 
 | Flag | Description | Added |
 |------|-------------|-------|
-| `--reporter <type>` | Output format: `pretty` (default), `json`, `junit` | v1.0.0 |
-| `--output <path>` | Write report to file | v1.0.0 |
-| `--compliance` | Generate EU AI Act Annex IV report | v1.0.0 |
-| `--pdf <path>` | Export compliance report as PDF (requires `--compliance`) | v1.0.0 |
-| `-s <suite>` | Run a specific suite by name | v1.0.0 |
+| `--reporter <type>` | Output format: `pretty` (default), `json`, `junit`. Report is written to stdout — redirect to a file with `> report.xml` | v1.0.0 |
+| `--compliance` | Generate the EU AI Act documentation draft (not legal advice) | v1.0.0 |
+| `--pdf <path>` | Export the compliance draft as PDF (requires `--compliance`) | v1.0.0 |
+| `-s, --suite <name>` | Assert the configured suite matches this name (a config has one suite) | v1.0.0 |
 | `--runs <count>` | Override the `repeat` count from config | v1.0.0 |
 | `--gate <percent>` | Fail if suite pass rate falls below threshold (0–100) | v1.0.0 |
-| `--isolate` | Run in an isolated git worktree (clean environment) | v2.0.0 |
-| `--concurrency <n>` | Override the concurrency setting from config | v2.1.0 |
-| `--timeout <ms>` | Override the per-test timeout from config | v2.1.0 |
+| `-c, --config <path>` | Path to config file (default `kindlm.yaml`) | v2.1.0 |
+| `--dry-run` | Validate config and print the test plan without executing | v2.1.0 |
+| `--watch` | Re-run tests when `kindlm.yaml` changes | v2.1.0 |
+| `--no-cache` | Disable response caching | v2.1.0 |
+| `--isolate` | Copy the config + referenced schema files into a detached-HEAD git worktree and run there (requires git). This isolates the **config**, not your agent code or `node_modules`. | v2.0.0 |
+| `--concurrency <n>` | Override the concurrency setting from config (≥ 1) | v2.1.0 |
+| `--timeout <ms>` | Override the per-test timeout in ms (does not affect provider HTTP timeout) | v2.1.0 |
+
+Reports go to stdout; redirect with `>` to write a file (there is no `--output` flag).
+
+## Other Commands
+
+| Command | Description |
+|---------|-------------|
+| `kindlm init` | Scaffold a `kindlm.yaml` |
+| `kindlm validate` | Validate config without running |
+| `kindlm baseline set\|compare\|list` | Manage drift baselines |
+| `kindlm trace` | Ingest OTLP traces and run assertions |
+| `kindlm cache` | Inspect or clear the response cache |
+| `kindlm redteam` | Run adversarial red-team suites (experimental) |
+| `kindlm login` / `kindlm upload` | KindLM Cloud auth and run upload |
 
 ## CI Integration
 
 ```yaml
 # .github/workflows/test.yml
 - run: npm install -g @kindlm/cli
-- run: kindlm test --reporter junit --output results.xml
+- run: kindlm test --reporter junit > results.xml
 ```
 
 ## Repository Layout

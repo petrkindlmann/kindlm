@@ -27,7 +27,8 @@ export type FailureCode =
   | "PROVIDER_ERROR"
   | "INVALID_PATTERN"
   | "INTERNAL_ERROR"
-  | "BUDGET_EXCEEDED";
+  | "BUDGET_EXCEEDED"
+  | "COST_UNKNOWN";
 
 export interface AssertionResult {
   assertionType: string;

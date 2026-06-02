@@ -47,6 +47,25 @@ describe("createJudgeAssertion", () => {
     expect(results[0]).toMatchObject({ passed: true, score: 0.9 });
   });
 
+  it("reports the judge call cost in metadata (single pass)", async () => {
+    // H6: the judge makes a billable LLM call; its cost must be surfaced so the
+    // runner can fold it into the test total and cost gates don't undercount.
+    const adapter = mockAdapter('{"score": 0.9, "reasoning": "Great"}');
+    (adapter.estimateCost as ReturnType<typeof vi.fn>).mockReturnValue(0.002);
+    const assertion = createJudgeAssertion({ criteria: "Is helpful", minScore: 0.7 });
+    const results = await assertion.evaluate(ctx("Hello!", adapter));
+    expect((results[0]?.metadata as { judgeCostUsd?: number }).judgeCostUsd).toBe(0.002);
+  });
+
+  it("sums judge cost across all betaJudge passes", async () => {
+    const adapter = mockAdapter('{"score": 0.8, "reasoning": "Good"}');
+    (adapter.estimateCost as ReturnType<typeof vi.fn>).mockReturnValue(0.002);
+    const assertion = createJudgeAssertion({ criteria: "Is helpful", minScore: 0.7 });
+    const results = await assertion.evaluate(ctx("Hello!", adapter, true));
+    // 3 passes × $0.002 = $0.006
+    expect((results[0]?.metadata as { judgeCostUsd?: number }).judgeCostUsd).toBeCloseTo(0.006, 6);
+  });
+
   it("fails when score below threshold", async () => {
     const adapter = mockAdapter('{"score": 0.3, "reasoning": "Poor response"}');
     const assertion = createJudgeAssertion({
