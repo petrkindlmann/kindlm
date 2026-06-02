@@ -2,9 +2,7 @@
   "name": "kindlm",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": ["packages/*", "!packages/vscode"],
   "packageManager": "npm@11.6.0",
   "engines": {
     "node": ">=20.0.0"
