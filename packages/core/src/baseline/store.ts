@@ -187,6 +187,37 @@ export function deserializeBaseline(raw: string): Result<BaselineData> {
 // ============================================================
 
 export function readBaseline(suiteName: string, io: BaselineIO): Result<BaselineData> {
+  // `writeBaselineVersioned` (the path used by `kindlm baseline set`) writes an
+  // immutable `{suite}-{ts}-{nonce}.json` plus a `{suite}-latest` pointer. Resolve
+  // that pointer first so `set` -> `compare` works. Fall back to a direct
+  // `{suite}` read for legacy/`writeBaseline` files.
+  const pointerResult = io.read(`${suiteName}-latest`);
+  if (pointerResult.success) {
+    let pointer: { latestFile?: unknown };
+    try {
+      pointer = JSON.parse(pointerResult.data) as { latestFile?: unknown };
+    } catch {
+      return err({
+        code: "BASELINE_CORRUPT",
+        message: `Baseline pointer for suite "${suiteName}" is not valid JSON`,
+      });
+    }
+    if (typeof pointer.latestFile !== "string") {
+      return err({
+        code: "BASELINE_CORRUPT",
+        message: `Baseline pointer for suite "${suiteName}" is missing the latestFile reference`,
+      });
+    }
+    // The pointer stores a filename with a `.json` suffix; `io.read` re-appends
+    // the extension, so strip it to recover the bare key.
+    const versionedKey = pointer.latestFile.replace(/\.json$/, "");
+    const versionedRead = io.read(versionedKey);
+    if (!versionedRead.success) {
+      return versionedRead;
+    }
+    return deserializeBaseline(versionedRead.data);
+  }
+
   const readResult = io.read(suiteName);
   if (!readResult.success) {
     return readResult;
