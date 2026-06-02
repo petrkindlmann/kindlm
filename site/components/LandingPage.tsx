@@ -130,7 +130,7 @@ export default function LandingPage() {
               className="flex gap-2.5 justify-center mt-6 sm:mt-7 flex-wrap opacity-0 animate-fade-up"
               style={{ animationDelay: "0.5s" }}
             >
-              <CopyButton text="npm i -g @kindlm/cli" />
+              <CopyButton text="npm install -g @kindlm/cli" />
               <a
                 href="/docs"
                 className="px-5 py-3 rounded-[10px] border border-stone-300 text-stone-700 text-sm font-semibold no-underline min-h-[44px] flex items-center hover:border-stone-400 transition-colors"
@@ -390,7 +390,7 @@ export default function LandingPage() {
               Open source. No account required.
             </p>
             <div className="flex gap-2.5 justify-center flex-wrap">
-              <CopyButton text="npm i -g @kindlm/cli" />
+              <CopyButton text="npm install -g @kindlm/cli" />
               <a
                 href="/docs"
                 className="px-5 py-3 rounded-[10px] border border-stone-300 text-stone-700 text-sm font-semibold no-underline min-h-[44px] flex items-center hover:border-stone-400 transition-colors"

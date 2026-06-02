@@ -2,11 +2,13 @@
 
 ![CI](https://github.com/petrkindlmann/kindlm/actions/workflows/ci.yml/badge.svg)
 
-Behavioral regression testing for AI agents. Test what your agents **do** — not just what they say.
+**Behavioral CI tests for AI agents, with compliance evidence built in.**
 
-## Why KindLM?
+KindLM tests the decisions your agent actually makes: which tools it calls, which arguments it passes, what structured output it returns, whether it leaks PII, and whether it stays within latency and cost budgets. Mock tool responses make tests deterministic enough for CI; failed expectations return exit code 1, JUnit XML, and GitHub Actions-friendly output. No SDK and no hosted backend required. Optionally generate an EU AI Act Annex IV documentation draft from the same run (not legal advice, not a conformity assessment).
 
-LLM evals measure text quality. KindLM tests **behavior** — the tool calls your agent makes, the decisions it takes, and whether it leaks PII or violates compliance rules. It runs in CI so regressions never ship.
+## Why not promptfoo?
+
+Use [promptfoo](https://promptfoo.dev) when you want a broad AI security and eval platform with a large ecosystem. Use KindLM when you want a small, provider-neutral CI gate focused on agent behavior: mocked tool calls, pass/fail regression tests, PII/cost/drift gates, JUnit output, and optional compliance evidence without adopting a hosted trace platform or instrumenting your app with an SDK.
 
 ## Features
 
@@ -14,7 +16,7 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 - **Schema validation** — structured output checked against JSON Schema (AJV)
 - **PII detection** — a guardrail (not a full DLP system). Default detection covers SSN, credit card, and email; phone, IBAN, IP, JWT, and API-key detectors are available via opt-in `detectors: [...]`
 - **LLM-as-judge** — score responses against natural-language criteria (0.0–1.0). Results are probabilistic; use repeated runs for critical gates
-- **Drift detection** — semantic + field-level comparison against saved baselines
+- **Drift detection** — field-level baseline comparison, plus semantic drift with embeddings where supported (OpenAI embeddings are supported today)
 - **Keyword guards** — require or forbid specific phrases in output
 - **Latency & cost budgets** — fail tests that exceed time thresholds, or cost thresholds for priced models (OpenAI, Anthropic, Gemini)
 - **EU AI Act documentation draft** — map test/gate results to selected EU AI Act articles. A starting-point document, **not legal advice** and not a conformity assessment
@@ -51,6 +53,8 @@ Or install globally:
 npm install -g @kindlm/cli
 kindlm init
 ```
+
+`kindlm init` scaffolds a tool-call test by default. Use `--template pii`, `--template structured`, or `--template compliance` for other starters.
 
 Edit the generated `kindlm.yaml`:
 
@@ -173,7 +177,7 @@ site/         Documentation website (Next.js)
 
 ## Documentation
 
-Full docs: [kindlm.dev](https://kindlm.dev) | Source: [`docs/`](./docs/)
+Full docs: [kindlm.com/docs](https://kindlm.com/docs) | Source: [`docs/`](./docs/)
 
 ## License
 
