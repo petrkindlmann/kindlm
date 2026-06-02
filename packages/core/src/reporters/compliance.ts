@@ -58,10 +58,17 @@ export function createComplianceReporter(metadata?: ComplianceRunMetadata): Repo
       const versionLabel = metadata?.kindlmVersion ?? "unknown";
       const sections: string[] = [];
 
-      sections.push("# EU AI Act — Annex IV Compliance Report");
+      sections.push("# EU AI Act — Annex IV Documentation Draft");
+      sections.push("");
+      sections.push(
+        "> **Not legal advice.** This is an automatically generated *documentation draft* that maps " +
+          "automated test and quality-gate results to selected EU AI Act articles. It does not constitute " +
+          "legal advice, does not assert conformity, and does not replace a conformity assessment. See the " +
+          "Limitations & Disclaimer section at the end before relying on this document.",
+      );
       sections.push("");
       sections.push(`**Generated:** ${timestamp}`);
-      sections.push(`**Framework:** EU AI Act (Regulation 2024/1689)`);
+      sections.push(`**Framework:** EU AI Act (Regulation 2024/1689) — selected articles only`);
       sections.push(`**Tool:** KindLM v${versionLabel}`);
       if (metadata?.systemName) {
         sections.push(`**System Name:** ${metadata.systemName}`);
@@ -84,10 +91,14 @@ export function createComplianceReporter(metadata?: ComplianceRunMetadata): Repo
       sections.push("");
       sections.push(formatGateEvidence(gateEvaluation, ["passRateMin"]));
 
-      // Article 10 — Data and Data Governance
-      sections.push("## Article 10 — Data and Data Governance");
+      // Article 10 — Output PII guardrail evidence (NOT full data governance)
+      sections.push("## Article 10 — Output PII Guardrail Evidence");
       sections.push("");
-      sections.push("PII detection guardrails verify that personal data is not exposed in AI system outputs.");
+      sections.push(
+        "PII detection guardrails verify that personal data is not exposed in AI system *outputs* at runtime. " +
+          "**Note:** Annex IV data-governance requirements (training-data provenance, quality, and bias controls) " +
+          "are **out of scope** for KindLM and are NOT covered by this evidence.",
+      );
       sections.push("");
       sections.push(formatGateEvidence(gateEvaluation, ["piiFailuresMax", "keywordFailuresMax"]));
 
@@ -142,6 +153,30 @@ export function createComplianceReporter(metadata?: ComplianceRunMetadata): Repo
 
       const verdict = gateEvaluation.passed ? "PASS" : "FAIL";
       sections.push(`**Overall Verdict:** ${verdict}`);
+      sections.push("");
+
+      // Limitations & Disclaimer — mandated by 06-COMPLIANCE_SPEC.md. Included
+      // ABOVE the tamper hash so it is covered by the hash and rendered into the
+      // PDF; the report must never present itself as a legal/conformity artifact.
+      sections.push("## Limitations & Disclaimer");
+      sections.push("");
+      sections.push(
+        "This document is a **documentation aid**, not a legal compliance solution. It maps automated " +
+          "behavioral test results to selected EU AI Act articles (9, 10, 12, 13, 15) and does **not** " +
+          "cover the full Annex IV.",
+      );
+      sections.push("");
+      sections.push("- It does **not** cover all Annex IV requirements (e.g., training-data governance, human-oversight processes).");
+      sections.push("- It does **not** provide legal interpretation of the EU AI Act.");
+      sections.push("- It does **not** replace a conformity assessment by notified bodies.");
+      sections.push("- It **does** provide structured, timestamped, hashable test evidence.");
+      sections.push("- It **does** map test results to relevant regulatory requirements.");
+      sections.push("");
+      sections.push(
+        `*This report was generated automatically by KindLM v${versionLabel}. It does not constitute ` +
+          "legal advice. Organizations should consult a qualified legal professional for EU AI Act " +
+          "compliance interpretation, and the report should be reviewed before submission to regulatory authorities.*",
+      );
       sections.push("");
 
       // Content hash — same results always produce the same hash (reproducibility)

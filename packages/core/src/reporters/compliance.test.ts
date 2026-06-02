@@ -65,6 +65,34 @@ describe("createComplianceReporter", () => {
     expect(output.content).toContain("Article 15");
   });
 
+  it("is titled as a documentation draft, not a compliance artifact", async () => {
+    const reporter = createComplianceReporter(makeMetadata());
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
+    expect(output.content).toContain("Documentation Draft");
+  });
+
+  it("includes the mandated legal disclaimer and limitations (not legal advice)", async () => {
+    const reporter = createComplianceReporter(makeMetadata());
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
+    const lower = output.content.toLowerCase();
+    expect(lower).toContain("not constitute legal advice");
+    expect(lower).toContain("qualified legal professional");
+    expect(lower).toContain("notified bodies");
+    // Disclaimer must be covered by the tamper hash → it appears before the hash footer.
+    const disclaimerIdx = output.content.indexOf("does not constitute legal advice");
+    const hashIdx = output.content.indexOf("Tamper Evidence Hash");
+    expect(disclaimerIdx).toBeGreaterThan(-1);
+    expect(disclaimerIdx).toBeLessThan(hashIdx);
+  });
+
+  it("does not overclaim Annex IV data governance under Article 10", async () => {
+    const reporter = createComplianceReporter(makeMetadata());
+    const output = await reporter.generate(makeRunResult(), makeGateEval());
+    // Art 10 section must scope itself to runtime output-PII evidence, and note
+    // that Annex IV training-data governance is out of scope (audit H13).
+    expect(output.content.toLowerCase()).toContain("out of scope");
+  });
+
   it("includes SHA-256 tamper evidence hash", async () => {
     const reporter = createComplianceReporter(makeMetadata());
     const output = await reporter.generate(makeRunResult(), makeGateEval());
