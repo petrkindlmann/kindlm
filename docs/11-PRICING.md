@@ -33,6 +33,6 @@ A hosted dashboard for team collaboration, test history, and compliance storage.
 | SSO / SAML | — | — | ✓ |
 | Audit log API | — | — | ✓ |
 | Webhook / Slack notifications | — | ✓ | ✓ |
-| API rate limit | 100 req/hr | 1,000 req/hr | 10,000 req/hr |
+| API rate limit | 100 req/min | 1,000 req/min | 10,000 req/min |
 | Support | GitHub Issues | Email | Dedicated |
 | SLA | — | — | 99.9% |

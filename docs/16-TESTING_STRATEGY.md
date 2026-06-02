@@ -55,11 +55,10 @@ Core is pure logic with zero side effects. Every function takes input and return
 |--------|-------------|---------|
 | `config/parser.ts` | Valid YAML → typed config, invalid YAML → specific errors | `"unknown assertion type 'tool_caled'" error` |
 | `config/schema.ts` | Zod validation edge cases | Optional fields, nested defaults, string coercion |
-| `assertions/tool-called.ts` | Match/no-match with various arg patterns | Partial args, nested args, wildcards, wrong tool |
-| `assertions/tool-order.ts` | Sequence matching with extras allowed | `[A, B, C]` matches `[A, X, B, C]` |
+| `assertions/tool-calls.ts` | Match/no-match with various arg patterns, plus order/sequence matching | Partial args, nested args, wrong tool, `[A, B, C]` matches `[A, X, B, C]` |
 | `assertions/schema.ts` | AJV validation, contains/notContains (case-insensitive), maxLength | Valid JSON, invalid JSON, non-JSON response, `$ref`, case-insensitive substring matching |
 | `assertions/judge.ts` | Score parsing, threshold comparison | Score 0.8 vs threshold 0.7 = pass |
-| `assertions/no-pii.ts` | Regex detection per PII type | SSN, CC, email, phone, IBAN, custom patterns |
+| `assertions/pii.ts` | Regex detection per PII type | SSN, CC, email, phone, IBAN, custom patterns |
 | `assertions/keywords.ts` | Present/absent, case sensitivity, regex | Substring match, whole word, regex pattern |
 | `assertions/drift.ts` | Similarity scoring, threshold comparison | Identical = 1.0, different = low score |
 | `assertions/latency.ts` | Threshold comparison | 500ms vs 1000ms limit = pass |
@@ -67,11 +66,11 @@ Core is pure logic with zero side effects. Every function takes input and return
 | `providers/registry.ts` | Provider string parsing, lookup | `"openai:gpt-4o"` → OpenAI adapter |
 | `engine/runner.ts` | Test execution flow, multi-run aggregation | 3 runs, 2 pass = 66.7% rate |
 | `engine/gate.ts` | Pass/fail gate evaluation | 92% vs 90% threshold = pass |
-| `reporters/terminal.ts` | Output formatting | Colors, alignment, summary line |
+| `reporters/pretty.ts` | Output formatting | Colors, alignment, summary line |
 | `reporters/json.ts` | Complete report structure | All fields present, valid JSON |
 | `reporters/junit.ts` | Valid JUnit XML | Parseable by CI systems |
 | `reporters/compliance.ts` | Annex IV section mapping | Each assertion type maps to correct article |
-| `baseline/manager.ts` | Save, load, compare, list | File I/O, JSON round-trip, diff calculation |
+| `baseline/store.ts`, `baseline/builder.ts`, `baseline/compare.ts` | Save, load, build, compare | File I/O, JSON round-trip, diff calculation |
 
 **Integration tests** (`packages/core/src/__tests__/integration/`):
 

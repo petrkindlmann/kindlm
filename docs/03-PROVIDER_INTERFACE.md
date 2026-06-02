@@ -852,9 +852,10 @@ Added in v2.0.0. Passthrough HTTP POST adapter that points kindlm at any MCP (Mo
 ```yaml
 providers:
   mcp:
-    endpoint: http://localhost:8080
+    serverUrl: http://localhost:8080
+    toolName: my-tool
     headers:
-      Authorization: "Bearer ${env.MCP_TOKEN}"
+      Authorization: "env:MCP_TOKEN"
 
 models:
   - id: my-mcp-agent

@@ -254,8 +254,8 @@ Token is validated by hashing and looking up in the `tokens` table. Revoked toke
 
 ```
 POST /v1/auth/tokens
-  Body: { name: string, scope: "full" | "ci" | "readonly", projectId?: string, expiresInDays?: number }
-  Response: { token: string, id: string, expiresAt: string | null }
+  Body: { name: string, scope?: "full" | "ci" | "readonly", projectId?: string, expiresAt?: string (ISO timestamp) }
+  Response: { token, id, name, scope, projectId, expiresAt, createdAt }
   Note: The raw token is returned ONLY in this response. Store it securely.
 
 GET /v1/auth/tokens
@@ -302,12 +302,8 @@ GET /v1/suites/:suiteId
 
 ```
 POST /v1/projects/:projectId/runs
-  Body: {
-    suiteId: string,
-    metadata: { commitSha?, branch?, environment?, triggeredBy? }
-  }
-  Response: { runId, createdAt }
-  Headers: Idempotency-Key recommended
+  Body: { suiteId: string, commitSha?, branch?, environment?, triggeredBy? }
+  Response: full run object (id, status=running, ...) with HTTP 201
 
 POST /v1/runs/:runId/results
   Body: {
@@ -326,8 +322,8 @@ POST /v1/runs/:runId/results
       toolCalls?, rawResponse?
     }]
   }
-  Response: { uploaded: true, resultCount: number }
-  Headers: Idempotency-Key required
+  Response: { count: number } with HTTP 201
+  Headers: Idempotency-Key optional (when supplied, the response is cached for 24h and replayed on retry)
 
 PATCH /v1/runs/:runId
   Body: { status: "completed" | "failed", finishedAt: string }
@@ -398,12 +394,7 @@ Per-org limits enforced via D1 counter table:
 | Team | 1,000 | 5,000 | 1 GB |
 | Enterprise | 10,000 | Custom | Custom |
 
-Rate limit headers returned on every response:
-```
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 1708012800
-```
+The rate limiter does not emit `X-RateLimit-*` response headers. When the per-org (or per-IP for public routes) limit is exceeded, the API returns HTTP 429 with `{ "error": "Rate limit exceeded. Try again later." }`.
 
 ---
 
@@ -554,7 +545,7 @@ The Cloud API enforces feature limits based on the organization's plan. The `pla
 | Compliance PDF export | — | ✓ | ✓ |
 | Signed compliance reports | — | — | ✓ |
 | SSO / SAML | — | — | ✓ |
-| Audit log API (`/v1/audit-log`) | — | — | ✓ |
+| Audit log API (`/v1/audit`) | — | — | ✓ |
 | Webhook / Slack notifications | — | ✓ | ✓ |
 | API rate limit | 100 req/hr | 1,000 req/hr | 10,000 req/hr |
 | Support | GitHub Issues | Email | Dedicated |
@@ -694,7 +685,7 @@ const isValid = await crypto.subtle.verify(
 
 Webhooks are dispatched asynchronously using `waitUntil()` after the PATCH `/v1/runs/:id` endpoint updates a run's status to `completed` or `failed`.
 
-**Important:** Delivery is fire-and-forget — failed deliveries are not retried. If your endpoint is down, you will miss the notification. Use the polling API (`GET /v1/projects/:projectId/runs`) as a fallback for critical workflows.
+**Important:** Delivery is best-effort. Each delivery is attempted up to twice (one retry, ~1s apart, 5s timeout per attempt) but there is no durable retry queue, so if your endpoint stays down you will miss the notification. Use the polling API (`GET /v1/projects/:projectId/runs`) as a fallback for critical workflows.
 
 ---
 

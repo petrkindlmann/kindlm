@@ -94,13 +94,13 @@ Custom scripts give you maximum flexibility. You pay for it with maintenance —
 | Compliance reports | Built-in (EU AI Act) | No | Manual |
 | JUnit XML output | Built-in | Built-in | Manual |
 | Multi-model comparison | Built-in | Built-in | Manual |
-| Red-teaming | No | Built-in | Manual |
+| Red-teaming | Built-in (prompt-injection probes) | Built-in | Manual |
 | Web UI | Cloud (paid) | Built-in | No |
-| Adversarial testing | No | Built-in | Manual |
+| Adversarial testing | Built-in | Built-in | Manual |
 | Custom graders (JS) | No | Built-in | Built-in |
 | Multi-turn simulation | Built-in | Limited | Manual |
 | Config format | YAML | YAML | Code |
-| Provider support | 6 providers | 30+ providers | Unlimited |
+| Provider support | 8 providers | 30+ providers | Unlimited |
 
 ## Migration from custom scripts
 

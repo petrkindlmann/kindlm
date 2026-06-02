@@ -61,7 +61,9 @@ const ProvidersSchema = z.object({
   gemini: ProviderConfigSchema.optional(),
   mistral: ProviderConfigSchema.optional(),
   cohere: ProviderConfigSchema.optional(),
-  ollama: ProviderConfigSchema.optional(),
+  ollama: OllamaProviderConfigSchema.optional(),
+  http: HttpProviderConfigSchema.optional(),
+  mcp: McpProviderConfigSchema.optional(),
 }).refine(
   (providers) => Object.keys(providers).some((k) => providers[k as keyof typeof providers] !== undefined),
   { message: "At least one provider must be configured" }
@@ -85,7 +87,7 @@ const ModelSchema = z.object({
   id: NonEmptyString.describe(
     "Unique identifier for this model config, referenced in reports"
   ),
-  provider: z.enum(["openai", "anthropic", "gemini", "mistral", "cohere", "ollama"]).describe(
+  provider: z.enum(["openai", "anthropic", "ollama", "gemini", "mistral", "cohere", "http", "mcp"]).describe(
     "Must match a key in the providers section"
   ),
   model: NonEmptyString.describe(
@@ -142,6 +144,9 @@ const OutputExpectSchema = z.object({
 // --- PII guardrail ---
 const PIIGuardrailSchema = z.object({
   enabled: z.boolean().default(true),
+  detectors: z.array(z.enum(DETECTOR_NAMES)).optional().describe(
+    "Named built-in detectors to run (ssn, credit_card, email, phone, iban, ip, jwt, api_key). When omitted, the default denyPatterns set (SSN, credit card, email) is used for back-compat."
+  ),
   denyPatterns: z.array(RegexPattern).default([
     "\\b\\d{3}-\\d{2}-\\d{4}\\b",           // US SSN
     "\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b", // Credit card
@@ -201,9 +206,6 @@ const ToolCallExpectSchema = z.object({
   ),
   order: z.number().int().min(0).optional().describe(
     "Expected position in the sequence of tool calls (0-indexed)"
-  ),
-  responseContains: z.string().optional().describe(
-    "Assert the simulated tool response contains this substring"
   ),
 });
 
@@ -369,12 +371,6 @@ const ComplianceSchema = z.object({
 
 const UploadSchema = z.object({
   enabled: z.boolean().default(false),
-  includeArtifacts: z.boolean().default(false).describe(
-    "Upload raw prompt inputs and model outputs. Disabled by default for privacy."
-  ),
-  redactPatterns: z.array(RegexPattern).optional().describe(
-    "Patterns to redact from artifacts before upload (applied on top of PII guardrails)"
-  ),
   apiUrl: z.string().url().default("https://api.kindlm.com/v1").describe(
     "Cloud API URL. Override for self-hosted deployments."
   ),
@@ -412,7 +408,7 @@ export const KindLMConfigSchema = z.object({
   ),
   upload: UploadSchema.default({}),
   defaults: z.object({
-    repeat: z.number().int().min(1).default(1).describe("Default repeat count per test case"),
+    repeat: z.number().int().min(1).max(100).default(3).describe("Default repeat count per test case. Defaults to 3 for statistical reliability."),
     concurrency: z.number().int().min(1).max(32).default(4).describe("Default concurrency for test execution"),
     timeoutMs: z.number().int().min(1000).default(60000).describe("Default timeout per provider call in ms"),
     judgeModel: z.string().optional().describe(

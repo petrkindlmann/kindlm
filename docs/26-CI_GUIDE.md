@@ -64,9 +64,13 @@ To get both JUnit and JSON output without running tests twice, run once with JUn
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
 
-Or save the JSON report as an artifact:
+Or run a second pass that writes a JSON report and save it as an artifact:
 
 ```yaml
+      - run: kindlm test --reporter json > kindlm-report.json
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -81,7 +85,7 @@ Generate EU AI Act compliance docs automatically on main branch pushes:
 ```yaml
       - name: Run tests with compliance
         if: github.ref == 'refs/heads/main'
-        run: kindlm test --compliance --reporter json > kindlm-report.json
+        run: kindlm test --compliance > compliance-report.md
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
@@ -89,7 +93,7 @@ Generate EU AI Act compliance docs automatically on main branch pushes:
         if: github.ref == 'refs/heads/main'
         with:
           name: compliance-report
-          path: compliance-reports/
+          path: compliance-report.md
 ```
 
 ## Multiple providers
@@ -172,7 +176,7 @@ jobs:
 
       - name: Generate compliance report
         if: github.ref == 'refs/heads/main'
-        run: kindlm test --compliance
+        run: kindlm test --compliance > compliance-report.md
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
@@ -180,8 +184,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
-          name: compliance-reports
-          path: compliance-reports/
+          name: compliance-report
+          path: compliance-report.md
 ```
 
 ## GitLab CI

@@ -20,9 +20,9 @@ npm run build
 # Run tests
 npm run test
 
-# Run the CLI locally
-cd packages/cli
-npm run dev -- test ../../examples/basic-prompt-test/kindlm.yaml
+# Run the CLI locally (build first, then invoke the binary)
+npm run build --workspace=@kindlm/cli
+node packages/cli/dist/kindlm.js test -c examples/basic-tool-call.yaml
 ```
 
 ---
@@ -92,7 +92,7 @@ cd packages/core && npx vitest src/assertions/schema.test.ts
 - **Explicit return types** on exported functions.
 - **Prefer `interface` over `type`** for object shapes that might be extended.
 - **Prefer `const` over `let`**. Never use `var`.
-- **No classes unless needed** — prefer plain functions and objects. Classes are acceptable for adapters (OpenAI, Anthropic) where statefulness makes sense.
+- **No classes unless needed** — prefer plain functions and objects. Providers and assertions are factory functions (`createOpenAIAdapter`, `createSchemaAssertion`), not classes. The only class is the `ProviderError` error type.
 - **Named exports only** — no default exports (except in `bin/kindlm.ts`).
 
 ### Naming
@@ -108,7 +108,7 @@ cd packages/core && npx vitest src/assertions/schema.test.ts
 
 ### Error Handling
 
-- Use typed errors (`ProviderError`, `ConfigError`) not generic `Error`
+- Use typed errors (`ProviderError`) not generic `Error`
 - Always include an error code for programmatic handling
 - Include context in error messages: what was expected vs. what happened
 - Never swallow errors silently
@@ -124,11 +124,11 @@ cd packages/core && npx vitest src/assertions/schema.test.ts
 ```typescript
 // Example test
 import { describe, it, expect } from "vitest";
-import { SchemaAssertion } from "./schema";
+import { createSchemaAssertion } from "./schema";
 
-describe("SchemaAssertion", () => {
+describe("createSchemaAssertion", () => {
   it("passes when JSON is valid against schema", async () => {
-    const assertion = new SchemaAssertion("json", "./fixtures/test.schema.json");
+    const assertion = createSchemaAssertion({ format: "json", schemaFile: "./fixtures/test.schema.json" });
     const results = await assertion.evaluate({
       outputText: '{"name": "test", "value": 42}',
       toolCalls: [],
@@ -139,7 +139,7 @@ describe("SchemaAssertion", () => {
   });
 
   it("fails with SCHEMA_PARSE_ERROR when output is not JSON", async () => {
-    const assertion = new SchemaAssertion("json", "./fixtures/test.schema.json");
+    const assertion = createSchemaAssertion({ format: "json", schemaFile: "./fixtures/test.schema.json" });
     const results = await assertion.evaluate({
       outputText: "not json at all",
       toolCalls: [],

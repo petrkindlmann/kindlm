@@ -578,7 +578,6 @@ export class ToolCallAssertion implements Assertion {
 **Additional tool call assertion fields:**
 
 - **`argsSchema`** — Path to a JSON Schema file to validate tool call arguments. Fails with `TOOL_CALL_ARGS_SCHEMA_INVALID` if the arguments don't match.
-- **`responseContains`** — Assert that the simulated tool response contains a specific substring. Useful for verifying the agent received the expected data from a tool.
 
 #### Three ordering modes
 
@@ -960,7 +959,5 @@ Pass rates are computed per-assertion across all runs, not per-test. If no asser
 | Exit Code | Meaning |
 |-----------|---------|
 | 0 | All gates passed |
-| 1 | One or more gates failed |
-| 2 | Config invalid (parse or validation error) |
-| 3 | Provider error (auth, network, timeout) |
-| 4 | Internal error (unexpected exception) |
+| 1 | One or more gates failed, or any error (config invalid, provider error, internal error) |
+| 130 | Interrupted (SIGINT / Ctrl-C) |

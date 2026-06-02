@@ -33,7 +33,7 @@ components:
       bearerFormat: "klm_*"
       description: |
         API token generated in dashboard or via `kindlm login`.
-        Format: `klm_` prefix + 48 random hex characters.
+        Format: `klm_` prefix + 32 random hex characters.
 
   schemas:
     Error:
@@ -250,7 +250,7 @@ components:
       properties:
         type:
           type: string
-          enum: [tool_called, tool_not_called, tool_order, schema, judge, no_pii, keywords_present, keywords_absent, drift, latency, cost]
+          enum: [tool_called, tool_not_called, tool_order, schema, judge, pii, keywords_present, keywords_absent, drift, latency, cost]
         pass:
           type: boolean
         score:

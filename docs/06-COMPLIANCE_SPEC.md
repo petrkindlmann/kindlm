@@ -15,7 +15,7 @@ This is NOT a full GRC (Governance, Risk, Compliance) platform. KindLM focuses n
 | Article | Requirement | KindLM Coverage |
 |---------|------------|-----------------|
 | Art. 9 | Risk management system | Partial — test coverage metrics, failure categorization |
-| Art. 10 | Data governance | Not covered (training data is out of scope) |
+| Art. 10 | Data governance | Partial — output PII guardrail evidence only (training-data governance is out of scope) |
 | Art. 11 | Technical documentation (Annex IV) | Primary target — test records, metrics, system description |
 | Art. 12 | Record-keeping | Test execution logs with timestamps and hashes |
 | Art. 13 | Transparency | System description, intended purpose, limitations |

@@ -262,10 +262,10 @@ kindlm test
 Lock in the current results so you can detect regressions later:
 
 ```bash
-kindlm baseline set kindlm-report.json --label "v1.0"
+kindlm baseline set
 ```
 
-After a prompt change, run again with `--baseline latest` to see what drifted.
+After a prompt change, run `kindlm baseline compare` to see what drifted.
 
 ## Next steps
 
