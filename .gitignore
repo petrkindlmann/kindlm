@@ -43,3 +43,19 @@ tmp/
 
 # ── GSD baseline (auto-generated) ──
 .bg-shell/
+
+# ── Local-only planning drafts (kept on disk, not committed) ──
+# .planning/ itself IS tracked; these are work-in-progress phase/research
+# artifacts that should stay local until promoted through the GSD flow.
+.planning/phases/19-reliability-statistical-foundations/19-01-PLAN.md
+.planning/phases/19-reliability-statistical-foundations/19-02-PLAN.md
+.planning/phases/19-reliability-statistical-foundations/19-03-PLAN.md
+.planning/phases/19-reliability-statistical-foundations/19-04-PLAN.md
+.planning/phases/21-judge-rigor/
+.planning/phases/22-failure-first-terminal/
+.planning/phases/23-ci-integration/
+.planning/phases/25-config-at-scale/
+.planning/phases/27-documentation-refresh/
+.planning/phases/28-tech-debt-cleanup/
+.planning/milestones/M001-redteam/S03-attack-grading/
+.planning/research/v2.4-market-signal.md
