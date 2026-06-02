@@ -1,6 +1,6 @@
 {
   "name": "@kindlm/cli",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -52,7 +52,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@kindlm/core": "^2.3.1",
+    "@kindlm/core": "^2.3.2",
     "chalk": "^5.4.0",
     "chokidar": "^4.0.3",
     "commander": "^13.0.0",
