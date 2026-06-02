@@ -1,0 +1,41 @@
+{
+  "name": "kindlm",
+  "version": "2.3.2",
+  "type": "module",
+  "license": "MIT",
+  "description": "Behavioral regression testing for AI agents. Installs the KindLM CLI (@kindlm/cli) and exposes the `kindlm` command.",
+  "keywords": [
+    "ai",
+    "llm",
+    "testing",
+    "cli",
+    "agents",
+    "tool-calls",
+    "ci-cd"
+  ],
+  "homepage": "https://kindlm.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petrkindlmann/kindlm.git",
+    "directory": "packages/kindlm"
+  },
+  "bugs": {
+    "url": "https://github.com/petrkindlmann/kindlm/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "kindlm": "./bin/kindlm.mjs"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@kindlm/cli": "^2.3.2"
+  }
+}
