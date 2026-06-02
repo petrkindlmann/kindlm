@@ -33,22 +33,23 @@ KindLM handles two categories of sensitive data:
 Provider API keys are **never stored by KindLM**. They're resolved at runtime from environment variables.
 
 ```yaml
-# kindlm.yaml — keys are env var REFERENCES, not values
+# kindlm.yaml — keys are env var NAME references, never raw values
 providers:
-  - id: openai
-    model: gpt-4o
-    api_key: ${OPENAI_API_KEY}  # Resolved at runtime
+  openai:
+    apiKeyEnv: OPENAI_API_KEY    # Name of the env var; resolved at runtime
+  anthropic:
+    apiKeyEnv: ANTHROPIC_API_KEY
 
-  - id: anthropic
-    model: claude-sonnet-4-5-20250514
-    api_key: ${ANTHROPIC_API_KEY}
+models:
+  - id: gpt-4o
+    provider: openai
+    model: gpt-4o
 ```
 
 ### Resolution order:
 
-1. Environment variable (e.g., `OPENAI_API_KEY`)
-2. `.env` file in project root (loaded via `dotenv`, not committed)
-3. Config file `${VAR_NAME}` syntax (resolved to env var)
+1. Config `apiKeyEnv` names an environment variable (e.g., `OPENAI_API_KEY`)
+2. The CLI reads that variable from `process.env` at runtime
 
 ### Protections:
 
@@ -58,7 +59,7 @@ providers:
 | No key in logs | Logger redacts any string matching API key patterns (`sk-*`, `klm_*`) |
 | No key in reports | JSON/JUnit/compliance reporters never include provider config |
 | No key in baselines | Baseline files contain responses only, not request auth |
-| `.env` in `.gitignore` | `kindlm init` adds `.env` to `.gitignore` if not already present |
+| Keys kept out of config | `kindlm init` scaffolds `apiKeyEnv` env-var references, never literal keys |
 
 ### Key pattern detection (redaction):
 
@@ -66,7 +67,7 @@ providers:
 const KEY_PATTERNS = [
   /sk-[a-zA-Z0-9]{20,}/g,          // OpenAI
   /sk-ant-[a-zA-Z0-9-]{20,}/g,     // Anthropic
-  /klm_[a-f0-9]{48}/g,             // KindLM Cloud token
+  /klm_[a-f0-9]{32}/g,             // KindLM Cloud token
 ];
 
 function redact(text: string): string {
@@ -85,11 +86,11 @@ function redact(text: string): string {
 ### Token format
 
 ```
-klm_ + 48 hex characters
-Example: klm_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6
+klm_ + 32 hex characters
+Example: klm_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
 ```
 
-Generated server-side using `crypto.getRandomValues()`. Stored hashed (SHA-256) in D1. The raw token is shown once to the user and never stored in plaintext on the server.
+Generated server-side using `crypto.getRandomValues()` over 16 random bytes (32 hex chars). Stored hashed (SHA-256) in D1. The raw token is shown once to the user and never stored in plaintext on the server.
 
 ### Authentication flow
 
@@ -106,7 +107,7 @@ Generated server-side using `crypto.getRandomValues()`. Stored hashed (SHA-256) 
 | Event | Action |
 |-------|--------|
 | Login | New token generated, old tokens for this device revoked |
-| Logout (`kindlm logout`) | Token revoked server-side, local file deleted |
+| Logout (`kindlm login --logout`) | Token revoked server-side, local file deleted |
 | 90 days of inactivity | Token expires, user must re-login |
 | Suspicious activity | Admin can revoke all org tokens from dashboard |
 

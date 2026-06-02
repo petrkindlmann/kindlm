@@ -52,7 +52,7 @@
 | Pass/fail gates | 3 | `--gate 90` sets threshold |
 | `kindlm init` command (scaffolding) | 1 | Creates starter `kindlm.yaml` |
 | `kindlm validate` command | 1 | Config validation without API calls |
-| Suite/test filtering (`-s`, `-t`, `--grep`) | 1 | Run subset of tests |
+| Suite filtering (`-s`/`--suite`) | 1 | Run subset of tests |
 | Ollama adapter | 2 | Local model support |
 
 **Milestone:** Full CLI feature-complete. Can init, validate, test, filter, report.
@@ -197,7 +197,7 @@
 
 ## Current Status
 
-v2.1.0 shipped 2026-04-02. Roadmap empty — next milestone not yet planned.
+v2.3.2 shipped. Roadmap empty — next milestone not yet planned.
 
 ---
 

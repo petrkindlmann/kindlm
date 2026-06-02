@@ -296,4 +296,4 @@ The CLI needs argument parsing, subcommands, help text, and flag handling.
 | oclif (Salesforce) | Full framework, plugin system | Very heavy, enterprise-oriented |
 
 ### Decision
-**Commander.js.** It's the most widely understood CLI framework in the Node.js ecosystem. Contributors will immediately recognize the patterns. The API is simple and our CLI only has 6 commands — we don't need a framework.
+**Commander.js.** It's the most widely understood CLI framework in the Node.js ecosystem. Contributors will immediately recognize the patterns. The API is simple and our CLI only has a handful of commands — we don't need a framework.

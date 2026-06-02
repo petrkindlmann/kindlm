@@ -168,10 +168,10 @@ async complete(request: ProviderRequest): Promise<Result<ProviderResponse>> {
 
 ### Retry logic
 
-Retries happen in the engine, not in adapters. Adapters are stateless — they make one request and return one Result.
+Retries happen inside each provider adapter via a shared `withRetry` helper — the adapter wraps its own HTTP call and retries transient failures before returning a response.
 
 ```typescript
-// packages/core/src/engine/retry.ts
+// packages/core/src/providers/retry.ts
 const RETRYABLE_CODES: ErrorCode[] = [
   'PROVIDER_RATE_LIMIT',
   'PROVIDER_TIMEOUT',
@@ -321,9 +321,9 @@ Examples:
 
 We intentionally keep it simple — 0 or 1. CI systems only need pass/fail.
 
-### `--verbose` flag:
+### Debug output:
 
-Adds stack traces, full provider response bodies, timing per assertion, and retry attempts to output.
+Set `DEBUG=kindlm*` to add stack traces, full provider response bodies, timing per assertion, and retry attempts to output. (There is no `--verbose` flag on `kindlm test`.)
 
 ---
 
@@ -365,7 +365,7 @@ All Cloud API errors return consistent JSON:
 
 ```
 kindlm test              → Only errors and summary
-kindlm test --verbose    → Errors, warnings, info, debug details
+DEBUG=kindlm* kindlm test → Errors, warnings, info, debug details
 DEBUG=kindlm* kindlm test → Full debug output (Node.js debug module)
 ```
 

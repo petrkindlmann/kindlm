@@ -5,7 +5,7 @@ Regression testing and compliance guardrails for agentic AI workflows.
 ```bash
 npm install -g @kindlm/cli
 kindlm init
-kindlm test kindlm.yaml
+kindlm test
 ```
 
 ---
@@ -80,7 +80,7 @@ gates:
 ```
 
 ```bash
-$ kindlm test kindlm.yaml
+$ kindlm test
 
   ✓ refund-request (claude-sonnet) 3/3 passed [1.2s]
 
@@ -127,11 +127,11 @@ The engine runs a multi-turn conversation: sends the prompt, intercepts tool cal
 ### Baseline Drift Detection
 
 ```bash
-# Save a baseline
-kindlm baseline set kindlm-report.json --label "v2.0-release"
+# Save a baseline from the current test results
+kindlm baseline set
 
 # Future runs compare against it
-kindlm test kindlm.yaml --baseline latest
+kindlm baseline compare
 ```
 
 Drift is measured using LLM-as-judge comparison by default — it understands semantic changes, not just string differences.
@@ -149,13 +149,13 @@ compliance:
     operator: "ACME Corp"
 ```
 
-Generates a structured markdown document mapping test results to EU AI Act Annex IV requirements, with SHA-256 artifact hashes for audit trail.
+Generates a structured markdown DRAFT mapping test results to selected EU AI Act articles (9, 10, 12, 13, 15), with SHA-256 artifact hashes for audit trail. It does not cover the full Annex IV and does not assert conformity.
 
 ## CI Integration
 
 ```yaml
 # GitHub Actions
-- run: kindlm test kindlm.yaml --reporter junit --concurrency 4 --timeout 30000 > junit.xml
+- run: kindlm test --reporter junit --concurrency 4 --timeout 30000 > junit.xml
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -168,7 +168,8 @@ KindLM Cloud is live at [api.kindlm.com](https://api.kindlm.com). Upload results
 
 ```bash
 kindlm login
-kindlm test kindlm.yaml --upload true
+kindlm test
+kindlm upload
 ```
 
 The CLI works fully offline with every feature. Cloud is optional and adds:

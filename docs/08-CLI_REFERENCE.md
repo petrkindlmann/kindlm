@@ -15,41 +15,35 @@ npx @kindlm/cli test kindlm.yaml
 
 ### `kindlm init`
 
-Scaffolds a new KindLM project in the current directory.
+Writes a starter `kindlm.yaml` to the current directory.
 
 ```bash
 kindlm init
-kindlm init --template agent     # agent-focused template
-kindlm init --template basic     # simple prompt test template
-kindlm init --template compliance # EU AI Act compliance template
+kindlm init --force   # overwrite an existing kindlm.yaml
 ```
 
-**Templates:**
-- `basic` — minimal config with a single prompt test and judge assertion
-- `agent` — tool-calling agent with simulated tools, tool call assertions, and PII guardrails
-- `compliance` — includes the `compliance:` section with EU AI Act metadata fields pre-filled
+**Flags:**
+- `--force` — overwrite an existing `kindlm.yaml` (otherwise the command refuses and exits 1)
 
 **Creates:**
 ```
-kindlm.yaml               # Config file
-schemas/                   # JSON schema directory
-  example.schema.json      # Example output schema
-.kindlm/                  # Local data directory (gitignored)
-  baselines/               # Baseline snapshots
+kindlm.yaml               # A single starter config (OpenAI gpt-4o prompt test with contains + PII guardrail)
 ```
 
-**Exit codes:** 0 success, 1 write error
+**Exit codes:** 0 success, 1 if `kindlm.yaml` already exists (without `--force`) or on write error
 
 ---
 
-### `kindlm validate <config>`
+### `kindlm validate`
 
 Validates a config file without executing any tests or calling any providers.
 
 ```bash
-kindlm validate kindlm.yaml
-kindlm validate ./path/to/config.yaml
+kindlm validate
+kindlm validate -c ./path/to/config.yaml
 ```
+
+The config path is supplied via `-c, --config` (default `kindlm.yaml`); there is no positional config argument.
 
 **Validates:**
 - YAML syntax

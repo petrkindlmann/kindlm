@@ -166,7 +166,7 @@ kindlm/
 ├── turbo.json                        # Turborepo pipeline config
 ├── package.json                      # Root workspace config
 ├── tsconfig.base.json                # Shared TS config
-├── .eslintrc.js                      # Shared lint config
+├── eslint.config.js                  # Shared lint config (ESLint 9 flat config)
 ├── .prettierrc                       # Shared formatting
 ├── LICENSE                           # MIT
 ├── README.md
@@ -214,7 +214,7 @@ kindlm/
 | Turborepo | Monorepo build orchestration | `turbo.json` |
 | TypeScript 5.4+ | Strict mode, project references | `tsconfig.base.json` |
 | Vitest | Unit + integration tests | Per-package `vitest.config.ts` |
-| ESLint | Linting (flat config) | `.eslintrc.js` |
+| ESLint | Linting (flat config) | `eslint.config.js` |
 | Prettier | Formatting | `.prettierrc` |
 | Changesets | Versioning + changelog | `.changeset/` |
 | tsup | Bundle CLI + core for npm | Per-package `tsup.config.ts` |
