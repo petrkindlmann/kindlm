@@ -454,6 +454,16 @@ async function runAssertions(
   return results;
 }
 
+/** Sum the `judgeCostUsd` reported by judge assertions across a result set. */
+function sumJudgeCost(results: AssertionResult[]): number {
+  let total = 0;
+  for (const r of results) {
+    const c = (r.metadata as { judgeCostUsd?: unknown } | undefined)?.judgeCostUsd;
+    if (typeof c === "number" && Number.isFinite(c)) total += c;
+  }
+  return total;
+}
+
 // ============================================================
 // Execute a single test × model × run
 // ============================================================
@@ -551,6 +561,20 @@ async function executeUnit(
     const allResults = [...perTurnResults, ...finalResults];
     const allPassed = allResults.every((r) => r.passed);
 
+    // Judge assertions make their own billable LLM calls. Fold the judge cost
+    // they report into the test's total so reported cost and aggregate totals
+    // don't undercount when judges are used (H6). Note: the per-test cost *gate*
+    // still evaluates against the provider-call cost only, because the cost
+    // assertion runs in the same batch as the judge and cannot see the judge's
+    // cost before it completes; the reported total below is the accurate figure.
+    const judgeCostTotal = sumJudgeCost(allResults);
+    const totalCostEstimate =
+      costEstimate === null
+        ? judgeCostTotal > 0
+          ? judgeCostTotal
+          : null
+        : costEstimate + judgeCostTotal;
+
     try {
       emit({
         type: "test.completed",
@@ -559,7 +583,7 @@ async function executeUnit(
         run: runIndex,
         passed: allPassed,
         durationMs: conversation.totalLatencyMs,
-        costUsd: costEstimate,
+        costUsd: totalCostEstimate,
       });
     } catch { /* fire-and-forget */ }
 
@@ -571,7 +595,7 @@ async function executeUnit(
       assertions: allResults,
       latencyMs: conversation.totalLatencyMs,
       tokenUsage: conversation.totalUsage,
-      costEstimateUsd: costEstimate,
+      costEstimateUsd: totalCostEstimate,
       fromCache,
     };
   } catch (e) {
