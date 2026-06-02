@@ -164,21 +164,22 @@ trace:
 
 Manage local baselines.
 
-```bash
-# Save current report as a baseline
-kindlm baseline set kindlm-report.json --label "v2.1-release"
+Each subcommand re-runs the live suite from your config; baselines are keyed by suite name (there is no report-file argument or `--label`).
 
-# List baselines
+```bash
+# Run the suite and save the result as the baseline for that suite
+kindlm baseline set -c kindlm.yaml
+
+# List saved baselines
 kindlm baseline list
 
-# Compare a report against a baseline
-kindlm baseline compare kindlm-report.json --baseline "v2.1-release"
-
-# Remove a baseline
-kindlm baseline remove "v2.1-release"
+# Run the suite again and compare against the saved baseline
+kindlm baseline compare -c kindlm.yaml
 ```
 
-Baselines are stored in `.kindlm/baselines/` as JSON snapshots. Each baseline contains the output text per test case (for drift comparison) and the summary metrics (for delta reporting).
+Options: `-c, --config <path>`, `--runs <count>`; `set` also accepts `--force` (save even if tests failed).
+
+Baselines are stored in `.kindlm/baselines/` as JSON snapshots keyed by suite name. Each baseline contains the output text per test case (for drift comparison) and the summary metrics (for delta reporting).
 
 ---
 
@@ -394,7 +395,7 @@ kindlm-test:
     OPENAI_API_KEY: $OPENAI_API_KEY
   script:
     - npm install -g @kindlm/cli
-    - kindlm test kindlm.yaml --format json --junit junit.xml --out kindlm-report.json
+    - kindlm test --reporter junit -c kindlm.yaml > junit.xml
   artifacts:
     reports:
       junit: junit.xml

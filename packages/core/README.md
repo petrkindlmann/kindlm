@@ -1,45 +1,121 @@
-# KindLM
+# @kindlm/core
 
 ![CI](https://github.com/petrkindlmann/kindlm/actions/workflows/ci.yml/badge.svg)
 
-Behavioral regression testing for AI agents. Test what your agents **do** — not just what they say.
+The zero-I/O business-logic engine behind [KindLM](https://www.npmjs.com/package/@kindlm/cli) — behavioral regression testing for AI agents. Test what your agents **do**, not just what they say.
 
-## Why KindLM?
+> **Most users want the CLI, not this package.** Install [`@kindlm/cli`](https://www.npmjs.com/package/@kindlm/cli) and write a `kindlm.yaml`. This package is the embeddable engine (config parsing, provider adapters, assertions, the test runner, reporters) for people building tools on top of KindLM. It performs **no I/O** — all HTTP, file access, and console output are injected via interfaces.
 
-LLM evals measure text quality. KindLM tests **behavior** — the tool calls your agent makes, the decisions it takes, and whether it leaks PII or violates compliance rules. It runs in CI so regressions never ship.
+## What's in here
 
-## Features
-
-- **Tool call assertions** — verify agents call the right tools with the right arguments, in the right order
-- **Schema validation** — structured output checked against JSON Schema (AJV)
-- **PII detection** — catch leaked SSNs, credit cards, emails, phone numbers, IBANs
-- **LLM-as-judge** — score responses against natural-language criteria (0.0–1.0)
-- **Drift detection** — semantic + field-level comparison against saved baselines
-- **Keyword guards** — require or forbid specific phrases in output
-- **Latency & cost budgets** — fail tests that exceed time or token-cost thresholds
-- **EU AI Act compliance** — generate Annex IV documentation from test results
-- **CI-native** — exit code 0/1, JUnit XML reporter, GitHub Actions ready
+- **Config** — Zod schema + YAML parser for `kindlm.yaml`, variable interpolation
+- **Providers** — adapters for OpenAI, Anthropic, Gemini, Mistral, Cohere, Ollama, plus a generic `http` adapter and an `mcp` passthrough
+- **Assertions** — tool calls, JSON Schema (AJV), PII guardrails, LLM-as-judge, drift, keywords, latency, cost
+- **Engine** — concurrency, retries, timeouts, multi-run aggregation, gates
+- **Reporters** — pretty, JSON, JUnit XML, and a compliance-documentation draft
 
 ## Supported Providers
 
-| Provider | Example config | Notes |
-|----------|---------------|-------|
-| OpenAI | `openai:gpt-4o` | |
-| Anthropic | `anthropic:claude-sonnet-4-5-20250929` | |
-| Ollama | `ollama:llama3` | Local models |
-| Google Gemini | `google:gemini-2.0-flash` | |
-| AWS Bedrock | `bedrock:anthropic.claude-sonnet-4-5-20250929-v1:0` | |
-| Azure OpenAI | `azure:my-gpt4o-deployment` | |
-| MCP | `mcp:<server-url>` | Passthrough HTTP POST to any MCP server (v2.0.0) |
+The provider key is the value of `provider:` in your `models:` block.
 
-## Feature Flags
+| Provider key | Example model | Notes |
+|--------------|---------------|-------|
+| `openai` | `gpt-4o` | Also covers Azure OpenAI via a custom `baseUrl` (see below) |
+| `anthropic` | `claude-sonnet-4-5-20250929` | |
+| `gemini` | `gemini-2.0-flash` | Google Gemini |
+| `mistral` | `mistral-large-latest` | Cost estimation not yet available |
+| `cohere` | `command-r-plus` | Cost estimation not yet available |
+| `ollama` | `llama3` | Local models; no cost |
+| `http` | any | Generic OpenAI-compatible HTTP endpoint |
+| `mcp` | — | Passthrough HTTP POST to an MCP-style tool server |
 
-KindLM reads optional feature flags from `.kindlm/config.json`. Use the `isEnabled()` helper (exported from `@kindlm/core`) to gate behavior behind a flag at runtime.
+**Azure OpenAI:** use the `openai` provider with a custom `baseUrl` pointed at your Azure deployment endpoint. There is no dedicated `azure` provider.
+
+**Not yet supported:** AWS Bedrock, a first-class Azure adapter with deployment routing, and the full MCP JSON-RPC `tools/call` envelope (the `mcp` adapter sends a simplified `{toolName, arguments}` shape).
+
+## Installation
+
+```bash
+npm install @kindlm/core
+```
+
+## Usage
+
+`@kindlm/core` is dependency-injection–first. You supply an `HttpClient` (and, where needed, a `FileReader`); core never touches the network or filesystem itself.
+
+```ts
+import { parseConfig, runSuite } from "@kindlm/core";
+
+// `httpClient` and `fileReader` are interfaces you implement (the CLI
+// provides Node.js-backed versions). Core stays pure and testable.
+const result = await parseConfig(yamlText, { fileReader });
+if (!result.success) {
+  console.error(result.error); // Result<T, KindlmError> — core never throws
+  process.exit(1);
+}
+```
+
+See [`docs/03-PROVIDER_INTERFACE.md`](../../docs/03-PROVIDER_INTERFACE.md) and [`docs/04-ASSERTION_ENGINE.md`](../../docs/04-ASSERTION_ENGINE.md) for the full embedding surface.
+
+## Config format
+
+The canonical config is `kindlm.yaml` (the same file the CLI's `kindlm init` scaffolds):
+
+```yaml
+kindlm: 1
+project: "my-agent"
+
+suite:
+  name: "refund-agent"
+
+providers:
+  openai:
+    apiKeyEnv: "OPENAI_API_KEY"
+
+models:
+  - id: "gpt-4o"
+    provider: "openai"
+    model: "gpt-4o"
+    params:
+      temperature: 0
+
+prompts:
+  refund:
+    system: "You are a refund support agent. Use lookup_order(order_id) to find orders."
+    user: "{{message}}"
+
+tests:
+  - name: "looks-up-order"
+    prompt: "refund"
+    vars:
+      message: "I want to return order #12345"
+    tools:
+      - name: "lookup_order"
+        responses:
+          - when: { order_id: "12345" }
+            then: { order_id: "12345", status: "eligible" }
+    expect:
+      toolCalls:
+        - tool: "lookup_order"
+          argsMatch: { order_id: "12345" }
+      guardrails:
+        pii:
+          enabled: true
+      judge:
+        - criteria: "Response is empathetic and professional"
+          minScore: 0.8
+```
+
+Assertions live under each test's `expect:` block: `toolCalls[]`, `output` (format/contains/notContains/maxLength), `judge[]`, `guardrails.pii`, `guardrails.keywords`, `baseline.drift`, `latency.maxMs`, `cost.maxUsd`.
+
+## Feature flags
+
+Optional feature flags are read from `.kindlm/config.json` under the `features` key. The flag-reading helper (`isEnabled(flags, name)`) is provided by **`@kindlm/cli`** (it reads the file from disk, which zero-I/O core cannot do) — it is not exported from this package.
 
 ```json
 {
-  "flags": {
-    "betaJudge": true,
+  "features": {
+    "betaJudge": false,
     "costGating": false,
     "runArtifacts": false
   }
@@ -48,84 +124,12 @@ KindLM reads optional feature flags from `.kindlm/config.json`. Use the `isEnabl
 
 | Flag | Description |
 |------|-------------|
-| `betaJudge` | Enable experimental LLM-as-judge scoring improvements |
-| `costGating` | Enforce `expect.cost.maxUsd` gates (off by default in v2.x) |
-| `runArtifacts` | Persist raw provider responses alongside test results |
+| `betaJudge` | Runs the LLM-as-judge 3× and takes the median (a 2-of-3 quorum). Triples judge cost. |
+| `costGating` | Enforces the suite-level `gates.costMaxUsd` run budget. Per-test `expect.cost.maxUsd` assertions always run regardless of this flag. |
+| `runArtifacts` | Persists raw provider responses alongside test results |
 
-If `.kindlm/config.json` is absent or a flag is omitted, `isEnabled()` returns `false`. Added in v2.0.0.
-
-## Quick Start
-
-```bash
-npm install -g @kindlm/cli
-kindlm init
-```
-
-Edit the generated `kindlm.yaml`:
-
-```yaml
-version: "1"
-defaults:
-  provider: openai:gpt-4o
-  temperature: 0
-  runs: 3
-
-suites:
-  - name: refund-agent
-    system_prompt: "You are a refund support agent."
-    tests:
-      - name: looks-up-order
-        input: "I want to return order #12345"
-        assert:
-          - type: tool_called
-            value: lookup_order
-          - type: no_pii
-          - type: judge
-            criteria: "Response is empathetic and professional"
-            threshold: 0.8
-```
-
-Run your tests:
-
-```bash
-kindlm test
-```
-
-Output:
-
-```
-refund-agent
-  ✓ looks-up-order (3/3 runs passed)
-    ✓ tool_called: lookup_order
-    ✓ no_pii
-    ✓ judge: 0.92 ≥ 0.8
-
-1 suite, 1 test, 3 assertions — all passed
-```
-
-## CI Integration
-
-```yaml
-# .github/workflows/test.yml
-- run: npm install -g @kindlm/cli
-- run: kindlm test --reporter junit --output results.xml
-```
-
-## Repository Layout
-
-```
-packages/
-  core/       @kindlm/core  — Business logic, zero I/O dependencies
-  cli/        @kindlm/cli   — CLI entry point
-  cloud/      @kindlm/cloud — Cloudflare Workers API + D1 database
-docs/         Technical specs and documentation
-site/         Documentation website (Next.js)
-```
-
-## Documentation
-
-Full docs: [kindlm.dev](https://kindlm.dev) | Source: [`docs/`](./docs/)
+If `.kindlm/config.json` is absent or a flag is omitted, the flag is treated as `false`.
 
 ## License
 
-MIT (core + CLI) | AGPL (cloud)
+MIT.

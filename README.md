@@ -42,22 +42,27 @@ LLM evals measure text quality. KindLM tests **behavior** — the tool calls you
 - **LLM-as-judge** — score responses against natural-language criteria (0.0–1.0)
 - **Drift detection** — semantic + field-level comparison against saved baselines
 - **Keyword guards** — require or forbid specific phrases in output
-- **Latency & cost budgets** — fail tests that exceed time or token-cost thresholds
-- **EU AI Act compliance** — generate Annex IV documentation from test results
+- **Latency & cost budgets** — fail tests that exceed time thresholds, or cost thresholds for priced models (OpenAI, Anthropic, Gemini; Mistral/Cohere/HTTP have no pricing yet)
+- **EU AI Act documentation draft** — map test/gate results to selected EU AI Act articles. A starting point, **not legal advice** and not a conformity assessment
 - **CI-native** — exit code 0/1, JUnit XML reporter, GitHub Actions ready
 - **Worktree isolation** — run tests in isolated git worktrees with `--isolate`
 
 ## Supported Providers
 
-| Provider | Example config |
-|----------|---------------|
-| OpenAI | `openai:gpt-4o` |
-| Anthropic | `anthropic:claude-sonnet-4-5-20250929` |
-| Google Gemini | `google:gemini-2.0-flash` |
-| Mistral | `mistral:mistral-large-latest` |
-| Cohere | `cohere:command-r-plus` |
-| Ollama | `ollama:llama3` |
-| MCP | `mcp:http://localhost:8080` |
+Configure providers under `providers:` and reference them by key from `models:` (see Quick Start). The `provider:` key is one of:
+
+| Provider | `provider:` key | Example model |
+|----------|-----------------|---------------|
+| OpenAI | `openai` | `gpt-4o` |
+| Anthropic | `anthropic` | `claude-sonnet-4-5-20250929` |
+| Google Gemini | `gemini` | `gemini-2.0-flash` |
+| Mistral | `mistral` | `mistral-large-latest` |
+| Cohere | `cohere` | `command-r-plus` |
+| Ollama | `ollama` | `llama3` |
+| HTTP | `http` | any OpenAI-compatible endpoint |
+| MCP | `mcp` | passthrough to an MCP-style tool server |
+
+Azure OpenAI works via the `openai` provider with a custom `baseUrl`. AWS Bedrock is not yet supported.
 
 ## Quick Start
 
