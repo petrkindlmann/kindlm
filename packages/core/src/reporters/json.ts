@@ -28,6 +28,7 @@ export function createJsonReporter(version?: string): Reporter {
           status: suite.status,
           tests: suite.tests.map((test) => ({
             name: test.name,
+            modelId: test.modelId,
             status: test.status,
             assertions: test.assertions.map((a) => ({
               ...a,
